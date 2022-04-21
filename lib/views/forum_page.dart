@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:async';
 
 import 'package:alumni/firebase_options.dart';
 import 'package:alumni/widgets/PostWidget.dart';
@@ -15,55 +15,53 @@ class ForumPage extends StatefulWidget {
 
 class _ForumPageState extends State<ForumPage> {
   List<List> postSummariesData = [];
+  List<PostSummaryDetails> data = [];
+  var lastDoc = null;
 
-  void getPosts() async {
-    await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform);
-    var fireStoreInstance = FirebaseFirestore.instance;
-    var postSummaries = fireStoreInstance.collection('postSummaries');
-    var querySnapshot = await postSummaries.get();
+  Future<List<List>> getPosts() async {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform);
+    }
+    print("app initialised");
+    var postSummaries = FirebaseFirestore.instance.collection('postSummaries');
+    var querySnapshotFunction;
+    QuerySnapshot<Map<String, dynamic>> querySnapshot;
+    if (lastDoc == null) {
+      querySnapshotFunction = postSummaries.get;
+    } else {
+      querySnapshotFunction = postSummaries.startAfterDocument(lastDoc).get;
+    }
+    querySnapshot = await querySnapshotFunction(null);
 
-    final allData = (querySnapshot.docs.map((doc) {
-      Map value = doc.data();
+    print("Query snap taken");
+    var allDocSnap = querySnapshot.docs;
+    lastDoc = allDocSnap[allDocSnap.length - 1];
+    final List<Map<String, dynamic>> allData = (querySnapshot.docs.map((doc) {
+      Map<String, dynamic> value = doc.data();
+      Timestamp temp = value["postTime"];
+      value["postTime"] = temp.toDate();
       value["id"] = doc.id;
       return value;
-    }));
-    print(allData);
+    }).toList());
+    for (Map<String, dynamic> map in allData) {
+      postSummariesData.add([
+        map["title"],
+        map["author"],
+        map["votes"],
+        map["commentNumber"],
+        map["postContent"],
+        map["postTime"],
+        map["reaction"],
+        map["saveStatus"]
+      ]);
+      print("data added");
+    }
+    return postSummariesData;
   }
 
   @override
   void initState() {
-    getPosts();
-    Random randomGenerator = Random();
-    List<bool?> reactionArray = [true, false, null];
-    for (int i = 0; i < 10; i++) {
-      DateTime randomDate = DateTime.now().subtract(Duration(
-          days: randomGenerator.nextInt(31),
-          hours: randomGenerator.nextInt(24),
-          minutes: randomGenerator.nextInt(60),
-          seconds: randomGenerator.nextInt(60)));
-      postSummariesData.add([
-        "title" + i.toString(),
-        "author" + i.toString(),
-        randomGenerator.nextInt(3000),
-        randomGenerator.nextInt(300),
-        "Post Content " + i.toString(),
-        randomDate,
-        reactionArray[randomGenerator.nextInt(3)],
-        reactionArray[randomGenerator.nextInt(3)]
-      ]);
-    }
-
-    postSummariesData.add([
-      "This is a really title to see how this will be shown in the post and comments page. This is still too I wish to make this larger.",
-      "A random author with a very long name to see how the software handles very long author name",
-      1233,
-      211,
-      "This is the post's content, this going to be really really long to see if it's working properly or not.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.This is the post's content, this going to be really really long to see if it's working properly or not.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-      DateTime(2022, 1, 21, 03, 44),
-      true,
-      true
-    ]);
     super.initState();
   }
 
@@ -71,22 +69,59 @@ class _ForumPageState extends State<ForumPage> {
   Widget build(BuildContext context) {
     return Container(
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-        child: ListView.builder(
-          itemCount: postSummariesData.length,
-          itemBuilder: (BuildContext context, int index) {
-            return Post(
-              postID: 0,
-              title: postSummariesData[index][0],
-              author: postSummariesData[index][1],
-              votes: postSummariesData[index][2],
-              commentNumber: postSummariesData[index][3],
-              postContent: postSummariesData[index][4],
-              postTime: postSummariesData[index][5],
-              reaction: postSummariesData[index][6],
-              saveStatus: postSummariesData[index][7],
-            );
-          },
-        ));
+        child: FutureBuilder(
+            future: getPosts(),
+            builder: ((context, snapshot) {
+              List<Widget> children;
+              if (snapshot.hasData) {
+                return ListView.builder(
+                  itemCount: postSummariesData.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Post(
+                      postID: 0,
+                      title: postSummariesData[index][0],
+                      author: postSummariesData[index][1],
+                      votes: postSummariesData[index][2],
+                      commentNumber: postSummariesData[index][3],
+                      postContent: postSummariesData[index][4],
+                      postTime: postSummariesData[index][5],
+                      reaction: postSummariesData[index][6],
+                      saveStatus: postSummariesData[index][7],
+                    );
+                  },
+                );
+              } else if (snapshot.hasError) {
+                children = <Widget>[
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 60,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text('Error: ${snapshot.error}'),
+                  )
+                ];
+              } else {
+                children = const <Widget>[
+                  SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: CircularProgressIndicator(),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 16),
+                    child: Text('Fetching posts'),
+                  )
+                ];
+              }
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: children,
+                ),
+              );
+            })));
   }
 }
 /*        Post(
@@ -113,10 +148,10 @@ class PostSummaryDetails {
       {required this.id,
       required this.title,
       required this.author,
-      required this.votes,
-      required this.commentNumber,
+      this.votes = 0,
+      this.commentNumber = 0,
       required this.postContent,
       required this.postTime,
-      required this.reaction,
-      required this.saveStatus});
+      this.reaction,
+      this.saveStatus});
 }

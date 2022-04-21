@@ -44,7 +44,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
             "postContent": postContent,
             "postTime": postTime
           }).then((value) {});
-          Navigator.pop(context);
         };
       });
     }
