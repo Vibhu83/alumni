@@ -1,9 +1,15 @@
+import 'package:alumni/firebase_options.dart';
 import 'package:alumni/views/chat_page.dart';
 import 'package:alumni/views/events_page.dart';
 import 'package:alumni/views/forum_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
-import 'package:alumni/views/sign_up_and_in_page.dart';
+import 'package:alumni/views/register_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+
+import 'login_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -14,67 +20,120 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
-  late final List<Widget> _widgetOptions;
+
+  late final List<Widget> _widgetOptions = <Widget>[
+    const HomePage(),
+    const EventsPage(),
+    const ChatPage(),
+    const ForumPage()
+  ];
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  late final List<FloatingActionButton?> _floatingActionButtons;
+  late final FirebaseApp app;
+  late double screenHeight;
+  late double screenWidth;
+  late double appBarHeight;
 
-  double appBarHeight = 32;
+  late final List<Widget?> _floatingActionButtons = [
+    //Home Floating Button
+    null,
+    //Events Floating Button
+    FloatingActionButton(
+      onPressed: () {},
+      child: const Icon(Icons.add),
+    ),
+    //Chat Floating Button
+    FloatingActionButton(
+      onPressed: () {},
+      child: const Icon(Icons.message),
+    ),
+    //Forum Floating Button
+    FloatingActionButton(
+      onPressed: () {
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const CreatePostPage()));
+      },
+      child: const Icon(Icons.add),
+    ),
+  ];
+
+  bool? isAUserLoggedIn;
+
+  late final Widget loginModalSheet;
+
+  Future<FirebaseApp> initialiseApp() async {
+    if (Firebase.apps.isEmpty) {
+      var temp = await Firebase.initializeApp(
+              options: DefaultFirebaseOptions.currentPlatform)
+          .then((value) => value);
+      return temp;
+    } else {
+      return Firebase.apps[Firebase.apps.length - 1];
+    }
+  }
+
+  void _setUserLoginStatus() {
+    if (FirebaseAuth.instanceFor(app: app).currentUser != null) {
+      isAUserLoggedIn = true;
+    } else {
+      isAUserLoggedIn = false;
+    }
+  }
+
   @override
   void initState() {
-    _widgetOptions = <Widget>[
-      const HomePage(),
-      const EventsPage(),
-      const ChatPage(),
-      const ForumPage()
-    ];
-    _floatingActionButtons = [
-      //Home Floating Button
-      null,
-      //Events Floating Button
-      FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add),
-      ),
-      //Chat Floating Button
-      FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.message),
-      ),
-      //Forum Floating Button
-      FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const CreatePostPage()));
-        },
-        child: const Icon(Icons.add),
-      ),
-    ];
-
+    initialiseApp().then((value) {
+      app = value;
+      _setUserLoginStatus();
+    });
     super.initState();
+    loginModalSheet = const LoginRegisterPopUp();
+    if (isAUserLoggedIn == false) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        showModalBottomSheet(
+            context: context,
+            builder: (BuildContext context) {
+              return loginModalSheet;
+            });
+      });
+    }
   }
 
   @override
   void dispose() {
+    _widgetOptions.clear();
+    _floatingActionButtons.clear();
+    app.delete();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    screenHeight = MediaQuery.of(context).size.height;
+    screenWidth = MediaQuery.of(context).size.width;
+    appBarHeight = screenHeight * 0.045;
     List<Widget> pageFeatureWidgets = [];
-    if (_selectedIndex == 3) {
-      IconButton searchIconButton = IconButton(
+    if (_selectedIndex == 1) {
+      pageFeatureWidgets.add(IconButton(
+        onPressed: () {},
+        icon: const Icon(Icons.history),
+        iconSize: 20,
+        splashRadius: 1,
+        padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
+      ));
+    } else if (_selectedIndex == 3) {
+      pageFeatureWidgets.add(IconButton(
         iconSize: 20,
         splashRadius: 1,
         padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
         icon: const Icon(Icons.search),
         onPressed: () {},
-      );
-      pageFeatureWidgets.add(searchIconButton);
+      ));
     }
     Row pageFeatures = Row(
       children: pageFeatureWidgets,
@@ -117,7 +176,15 @@ class _MainPageState extends State<MainPage> {
                       padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
                       icon: const Icon(Icons.person),
                       onPressed: () {
-                        Scaffold.of(context).openEndDrawer();
+                        if (isAUserLoggedIn == true) {
+                          Scaffold.of(context).openEndDrawer();
+                        } else {
+                          showModalBottomSheet(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return loginModalSheet;
+                              });
+                        }
                       },
                     );
                   },
@@ -127,7 +194,8 @@ class _MainPageState extends State<MainPage> {
           ),
         ),
         drawer: _buildMenuDrawer(context),
-        endDrawer: _buildProfileDrawer(context),
+        endDrawer:
+            isAUserLoggedIn == false ? null : _buildProfileDrawer(context),
         body: _widgetOptions.elementAt(_selectedIndex),
         bottomNavigationBar: _buildBottomNavBar());
   }
@@ -173,10 +241,11 @@ class _MainPageState extends State<MainPage> {
 
   Container _buildMenuDrawer(BuildContext context) {
     //Make some logic to change the trailing icon var depending on the themeMode
+    double topPad = screenHeight * 0.082;
+    double bottomPad = screenHeight * 0.01;
     Icon trailingIcon = const Icon(Icons.nightlight);
-    double topPad = appBarHeight * 2;
     return Container(
-      padding: EdgeInsets.fromLTRB(0, topPad, 0, 12),
+      padding: EdgeInsets.fromLTRB(0, topPad, 0, bottomPad),
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
             topRight: Radius.circular(4), bottomRight: Radius.circular(4)),
@@ -200,7 +269,7 @@ class _MainPageState extends State<MainPage> {
                 ),
               ),
               Container(
-                height: 50,
+                height: 54,
                 width: double.maxFinite,
                 decoration: BoxDecoration(
                     color: Colors.grey.shade900,
@@ -220,10 +289,7 @@ class _MainPageState extends State<MainPage> {
                     icon: trailingIcon,
                     onPressed: () {},
                   ),
-                  onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => const MainPage()));
-                  },
+                  onTap: () {},
                 ),
               )
             ],
@@ -233,33 +299,72 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  void logoutUser() async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.of(context).popUntil(ModalRoute.withName(""));
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return const MainPage();
+    }));
+  }
+
   Widget _buildProfileDrawer(BuildContext context) {
-    double topPad = appBarHeight * 2;
+    double topPad = screenHeight * 0.082;
+    double bottomPad = screenHeight * 0.01;
     return Container(
-      padding: EdgeInsets.fromLTRB(0, topPad, 0, 12),
+      padding: EdgeInsets.fromLTRB(0, topPad, 0, bottomPad),
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(4), bottomLeft: Radius.circular(4)),
         child: Drawer(
           backgroundColor: const Color.fromARGB(0xFF, 0x26, 0x26, 0x26),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 20),
-            child: Column(children: [
-              IconButton(
-                  iconSize: 200,
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => const WelcomePage()));
-                  },
-                  icon: const Icon(Icons.person)),
-              Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                  child: _buildDrawListTile("My Profile", () {})),
-              _buildDrawListTile("Notifications", () {}),
-              _buildDrawListTile("Saved Posts", () {}),
-              _buildDrawListTile("Inbox", () {}),
-              _buildDrawListTile("Manage Your Profile", () {})
-            ]),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  alignment: Alignment.center,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Column(children: [
+                    IconButton(
+                        iconSize: 200,
+                        onPressed: () {},
+                        icon: const Icon(Icons.person)),
+                    Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+                        child: _buildDrawListTile("My Profile", () {})),
+                    _buildDrawListTile("Notifications", () {}),
+                    _buildDrawListTile("Saved Posts", () {}),
+                    _buildDrawListTile("Inbox", () {}),
+                  ]),
+                ),
+              ),
+              Container(
+                height: 54,
+                width: double.maxFinite,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade900,
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(1),
+                          spreadRadius: 4,
+                          blurRadius: 4,
+                          offset: const Offset(0, 7))
+                    ],
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(4.0))),
+                child: ListTile(
+                  leading: const Icon(Icons.settings),
+                  title: const Text("Settings"),
+                  trailing: IconButton(
+                    icon: Icon(Icons.logout_rounded),
+                    onPressed: () {
+                      logoutUser();
+                    },
+                  ),
+                  onTap: () {},
+                ),
+              )
+            ],
           ),
         ),
       ),
@@ -360,19 +465,111 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  Widget loginModalSheet = const LoginRegisterPopUp();
+
+  late FirebaseApp app;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<FirebaseApp> initialiseApp() async {
+    var temp = await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform)
+        .then((value) => value);
+    return temp;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(0, 0, 0, 15),
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-      child: SingleChildScrollView(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _buildProfileMessage(context),
-        // _buildTopAlum(),
-        // _buildTopEvents(),
-        _buildTopPosts()
-      ])),
+    return FutureBuilder(
+      future: initialiseApp(),
+      builder: (context, AsyncSnapshot<FirebaseApp> snapshot) {
+        List<Widget> children;
+        if (snapshot.hasData) {
+          app = snapshot.data!;
+          return Container(
+            margin: const EdgeInsets.fromLTRB(0, 0, 0, 15),
+            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+            child: SingleChildScrollView(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  FutureBuilder(
+                    future: getUserSummary(),
+                    builder: (context, AsyncSnapshot<List> snapshot) {
+                      List<Widget> children;
+                      if (snapshot.hasData) {
+                        var data = snapshot.data;
+                        return _buildProfileMessage(
+                            context, data![0], data[1], data[2], data[3]);
+                      } else if (snapshot.hasError) {
+                        children = <Widget>[
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 60,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Text('Error: ${snapshot.error}'),
+                          )
+                        ];
+                      } else {
+                        children = const <Widget>[
+                          SizedBox(
+                            width: 60,
+                            height: 60,
+                            child: CircularProgressIndicator(),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(top: 16),
+                            child: Text('Fetching posts'),
+                          )
+                        ];
+                      }
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: children,
+                        ),
+                      );
+                    },
+                  ),
+                  // _buildTopAlum(),
+                  // _buildTopEvents(),
+                  _buildTopPosts()
+                ])),
+          );
+        } else if (snapshot.hasError) {
+          children = <Widget>[
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 60,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text('Error: ${snapshot.error}'),
+            )
+          ];
+        } else {
+          children = const <Widget>[
+            SizedBox(
+              width: 60,
+              height: 60,
+              child: CircularProgressIndicator(),
+            ),
+          ];
+        }
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: children,
+          ),
+        );
+      },
     );
   }
 
@@ -391,31 +588,53 @@ class _HomePageState extends State<HomePage> {
           SizedBox(
             height: 20,
           ),
-          //_buildAPostSummary("title", "Me", true, 144, false)
         ]));
   }
 
-  Widget _buildProfileMessage(BuildContext context) {
+  Future<List> getUserSummary() async {
+    FirebaseAuth auth = FirebaseAuth.instanceFor(app: app);
     bool isSignedIn = false;
-    String title;
-    String subtitle;
+    User? currentUser = auth.currentUser;
+    if (currentUser != null) {
+      isSignedIn = true;
+    }
+    String title = "Hello ";
+    String subtitle = "";
     Function? onPressingNotificationButton;
     if (isSignedIn == true) {
       onPressingNotificationButton = () {};
-      title = "Hello Vibhu";
+      var temp = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser?.uid)
+          .get();
+      title = "Hello, " + temp.data()!["name"];
       subtitle = "";
     } else {
       title = "Not signed in";
-      subtitle = "Click here to sign in/register";
+      subtitle = "Click here to login in/register";
       onPressingNotificationButton = null;
     }
+    return [title, subtitle, onPressingNotificationButton, isSignedIn];
+  }
+
+  Widget _buildProfileMessage(
+      BuildContext context,
+      String title,
+      String subtitle,
+      Function? onPressingNotificationButton,
+      bool isUserSignedIn) {
     return Container(
         padding: const EdgeInsets.only(top: 0, bottom: 0, left: 24, right: 24),
         margin: const EdgeInsets.only(bottom: 16, top: 0),
         child: ListTile(
             onTap: () {
-              Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const WelcomePage()));
+              if (isUserSignedIn == false) {
+                showModalBottomSheet(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return loginModalSheet;
+                    });
+              } else {}
             },
             style: ListTileStyle.list,
             dense: true,
@@ -434,5 +653,115 @@ class _HomePageState extends State<HomePage> {
               onPressed: onPressingNotificationButton as void Function()?,
               icon: const Icon(Icons.notifications),
             )));
+  }
+}
+
+class LoginRegisterPopUp extends StatelessWidget {
+  const LoginRegisterPopUp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
+      decoration: BoxDecoration(color: Colors.transparent.withAlpha(164)),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        height: 360,
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.all(
+            Radius.circular(6),
+          ),
+          color: Color.fromARGB(255, 19, 37, 36),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "You are not logged in!",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                "Login or Register to access all the features",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(.6),
+                ),
+              ),
+              const SizedBox(height: 80),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginView(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.maxFinite / 2,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: const Text(
+                    'Login',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xff2E933C),
+                ),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterView(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.maxFinite,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 13,
+                  ),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(
+                        8,
+                      ),
+                    ),
+                    border: Border.all(
+                      color: Color(0xffB4C5E4),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Text(
+                    'Register now',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

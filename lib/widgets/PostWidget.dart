@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Post extends StatelessWidget {
-  final int postID;
+  final String postID;
   final String title;
   final String author;
   final int votes;

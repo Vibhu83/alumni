@@ -4,17 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class EventCard extends StatefulWidget {
-  final int eventID;
+import '../views/an_event_page.dart';
+
+class Event extends StatefulWidget {
+  final String eventID;
+  final Image? titleImage;
   final String title;
+  final int attendeeNum;
   final String eventHolder;
   final DateTime startTime;
   final Duration eventDuration;
   final String? eventLink;
-  const EventCard(
+  const Event(
       {required this.eventID,
+      this.titleImage,
       required this.title,
       required this.eventHolder,
+      required this.attendeeNum,
       required this.startTime,
       required this.eventDuration,
       this.eventLink,
@@ -22,7 +28,7 @@ class EventCard extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<EventCard> createState() => _EventCardState();
+  State<Event> createState() => _EventState();
 }
 
 String formatDateTime(DateTime dateTime) {
@@ -105,57 +111,131 @@ String formatDateTime(DateTime dateTime) {
   return returnString;
 }
 
-class _EventCardState extends State<EventCard> {
-  String title =
-      "This is my event title I wish to make it as long as possible to test my software and see how it handles very long titles";
-  String eventHolder =
-      "An Organisation which has an extremely long name, which will test how my software handles long organisational names";
-  DateTime startTime = DateTime(2021, 01, 18, 10, 30);
-  Duration eventDuration = const Duration(hours: 3);
+class _EventState extends State<Event> {
+  late String title = widget.title;
+  late String eventHolder = widget.eventHolder;
+  late DateTime startTime = widget.startTime;
 
-  String? eventLink = "";
-
-  Widget _getEventLink() {
-    if (eventLink == null) {
-      return const Text("");
-    } else {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          RichText(
-            text: TextSpan(children: [
-              TextSpan(
-                  text: "Open event\nlink",
-                  style: const TextStyle(color: Colors.blue, fontSize: 10),
-                  recognizer: TapGestureRecognizer()
-                    ..onTap = () {
-                      launch("https://pub.dev/packages/url_launcher/install");
-                    }),
-              const WidgetSpan(
-                  child: Padding(
-                padding: EdgeInsets.only(left: 2.0, bottom: 2),
-                child: Icon(
-                  Icons.open_in_new,
-                  size: 10,
-                  color: Colors.blue,
-                ),
-              ))
-            ]),
-          ),
-        ],
-      );
-    }
-  }
+  String? eventLink = "https://pub.dev/packages/url_launcher/install";
 
   late List<Widget> eventAttributes = [];
   @override
   Widget build(BuildContext context) {
     double screenwidth = MediaQuery.of(context).size.width;
+    List<Widget> firstRowChildren = [
+      Flexible(
+        child: Padding(
+          padding: const EdgeInsets.only(right: 4.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.lato(
+                    fontSize: 18, height: 1.3, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                softWrap: false,
+              ),
+              const SizedBox(
+                height: 2,
+              ),
+              Text(
+                "By: " + eventHolder,
+                style:
+                    GoogleFonts.lato(fontSize: 11, color: Colors.grey.shade300),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+              ),
+              const SizedBox(
+                height: 6,
+              ),
+              Row(
+                children: [
+                  Text(
+                    widget.attendeeNum.toString(),
+                    style: GoogleFonts.lato(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    " Attendees",
+                    style: GoogleFonts.lato(
+                        fontSize: 14, color: Colors.grey.shade400),
+                  )
+                ],
+              ),
+              const SizedBox(
+                height: 4,
+              ),
+              Row(mainAxisAlignment: MainAxisAlignment.start, children: [
+                const Icon(
+                  Icons.event_note_rounded,
+                  size: 18,
+                ),
+                const SizedBox(
+                  width: 2,
+                ),
+                SizedBox(
+                  width: (screenwidth * .38),
+                  child: Text(
+                      "On: " +
+                          formatDateTime(startTime) +
+                          " \nFor: " +
+                          widget.eventDuration.inHours.toString() +
+                          " hours",
+                      style: GoogleFonts.lato(fontSize: 10)),
+                ),
+              ])
+            ],
+          ),
+        ),
+      ),
+    ];
+
+    if (widget.titleImage != null) {
+      firstRowChildren.add(const Placeholder(
+        fallbackHeight: 110,
+        fallbackWidth: 125,
+      ));
+    }
+    List<Widget> iconButtons = [
+      ChangingIconButton(
+        orginalColor: Colors.blue,
+        onClickColor: Colors.red,
+        onPressed: () {},
+        icon: Icons.event_available,
+        changedIcon: Icons.event_busy,
+      ),
+      ChangingIconButton(
+        orginalColor: Colors.grey,
+        onClickColor: Colors.blue,
+        onPressed: () {},
+        icon: Icons.bookmark_add_rounded,
+        changedIcon: Icons.bookmark_added_rounded,
+      ),
+      IconButton(
+          onPressed: () {
+            if (eventLink != null) {
+              launch(eventLink!);
+            }
+          },
+          icon: const Icon(Icons.open_in_new))
+    ];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
+            return AnEventPage(
+                eventID: widget.eventID,
+                title: title,
+                eventHolder: eventHolder,
+                attendeeNum: widget.attendeeNum,
+                startTime: startTime,
+                eventDuration: widget.eventDuration);
+          })));
+        },
         style: ButtonStyle(
           overlayColor: MaterialStateProperty.all(Colors.transparent),
           padding: MaterialStateProperty.all(EdgeInsets.zero),
@@ -172,66 +252,7 @@ class _EventCardState extends State<EventCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.max,
-                children: [
-                  Flexible(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 4.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: GoogleFonts.lato(
-                                fontSize: 18,
-                                height: 1.3,
-                                fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                            softWrap: false,
-                          ),
-                          const SizedBox(
-                            height: 2,
-                          ),
-                          Text(
-                            "By: " + eventHolder,
-                            style: GoogleFonts.lato(
-                                fontSize: 11, color: Colors.grey.shade300),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: false,
-                          ),
-                          const SizedBox(
-                            height: 6,
-                          ),
-                          Row(children: [
-                            const Icon(
-                              Icons.event_note_rounded,
-                              size: 18,
-                            ),
-                            const SizedBox(
-                              width: 2,
-                            ),
-                            SizedBox(
-                              width: (screenwidth * .38),
-                              child: Text(
-                                  "On: " +
-                                      formatDateTime(startTime) +
-                                      " \nFor: " +
-                                      eventDuration.inHours.toString() +
-                                      " hours",
-                                  style: GoogleFonts.lato(fontSize: 10)),
-                            ),
-                            _getEventLink(),
-                          ])
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Placeholder(
-                    fallbackHeight: 110,
-                    fallbackWidth: 125,
-                  )
-                ],
+                children: firstRowChildren,
               ),
               const SizedBox(
                 height: 8,
@@ -241,22 +262,7 @@ class _EventCardState extends State<EventCard> {
                     const BoxDecoration(color: Color.fromARGB(255, 39, 53, 57)),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ChangingIconButton(
-                      orginalColor: Colors.blue,
-                      onClickColor: Colors.red,
-                      onPressed: () {},
-                      icon: Icons.event_available,
-                      changedIcon: Icons.event_busy,
-                    ),
-                    ChangingIconButton(
-                      orginalColor: Colors.grey,
-                      onClickColor: Colors.blue,
-                      onPressed: () {},
-                      icon: Icons.bookmark_add_rounded,
-                      changedIcon: Icons.bookmark_added_rounded,
-                    )
-                  ],
+                  children: iconButtons,
                 ),
               )
             ],

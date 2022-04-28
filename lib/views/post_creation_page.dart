@@ -5,7 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CreatePostPage extends StatefulWidget {
-  const CreatePostPage({Key? key}) : super(key: key);
+  final String? postId;
+  final String? title;
+  final String? postContent;
+  const CreatePostPage({this.postId, this.title, this.postContent, Key? key})
+      : super(key: key);
 
   @override
   State<CreatePostPage> createState() => _CreatePostPageState();
@@ -13,8 +17,16 @@ class CreatePostPage extends StatefulWidget {
 
 class _CreatePostPageState extends State<CreatePostPage> {
   Function? createFireStoreDoc;
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _bodyController = TextEditingController();
+  late final TextEditingController _titleController;
+  late final TextEditingController _bodyController;
+
+  @override
+  void initState() {
+    _titleController = TextEditingController(text: widget.title);
+    _bodyController = TextEditingController(text: widget.postContent);
+    super.initState();
+  }
+
   String? _titleError;
   void checkTitle() {
     if (_titleController.text.isEmpty) {
@@ -44,6 +56,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
             "postContent": postContent,
             "postTime": postTime
           }).then((value) {});
+          Navigator.of(context).pop();
         };
       });
     }
@@ -74,29 +87,62 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
   @override
   Widget build(BuildContext context) {
+    String title;
+    String buttonText;
+    if (widget.title != null) {
+      title = "Edit the post";
+      buttonText = "Edit";
+    } else {
+      title = "Create a post";
+      buttonText = "Post";
+    }
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+    double appBarHeight = screenHeight * 0.045;
     return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(appBarHeight),
+        child: Container(
+          decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey.shade800))),
+          child: AppBar(
+            shadowColor: Colors.transparent,
+            backgroundColor: Colors.transparent,
+            shape: const RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.vertical(bottom: Radius.circular(8))),
+            leading: IconButton(
+              icon: const Icon(
+                Icons.close_rounded,
+                size: 20,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            title: Text(
+              title,
+              style: const TextStyle(fontSize: 18),
+            ),
+            actions: [
+              Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  child: TextButton(
+                      style:
+                          TextButton.styleFrom(primary: Colors.blue.shade100),
+                      onPressed: () {
+                        createFireStoreDoc!();
+                      },
+                      child: Text(
+                        buttonText,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      )))
+            ],
+          ),
         ),
-        title: const Text("Create a Post"),
-        actions: [
-          Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextButton(
-                  style: TextButton.styleFrom(primary: Colors.blue.shade100),
-                  onPressed: () {
-                    createFireStoreDoc!();
-                  },
-                  child: const Text(
-                    "Post",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  )))
-        ],
       ),
       body: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),

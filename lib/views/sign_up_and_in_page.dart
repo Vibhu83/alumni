@@ -10,10 +10,6 @@ class WelcomePage extends StatefulWidget {
 }
 
 class _WelcomePageState extends State<WelcomePage> {
-  final Image titleImage = Image.asset(
-    "assets/splash.png",
-    height: 50,
-  );
   @override
   Widget build(BuildContext context) {
     return Scaffold(

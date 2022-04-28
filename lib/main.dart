@@ -1,4 +1,8 @@
+import 'package:alumni/firebase_options.dart';
+import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
+import 'package:alumni/views/register_page.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,34 +12,12 @@ void main() {
       statusBarIconBrightness: Brightness.light));
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData.dark(),
-    home: const MainPage(),
-  ));
-}
-
-class AnEventPage extends StatefulWidget {
-  final int eventId;
-  const AnEventPage({required this.eventId, Key? key}) : super(key: key);
-
-  @override
-  State<AnEventPage> createState() => _AnEventPageState();
-}
-
-class _AnEventPageState extends State<AnEventPage> {
-  List getEventDetailsByID(int id) {
-    return [];
-  }
-
-  late List eventDetails;
-  @override
-  void initState() {
-    eventDetails = getEventDetailsByID(widget.eventId);
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container();
-  }
+      routes: {
+        "/register": (context) => const RegisterView(),
+        "/login": ((context) => const LoginView()),
+        "/Home": (context) => const MainPage()
+      },
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(),
+      home: const MainPage()));
 }

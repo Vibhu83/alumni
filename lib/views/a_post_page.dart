@@ -1,8 +1,9 @@
+import 'package:alumni/views/post_creation_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class APost extends StatelessWidget {
-  final int postID;
+  final String postID;
   final String title;
   final String author;
   final int votes;
@@ -22,20 +23,79 @@ class APost extends StatelessWidget {
       Key? key})
       : super(key: key);
 
-  List getCommentsByID(int postID) {
+  List getCommentsByID(String postID) {
     return [];
+  }
+
+  String getCurrentAccessLevel() {
+    return "admin";
+  }
+
+  String getCurrentUser() {
+    return "Vibhu";
   }
 
   @override
   Widget build(BuildContext context) {
+    IconButton deleteButton = IconButton(
+        splashRadius: 0.1,
+        onPressed: () {},
+        icon: const Icon(
+          Icons.delete_rounded,
+          size: 20,
+        ));
+    List<Widget> appBarActions = [];
+    if (getCurrentUser() == author) {
+      appBarActions.add(deleteButton);
+      appBarActions.add(IconButton(
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+            return CreatePostPage(
+              postId: postID,
+              title: title,
+              postContent: postContent,
+            );
+          }));
+        },
+        icon: const Icon(
+          Icons.edit,
+          size: 20,
+        ),
+        splashRadius: 0.1,
+      ));
+    } else if (getCurrentAccessLevel() == "admin") {
+      appBarActions.add(deleteButton);
+    }
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+    double appBarHeight = screenHeight * 0.045;
     List comments = getCommentsByID(postID);
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.close)),
+      backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(appBarHeight),
+        child: Container(
+          decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey.shade800))),
+          child: AppBar(
+            shadowColor: Colors.transparent,
+            backgroundColor: Colors.transparent,
+            shape: const RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.vertical(bottom: Radius.circular(8))),
+            leading: IconButton(
+              splashRadius: 0.1,
+              icon: const Icon(
+                Icons.close_rounded,
+                size: 20,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            actions: appBarActions,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(

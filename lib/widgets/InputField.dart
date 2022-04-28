@@ -31,6 +31,10 @@ class InputField extends StatelessWidget {
       Key? key})
       : super(key: key);
 
+  String? getError() {
+    return errorText;
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -45,6 +49,7 @@ class InputField extends StatelessWidget {
       obscureText: obscureText,
       maxLines: maxLines,
       decoration: InputDecoration(
+        focusColor: Colors.blue,
         contentPadding:
             EdgeInsets.symmetric(horizontal: 10, vertical: heightPadding),
         label: Text(
@@ -55,7 +60,7 @@ class InputField extends StatelessWidget {
         floatingLabelBehavior: FloatingLabelBehavior.always,
         floatingLabelAlignment: FloatingLabelAlignment.start,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(4),
         ),
       ),
     );

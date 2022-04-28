@@ -1,12 +1,15 @@
 // import 'package:flutter/cupertino.dart';
+import 'package:alumni/firebase_options.dart';
+import 'package:alumni/views/login_page.dart';
+import 'package:alumni/views/main_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:alumni/widgets/InputField.dart';
 import 'package:alumni/widgets/PaddingBox.dart';
 
-import '../widgets/FormButton.dart';
-
 class RegisterView extends StatefulWidget {
-  /// Callback for when this form is submitted successfully. Parameters are (email, password)
   final Function(String? email, String? password)? onSubmitted;
 
   const RegisterView({this.onSubmitted, Key? key}) : super(key: key);
@@ -16,27 +19,51 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterView extends State<RegisterView> {
-  late TextEditingController _email, _password, _confirmPassword, _id, _name;
+  late TextEditingController _email,
+      _password,
+      _confirmPassword,
+      _id,
+      _name,
+      _batchYear;
+  String? courseValue;
+  late bool switchValue;
 
-  String? emailError, passwordError, nameError, idError;
+  late String signUpAs;
+  late String buttonText;
+  String? emailError,
+      passwordError,
+      nameError,
+      idError,
+      batchYearError,
+      courseError;
   Function(String? email, String? password)? get onSubmitted =>
       widget.onSubmitted;
 
   double _strength = 0;
   String _displayText = "";
 
+  late double screenHeight;
+  late double screenWidth;
+
   @override
   void initState() {
-    super.initState();
-
+    switchValue = false;
+    signUpAs = "User";
+    buttonText = "Sign Up";
     _email = TextEditingController();
     _password = TextEditingController();
     _confirmPassword = TextEditingController();
     _id = TextEditingController();
     _name = TextEditingController();
+    _batchYear = TextEditingController();
 
     emailError = null;
     passwordError = null;
+    nameError = null;
+    idError = null;
+    batchYearError = null;
+
+    super.initState();
   }
 
   @override
@@ -46,6 +73,7 @@ class _RegisterView extends State<RegisterView> {
     _confirmPassword.dispose();
     _id.dispose();
     _name.dispose();
+    _batchYear.dispose();
 
     super.dispose();
   }
@@ -54,93 +82,289 @@ class _RegisterView extends State<RegisterView> {
     setState(() {
       emailError = null;
       passwordError = null;
+      batchYearError = null;
+      nameError = null;
+      idError = null;
     });
   }
 
   bool validate() {
     resetErrorText();
-    late String email, password, confirmPassword;
+    String? email, password, id, name, batchYear;
 
-    email = _email.text;
-    password = _password.text;
-    confirmPassword = _confirmPassword.text;
     RegExp emailExp = RegExp(
         r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$");
 
     bool isValid = true;
-    if (email.isEmpty || !emailExp.hasMatch(email)) {
-      setState(() {
-        emailError = "Email is invalid";
-      });
+    if (_name.text.isEmpty) {
+      name = "Please enter a name";
+      isValid = false;
+    }
+    if (int.tryParse(_id.text) == null) {
+      id = "ID must only have digits";
+      isValid = false;
+    } else if (_id.text.length < 6) {
+      id = "ID must be of 6 digits";
       isValid = false;
     }
 
-    if (password.isEmpty || confirmPassword.isEmpty) {
-      setState(() {
-        passwordError = "Please enter a password";
-      });
+    if (_email.text.isEmpty || !emailExp.hasMatch(_email.text)) {
+      email = "Email is invalid";
       isValid = false;
     }
-    if (password != confirmPassword) {
-      setState(() {
-        passwordError = "Passwords do not match";
-      });
+
+    var temp = int.tryParse(_batchYear.text);
+    if (temp == null) {
+      batchYear = "Must only contain digits";
+      isValid = false;
+    } else if (temp < 2000) {
+      batchYear = "Must be >= 2000";
+      isValid = false;
+    } else if (temp > DateTime.now().year) {
+      batchYear = "Must be <= " + DateTime.now().year.toString();
       isValid = false;
     }
+
+    if (_password.text.isEmpty || _confirmPassword.text.isEmpty) {
+      password = "Please enter a password";
+      isValid = false;
+    } else if (_password.text != _confirmPassword.text) {
+      password = "Passwords do not match";
+      isValid = false;
+    }
+    setState(() {
+      nameError = name;
+      idError = id;
+      emailError = email;
+      passwordError = password;
+      batchYearError = batchYear;
+    });
     return isValid;
   }
 
+  Future<String?> registerUserAndSaveDetails() async {
+    String id = _id.text;
+    String name = _name.text;
+    String email = _email.text;
+    String password = _password.text;
+    String batchYear = _batchYear.text;
+    var profilePhoto = null;
+    String accessLevel = "admin";
+    String? alumniDetails;
+    if (switchValue == false) {
+      alumniDetails = null;
+    }
+    String course;
+    if (courseValue != null) {
+      course = courseValue!;
+    } else {
+      course = "";
+    }
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
+
+    try {
+      FirebaseAuth auth = FirebaseAuth.instance;
+      var result = await auth
+          .createUserWithEmailAndPassword(email: email, password: password)
+          .then((userRecord) {
+        var uid = userRecord.user?.uid;
+        FirebaseFirestore.instance.collection("users").doc(uid).set({
+          "id": id,
+          "photo": profilePhoto,
+          "name": name,
+          "batch": batchYear,
+          "course": course,
+          "alumni": switchValue,
+          "alumni-details": alumniDetails,
+          "type": "user",
+        }).then((value) {
+          Navigator.of(context).popUntil(ModalRoute.withName(""));
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+            return const MainPage();
+          }));
+          // Navigator.push(context, MaterialPageRoute(builder: (context) {
+          //   return const MainPage();
+          // }));
+        });
+      });
+      return "Registered";
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    }
+  }
+
+  Widget _buildRegisteringDialog() {
+    return AlertDialog(
+      backgroundColor: Colors.grey.shade900,
+      actions: [
+        Container(
+          padding: EdgeInsets.zero,
+          child: TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Dismiss")),
+        ),
+      ],
+      content: FutureBuilder(
+        future: registerUserAndSaveDetails(),
+        builder: ((context, AsyncSnapshot<String?> snapshot) {
+          List<Widget> children;
+          if (snapshot.hasData) {
+            if (snapshot.data == "Registered") {
+              children = <Widget>[
+                Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.green,
+                  size: screenWidth * 0.15,
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: Text(
+                    "User Logged In",
+                    style: TextStyle(color: Colors.green),
+                  ),
+                )
+              ];
+            } else {
+              print("Error found");
+              children = <Widget>[
+                Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: screenWidth * 0.15,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text(
+                    snapshot.data!,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                )
+              ];
+            }
+          } else {
+            children = const <Widget>[
+              SizedBox(
+                child: CircularProgressIndicator(),
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: Text('Registering'),
+              )
+            ];
+          }
+          return Container(
+            height: screenHeight * 0.325,
+            width: screenWidth,
+            padding: EdgeInsets.fromLTRB(0, 50, 0, 5),
+            decoration: BoxDecoration(color: Colors.grey.shade900),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: children,
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
   void submit() {
+    _checkPassword(_password.text);
     if (validate()) {
-      if (onSubmitted != null) {
-        onSubmitted!(_email.text, _password.text);
-      }
+      showDialog(
+          context: context,
+          builder: (context) {
+            return _buildRegisteringDialog();
+          });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    screenHeight = MediaQuery.of(context).size.height;
+    screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      body: Padding(
+      body: Container(
+        decoration: const BoxDecoration(color: Color.fromARGB(255, 12, 35, 36)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ListView(
+        child: Column(
           children: [
-            _buildRegisterTitle(),
-            _buildIdField(_id),
-            buildPadding(.005, context),
-            _buildNameField(_name),
-            buildPadding(0.025, context),
-            _buildEmailField(_email),
-            buildPadding(.025, context),
-            _buildPasswordField(_password),
-            buildPadding(.01, context),
-            _buildPasswordStrengthProgress(_strength),
-            buildPadding(.01, context),
-            _buildConfirmPasswordField(_confirmPassword),
-            buildPadding(.075, context),
-            //const BatchYearPicker(),
-            FormButton(
-              text: "Sign Up",
-              onPressed: submit,
-            ),
-            buildPadding(.125, context),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: RichText(
-                text: const TextSpan(
-                  text: "I'm already a member, ",
-                  style: TextStyle(color: Colors.black),
+            Flexible(
+                child: ListView(
+              children: [
+                buildPadding(0.005, context),
+                _buildRegisterTitle(),
+                _buildIdField(_id),
+                buildPadding(0.015, context),
+                _buildNameField(_name),
+                buildPadding(0.015, context),
+                _buildEmailField(_email),
+                buildPadding(0.015, context),
+                _buildPasswordField(_password),
+                buildPadding(0.005, context),
+                _buildPasswordStrengthProgress(_strength),
+                buildPadding(0.015, context),
+                _buildConfirmPasswordField(_confirmPassword),
+                buildPadding(0.015, context),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextSpan(
-                      text: "Sign In",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    SizedBox(
+                        width: screenWidth * 0.45,
+                        child: _buildBatchYearField(_batchYear)),
+                    SizedBox(
+                        width: screenWidth * 0.45,
+                        child: _buildCourseDropDown()),
                   ],
                 ),
-              ),
+                buildPadding(0.001, context),
+                _buildSwitch(),
+                buildPadding(0.015, context),
+              ],
+            )),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SizedBox(
+                  height: screenHeight * .065,
+                  width: double.maxFinite,
+                  child: TextButton(
+                      child: Text(
+                        buttonText,
+                        style:
+                            const TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                      style: TextButton.styleFrom(
+                          backgroundColor:
+                              const Color.fromARGB(255, 100, 122, 177)),
+                      onPressed: submit),
+                ),
+                buildPadding(.01, context),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) {
+                      return const LoginView();
+                    }));
+                  },
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: const TextSpan(
+                      text: "I'm already a member, ",
+                      style: TextStyle(color: Colors.white),
+                      children: [
+                        TextSpan(
+                          text: "Sign In",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              ],
             )
           ],
         ),
@@ -149,8 +373,7 @@ class _RegisterView extends State<RegisterView> {
   }
 
   Column _buildRegisterTitle() {
-    return Column(children: [
-      buildPadding(.03, context),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text(
         "Create Account,",
         style: TextStyle(
@@ -163,11 +386,22 @@ class _RegisterView extends State<RegisterView> {
         "Sign up to get started!",
         style: TextStyle(
           fontSize: 18,
-          color: Colors.black.withOpacity(.6),
+          color: Colors.white.withOpacity(.6),
         ),
       ),
-      buildPadding(0.06, context),
+      buildPadding(0.025, context),
     ]);
+  }
+
+  InputField _buildBatchYearField(TextEditingController _batchController) {
+    return InputField(
+      errorText: batchYearError,
+      autoCorrect: false,
+      labelText: "Batch Year",
+      controller: _batchController,
+      maxLength: 4,
+      keyboardType: TextInputType.number,
+    );
   }
 
   InputField _buildEmailField(TextEditingController _email) {
@@ -179,7 +413,6 @@ class _RegisterView extends State<RegisterView> {
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
       autoFocus: false,
-      heightPadding: 4,
     );
   }
 
@@ -220,7 +453,6 @@ class _RegisterView extends State<RegisterView> {
       controller: _id,
       maxLength: 6,
       keyboardType: TextInputType.number,
-      heightPadding: 4,
       errorText: idError,
     );
   }
@@ -231,7 +463,6 @@ class _RegisterView extends State<RegisterView> {
       labelText: "Name",
       errorText: nameError,
       controller: _name,
-      heightPadding: 4,
     );
   }
 
@@ -243,7 +474,6 @@ class _RegisterView extends State<RegisterView> {
       controller: _password,
       onChanged: (value) => _checkPassword(value),
       textInputAction: TextInputAction.next,
-      heightPadding: 4,
     );
   }
 
@@ -256,7 +486,67 @@ class _RegisterView extends State<RegisterView> {
       obscureText: true,
       textInputAction: TextInputAction.done,
       controller: _confirmPassword,
-      heightPadding: 4,
+    );
+  }
+
+  Widget _buildCourseDropDown() {
+    return ButtonTheme(
+      alignedDropdown: true,
+      child: DropdownButton(
+          underline: Container(
+            height: 2,
+            color: Colors.grey,
+          ),
+          isExpanded: true,
+          value: courseValue,
+          style: const TextStyle(fontSize: 14),
+          hint: const Text("Select a course"),
+          items: <String>["BCA", "BSC", "BCOM", "BVoc"]
+              .map<DropdownMenuItem<String>>(
+                  (String value) => DropdownMenuItem<String>(
+                        child: Text(value),
+                        value: value,
+                      ))
+              .toList(),
+          onChanged: (String? newValue) {
+            setState(() {
+              courseValue = newValue!;
+            });
+          }),
+    );
+  }
+
+  Widget _buildSwitch() {
+    return Row(
+      children: [
+        SizedBox(
+          width: screenWidth * 0.33,
+          child: Text(
+            "Sign up as " + signUpAs,
+            style: const TextStyle(fontSize: 16),
+          ),
+        ),
+        Switch(
+          activeColor: Colors.green,
+          value: switchValue,
+          onChanged: (value) {
+            String temp1;
+            String temp2;
+            if (value == true) {
+              temp1 = "Alumni";
+              temp2 = "Next";
+            } else {
+              temp1 = "User";
+              temp2 = "Sign Up";
+            }
+            setState(() {
+              signUpAs = temp1;
+              buttonText = temp2;
+              switchValue = value;
+            });
+          },
+        ),
+      ],
     );
   }
 
@@ -281,7 +571,16 @@ class _RegisterView extends State<RegisterView> {
       // The message about the strength of the entered password
       Text(
         _displayText,
-        style: const TextStyle(fontSize: 10),
+        style: TextStyle(
+          fontSize: 10,
+          color: _strength <= 1 / 4
+              ? Colors.red
+              : _strength == 2 / 4
+                  ? Colors.orange
+                  : _strength == 3 / 4
+                      ? Colors.yellow
+                      : Colors.green,
+        ),
       ),
     ]);
   }

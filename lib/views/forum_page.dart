@@ -15,7 +15,6 @@ class ForumPage extends StatefulWidget {
 
 class _ForumPageState extends State<ForumPage> {
   List<List> postSummariesData = [];
-  List<PostSummaryDetails> data = [];
   var lastDoc = null;
 
   Future<List<List>> getPosts() async {
@@ -23,18 +22,16 @@ class _ForumPageState extends State<ForumPage> {
       await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform);
     }
-    print("app initialised");
     var postSummaries = FirebaseFirestore.instance.collection('postSummaries');
     var querySnapshotFunction;
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
     if (lastDoc == null) {
-      querySnapshotFunction = postSummaries.get;
+      querySnapshotFunction = postSummaries.limit(20).get;
     } else {
-      querySnapshotFunction = postSummaries.startAfterDocument(lastDoc).get;
+      querySnapshotFunction =
+          postSummaries.startAfterDocument(lastDoc).limit(20).get;
     }
-    querySnapshot = await querySnapshotFunction(null);
-
-    print("Query snap taken");
+    querySnapshot = await querySnapshotFunction();
     var allDocSnap = querySnapshot.docs;
     lastDoc = allDocSnap[allDocSnap.length - 1];
     final List<Map<String, dynamic>> allData = (querySnapshot.docs.map((doc) {
@@ -46,6 +43,7 @@ class _ForumPageState extends State<ForumPage> {
     }).toList());
     for (Map<String, dynamic> map in allData) {
       postSummariesData.add([
+        map["id"],
         map["title"],
         map["author"],
         map["votes"],
@@ -78,15 +76,15 @@ class _ForumPageState extends State<ForumPage> {
                   itemCount: postSummariesData.length,
                   itemBuilder: (BuildContext context, int index) {
                     return Post(
-                      postID: 0,
-                      title: postSummariesData[index][0],
-                      author: postSummariesData[index][1],
-                      votes: postSummariesData[index][2],
-                      commentNumber: postSummariesData[index][3],
-                      postContent: postSummariesData[index][4],
-                      postTime: postSummariesData[index][5],
-                      reaction: postSummariesData[index][6],
-                      saveStatus: postSummariesData[index][7],
+                      postID: postSummariesData[index][0],
+                      title: postSummariesData[index][1],
+                      author: postSummariesData[index][2],
+                      votes: postSummariesData[index][3],
+                      commentNumber: postSummariesData[index][4],
+                      postContent: postSummariesData[index][5],
+                      postTime: postSummariesData[index][6],
+                      reaction: postSummariesData[index][7],
+                      saveStatus: postSummariesData[index][8],
                     );
                   },
                 );
