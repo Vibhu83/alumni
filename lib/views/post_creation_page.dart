@@ -1,4 +1,6 @@
 import 'package:alumni/firebase_options.dart';
+import 'package:alumni/globals.dart';
+import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/InputField.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -38,51 +40,32 @@ class _CreatePostPageState extends State<CreatePostPage> {
       setState(() {
         _titleError = null;
         createFireStoreDoc = () async {
-          await Firebase.initializeApp(
-              options: DefaultFirebaseOptions.currentPlatform);
-          var firebaseInstance = FirebaseFirestore.instance;
           String title = _titleController.text;
-          String author = getCurrentUserName();
+          String authorId = userData["uid"];
+          String author = userData["name"];
           int votes = 0;
           int commentNumber = 0;
           String postContent = _bodyController.text;
           Timestamp postTime = Timestamp.now();
 
-          firebaseInstance.collection('postSummaries').add({
+          firestore!.collection('postSummaries').add({
+            "authorId": authorId,
             "title": title,
-            "author": author,
+            "authorName": author,
             "votes": votes,
             "commentNumber": commentNumber,
             "postContent": postContent,
             "postTime": postTime
           }).then((value) {});
-          Navigator.of(context).pop();
+          Navigator.of(context).popUntil(ModalRoute.withName(""));
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+            return const MainPage(
+              startingIndex: 3,
+            );
+          }));
         };
       });
     }
-  }
-
-  String _printDuration(Duration duration) {
-    int days = duration.inDays.abs();
-    int hours = duration.inHours.abs();
-    int mins = duration.inMinutes.abs();
-    int secs = duration.inSeconds.abs();
-    if (days != 0) {
-      hours = hours.remainder(24);
-      return days.toString() + "d" + " " + hours.toString() + "h";
-    } else if (hours != 0) {
-      mins = mins.remainder(60);
-      return hours.toString() + "h" + " " + mins.toString() + "m";
-    } else if (mins != 0) {
-      secs = secs.remainder(60);
-      return mins.toString() + "m" + " " + secs.toString() + "s";
-    } else {
-      return secs.toString() + "s";
-    }
-  }
-
-  String getCurrentUserName() {
-    return "Vibhu";
   }
 
   @override
@@ -96,8 +79,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
       title = "Create a post";
       buttonText = "Post";
     }
-    double screenHeight = MediaQuery.of(context).size.height;
-    double screenWidth = MediaQuery.of(context).size.width;
     double appBarHeight = screenHeight * 0.045;
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),

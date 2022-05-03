@@ -1,75 +1,157 @@
+import 'package:alumni/firebase_options.dart';
+import 'package:alumni/globals.dart';
+import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class APost extends StatelessWidget {
+class APost extends StatefulWidget {
+  final String? currentUID;
+  final String? currentAccessLevel;
   final String postID;
   final String title;
-  final String author;
+  final String authorId;
+  final String authorName;
   final int votes;
   final int commentNumber;
   final String postContent;
   final String postedDuration;
   final bool? reaction;
+  final bool readOnly;
   const APost(
-      {required this.postID,
+      {required this.currentUID,
+      required this.currentAccessLevel,
+      required this.postID,
       required this.title,
-      required this.author,
+      required this.authorId,
+      required this.authorName,
       required this.votes,
       required this.commentNumber,
       required this.postContent,
       required this.postedDuration,
       this.reaction,
+      this.readOnly = false,
       Key? key})
       : super(key: key);
 
-  List getCommentsByID(String postID) {
-    return [];
+  @override
+  State<APost> createState() => _APost();
+}
+
+class _APost extends State<APost> {
+  Future<bool> getData() async {
+    return true;
   }
 
-  String getCurrentAccessLevel() {
-    return "admin";
+  void deletePost() {
+    firestore!.collection("postSummaries").doc(widget.postID).delete();
+    backToForumPage();
   }
 
-  String getCurrentUser() {
-    return "Vibhu";
+  void backToForumPage() {
+    Navigator.of(context).popUntil(ModalRoute.withName(""));
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return const MainPage(
+        startingIndex: 3,
+      );
+    }));
   }
 
   @override
   Widget build(BuildContext context) {
     IconButton deleteButton = IconButton(
         splashRadius: 0.1,
-        onPressed: () {},
+        onPressed: () {
+          deletePost();
+        },
         icon: const Icon(
           Icons.delete_rounded,
           size: 20,
         ));
+    IconButton editButton = IconButton(
+      onPressed: () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+          return CreatePostPage(
+            postId: widget.postID,
+            title: widget.title,
+            postContent: widget.postContent,
+          );
+        }));
+      },
+      icon: const Icon(
+        Icons.edit,
+        size: 20,
+      ),
+      splashRadius: 0.1,
+    );
     List<Widget> appBarActions = [];
-    if (getCurrentUser() == author) {
+    print(userData["uid"]);
+    print(widget.authorId);
+    if (userData["uid"] == widget.authorId) {
       appBarActions.add(deleteButton);
-      appBarActions.add(IconButton(
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-            return CreatePostPage(
-              postId: postID,
-              title: title,
-              postContent: postContent,
-            );
-          }));
-        },
-        icon: const Icon(
-          Icons.edit,
-          size: 20,
-        ),
-        splashRadius: 0.1,
-      ));
-    } else if (getCurrentAccessLevel() == "admin") {
+      appBarActions.add(editButton);
+    } else if (userData["type"] == "admin") {
       appBarActions.add(deleteButton);
     }
-    double screenHeight = MediaQuery.of(context).size.height;
-    double screenWidth = MediaQuery.of(context).size.width;
+    return FutureBuilder(
+        future: getData(),
+        builder: (context, snapshot) {
+          List<Widget> children = [];
+          if (snapshot.hasData) {
+            return _buildPage(appBarActions);
+          } else if (snapshot.hasError) {
+            children = <Widget>[
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 60,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text('Error: ${snapshot.error}'),
+              )
+            ];
+          } else {
+            children = const <Widget>[
+              SizedBox(
+                width: 60,
+                height: 60,
+                child: CircularProgressIndicator(),
+              ),
+            ];
+          }
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: children,
+            ),
+          );
+        });
+  }
+
+  Scaffold _buildPage(List<Widget> appBarActions) {
+    Widget postButtons = const SizedBox(
+      height: 0,
+    );
+    if (userData["uid"] != null) {
+      postButtons = Container(
+        decoration: const BoxDecoration(color: Color.fromARGB(255, 39, 53, 57)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            TextButton(
+                onPressed: () {},
+                child: const Icon(Icons.arrow_upward_rounded)),
+            TextButton(
+                onPressed: () {},
+                child: const Icon(Icons.arrow_downward_rounded)),
+            TextButton(onPressed: () {}, child: const Icon(Icons.bookmark_add)),
+          ],
+        ),
+      );
+    }
     double appBarHeight = screenHeight * 0.045;
-    List comments = getCommentsByID(postID);
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
       appBar: PreferredSize(
@@ -110,7 +192,7 @@ class APost extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      title,
+                      widget.title,
                       style: GoogleFonts.lato(
                           fontSize: 16,
                           height: 1.3,
@@ -126,7 +208,11 @@ class APost extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                       child: Text(
-                        "By:" + author + " (" + postedDuration + ")",
+                        "By:" +
+                            widget.authorName +
+                            " (" +
+                            widget.postedDuration +
+                            ")",
                         style: GoogleFonts.lato(
                             fontSize: 10, color: Colors.grey.shade300),
                       ),
@@ -137,13 +223,13 @@ class APost extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          votes.toString(),
+                          widget.votes.toString(),
                           style: GoogleFonts.lato(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const Text(" \u2022 "),
                         Text(
-                          commentNumber.toString() + " comments",
+                          widget.commentNumber.toString() + " comments",
                           style: GoogleFonts.lato(
                               fontSize: 14, color: Colors.grey.shade400),
                         )
@@ -164,7 +250,7 @@ class APost extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6.0, vertical: 4),
                               child: Text(
-                                postContent,
+                                widget.postContent,
                                 style: GoogleFonts.lato(
                                     fontSize: 14, color: Colors.grey.shade50),
                               ),
@@ -172,24 +258,7 @@ class APost extends StatelessWidget {
                     const SizedBox(
                       height: 2,
                     ),
-                    Container(
-                      decoration: const BoxDecoration(
-                          color: Color.fromARGB(255, 39, 53, 57)),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          TextButton(
-                              onPressed: () {},
-                              child: const Icon(Icons.arrow_upward_rounded)),
-                          TextButton(
-                              onPressed: () {},
-                              child: const Icon(Icons.arrow_downward_rounded)),
-                          TextButton(
-                              onPressed: () {},
-                              child: const Icon(Icons.bookmark_add)),
-                        ],
-                      ),
-                    )
+                    postButtons,
                   ],
                 ),
               ),

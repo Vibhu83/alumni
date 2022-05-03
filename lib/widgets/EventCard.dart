@@ -1,5 +1,3 @@
-import 'package:alumni/widgets/ChangingIconButton.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,6 +13,7 @@ class Event extends StatefulWidget {
   final DateTime startTime;
   final Duration eventDuration;
   final String? eventLink;
+  final bool readOnly;
   const Event(
       {required this.eventID,
       this.titleImage,
@@ -23,6 +22,7 @@ class Event extends StatefulWidget {
       required this.attendeeNum,
       required this.startTime,
       required this.eventDuration,
+      this.readOnly = false,
       this.eventLink,
       Key? key})
       : super(key: key);
@@ -115,6 +115,7 @@ class _EventState extends State<Event> {
   late String title = widget.title;
   late String eventHolder = widget.eventHolder;
   late DateTime startTime = widget.startTime;
+  late Map<String, bool> clickFlags;
 
   String? eventLink = "https://pub.dev/packages/url_launcher/install";
 
@@ -199,41 +200,21 @@ class _EventState extends State<Event> {
         fallbackWidth: 125,
       ));
     }
-    List<Widget> iconButtons = [
-      ChangingIconButton(
-        orginalColor: Colors.blue,
-        onClickColor: Colors.red,
-        onPressed: () {},
-        icon: Icons.event_available,
-        changedIcon: Icons.event_busy,
-      ),
-      ChangingIconButton(
-        orginalColor: Colors.grey,
-        onClickColor: Colors.blue,
-        onPressed: () {},
-        icon: Icons.bookmark_add_rounded,
-        changedIcon: Icons.bookmark_added_rounded,
-      ),
-      IconButton(
-          onPressed: () {
-            if (eventLink != null) {
-              launch(eventLink!);
-            }
-          },
-          icon: const Icon(Icons.open_in_new))
-    ];
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ElevatedButton(
         onPressed: () {
           Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
             return AnEventPage(
-                eventID: widget.eventID,
-                title: title,
-                eventHolder: eventHolder,
-                attendeeNum: widget.attendeeNum,
-                startTime: startTime,
-                eventDuration: widget.eventDuration);
+              eventID: widget.eventID,
+              title: title,
+              eventHolder: eventHolder,
+              attendeeNum: widget.attendeeNum,
+              startTime: startTime,
+              eventDuration: widget.eventDuration,
+              readOnly: widget.readOnly,
+            );
           })));
         },
         style: ButtonStyle(
@@ -257,14 +238,6 @@ class _EventState extends State<Event> {
               const SizedBox(
                 height: 8,
               ),
-              Container(
-                decoration:
-                    const BoxDecoration(color: Color.fromARGB(255, 39, 53, 57)),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: iconButtons,
-                ),
-              )
             ],
           ),
         ),

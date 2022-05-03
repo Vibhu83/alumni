@@ -1,5 +1,6 @@
 // import 'package:flutter/cupertino.dart';
 import 'package:alumni/firebase_options.dart';
+import 'package:alumni/globals.dart';
 import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -148,8 +149,8 @@ class _RegisterView extends State<RegisterView> {
     String email = _email.text;
     String password = _password.text;
     String batchYear = _batchYear.text;
-    var profilePhoto = null;
-    String accessLevel = "admin";
+    var profilePhoto;
+    String accessLevel = "user";
     String? alumniDetails;
     if (switchValue == false) {
       alumniDetails = null;
@@ -160,12 +161,9 @@ class _RegisterView extends State<RegisterView> {
     } else {
       course = "";
     }
-    await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform);
 
     try {
-      FirebaseAuth auth = FirebaseAuth.instance;
-      var result = await auth
+      await auth!
           .createUserWithEmailAndPassword(email: email, password: password)
           .then((userRecord) {
         var uid = userRecord.user?.uid;
@@ -173,11 +171,12 @@ class _RegisterView extends State<RegisterView> {
           "id": id,
           "photo": profilePhoto,
           "name": name,
+          "email": email,
           "batch": batchYear,
           "course": course,
           "alumni": switchValue,
           "alumni-details": alumniDetails,
-          "type": "user",
+          "type": accessLevel,
         }).then((value) {
           Navigator.of(context).popUntil(ModalRoute.withName(""));
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
@@ -202,7 +201,7 @@ class _RegisterView extends State<RegisterView> {
           padding: EdgeInsets.zero,
           child: TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Dismiss")),
+              child: const Text("Dismiss")),
         ),
       ],
       content: FutureBuilder(
@@ -226,7 +225,6 @@ class _RegisterView extends State<RegisterView> {
                 )
               ];
             } else {
-              print("Error found");
               children = <Widget>[
                 Icon(
                   Icons.error_outline,
@@ -237,7 +235,7 @@ class _RegisterView extends State<RegisterView> {
                   padding: const EdgeInsets.only(top: 16),
                   child: Text(
                     snapshot.data!,
-                    style: TextStyle(color: Colors.red),
+                    style: const TextStyle(color: Colors.red),
                   ),
                 )
               ];
@@ -256,7 +254,7 @@ class _RegisterView extends State<RegisterView> {
           return Container(
             height: screenHeight * 0.325,
             width: screenWidth,
-            padding: EdgeInsets.fromLTRB(0, 50, 0, 5),
+            padding: const EdgeInsets.fromLTRB(0, 50, 0, 5),
             decoration: BoxDecoration(color: Colors.grey.shade900),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -520,7 +518,7 @@ class _RegisterView extends State<RegisterView> {
     return Row(
       children: [
         SizedBox(
-          width: screenWidth * 0.33,
+          width: screenWidth * 0.35,
           child: Text(
             "Sign up as " + signUpAs,
             style: const TextStyle(fontSize: 16),

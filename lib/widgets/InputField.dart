@@ -4,6 +4,7 @@ class InputField extends StatelessWidget {
   final String labelText;
   final Function(String)? onChanged;
   final Function(String)? onSubmitted;
+  final Function()? onTap;
   final String? errorText;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -14,6 +15,7 @@ class InputField extends StatelessWidget {
   final double heightPadding;
   final TextEditingController? controller;
   final int maxLines;
+  final bool readOnly;
   const InputField(
       {this.labelText = "",
       this.onChanged,
@@ -28,6 +30,8 @@ class InputField extends StatelessWidget {
       this.maxLength,
       this.heightPadding = 16,
       this.maxLines = 1,
+      this.readOnly = false,
+      this.onTap,
       Key? key})
       : super(key: key);
 
@@ -37,30 +41,35 @@ class InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      maxLength: maxLength,
-      controller: controller,
-      autocorrect: autoCorrect,
-      autofocus: autoFocus,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      obscureText: obscureText,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        focusColor: Colors.blue,
-        contentPadding:
-            EdgeInsets.symmetric(horizontal: 10, vertical: heightPadding),
-        label: Text(
-          labelText,
-          textAlign: TextAlign.left,
-        ),
-        errorText: errorText,
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        floatingLabelAlignment: FloatingLabelAlignment.start,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 10, horizontal: 1),
+      child: TextField(
+        onTap: onTap,
+        readOnly: readOnly,
+        maxLength: maxLength,
+        controller: controller,
+        autocorrect: autoCorrect,
+        autofocus: autoFocus,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        obscureText: obscureText,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          focusColor: Colors.blue,
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 10, vertical: heightPadding),
+          label: Text(
+            labelText,
+            textAlign: TextAlign.left,
+          ),
+          errorText: errorText,
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          floatingLabelAlignment: FloatingLabelAlignment.start,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
         ),
       ),
     );

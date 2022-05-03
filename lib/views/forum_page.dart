@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:alumni/firebase_options.dart';
+import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/PostWidget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 class ForumPage extends StatefulWidget {
@@ -14,22 +13,18 @@ class ForumPage extends StatefulWidget {
 }
 
 class _ForumPageState extends State<ForumPage> {
-  List<List> postSummariesData = [];
-  var lastDoc = null;
+  List<Map<String, dynamic>> postSummariesData = [];
+  DocumentSnapshot? lastDoc;
 
-  Future<List<List>> getPosts() async {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform);
-    }
-    var postSummaries = FirebaseFirestore.instance.collection('postSummaries');
+  Future<List<Map<String, dynamic>>> getPosts() async {
+    var postSummaries = firestore!.collection('postSummaries');
     var querySnapshotFunction;
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
     if (lastDoc == null) {
       querySnapshotFunction = postSummaries.limit(20).get;
     } else {
       querySnapshotFunction =
-          postSummaries.startAfterDocument(lastDoc).limit(20).get;
+          postSummaries.startAfterDocument(lastDoc!).limit(20).get;
     }
     querySnapshot = await querySnapshotFunction();
     var allDocSnap = querySnapshot.docs;
@@ -39,21 +34,12 @@ class _ForumPageState extends State<ForumPage> {
       Timestamp temp = value["postTime"];
       value["postTime"] = temp.toDate();
       value["id"] = doc.id;
+      value["reaction"] = null;
+      value["saved"] = null;
       return value;
     }).toList());
     for (Map<String, dynamic> map in allData) {
-      postSummariesData.add([
-        map["id"],
-        map["title"],
-        map["author"],
-        map["votes"],
-        map["commentNumber"],
-        map["postContent"],
-        map["postTime"],
-        map["reaction"],
-        map["saveStatus"]
-      ]);
-      print("data added");
+      postSummariesData.add(map);
     }
     return postSummariesData;
   }
@@ -76,15 +62,18 @@ class _ForumPageState extends State<ForumPage> {
                   itemCount: postSummariesData.length,
                   itemBuilder: (BuildContext context, int index) {
                     return Post(
-                      postID: postSummariesData[index][0],
-                      title: postSummariesData[index][1],
-                      author: postSummariesData[index][2],
-                      votes: postSummariesData[index][3],
-                      commentNumber: postSummariesData[index][4],
-                      postContent: postSummariesData[index][5],
-                      postTime: postSummariesData[index][6],
-                      reaction: postSummariesData[index][7],
-                      saveStatus: postSummariesData[index][8],
+                      currentAccessLevel: userData["type"],
+                      currentUID: userData["uid"],
+                      postID: postSummariesData[index]["id"],
+                      title: postSummariesData[index]["title"],
+                      authorId: postSummariesData[index]["authorId"],
+                      authorName: postSummariesData[index]["authorName"],
+                      votes: postSummariesData[index]["votes"],
+                      commentNumber: postSummariesData[index]["commentNumber"],
+                      postContent: postSummariesData[index]["postContent"],
+                      postTime: postSummariesData[index]["postTime"],
+                      reaction: postSummariesData[index]["reaction"],
+                      saveStatus: postSummariesData[index]["saved"],
                     );
                   },
                 );

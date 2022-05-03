@@ -1,9 +1,7 @@
+import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/EventCard.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-
-import '../firebase_options.dart';
 
 class EventsPage extends StatefulWidget {
   const EventsPage({Key? key}) : super(key: key);
@@ -14,13 +12,12 @@ class EventsPage extends StatefulWidget {
 
 class _EventsPageState extends State<EventsPage> {
   List<List> eventSummariesData = [];
-  var lastDoc = null;
+  late bool isNotLoggedIn;
+  var lastDoc;
   Future<List<List>> getPosts() async {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform);
-    }
-    var postSummaries = FirebaseFirestore.instance.collection('events');
+    userData["id"] != null ? isNotLoggedIn = false : isNotLoggedIn = true;
+
+    var postSummaries = firestore!.collection('events');
     var querySnapshotFunction;
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
     if (lastDoc == null) {
@@ -51,7 +48,6 @@ class _EventsPageState extends State<EventsPage> {
         map["duration"],
         map["link"],
       ]);
-      print("data added");
     }
     return eventSummariesData;
   }
@@ -77,6 +73,7 @@ class _EventsPageState extends State<EventsPage> {
                       startTime: eventSummariesData[index][5],
                       eventDuration: eventSummariesData[index][6],
                       eventLink: eventSummariesData[index][7],
+                      readOnly: isNotLoggedIn,
                     );
                   },
                 );

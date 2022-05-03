@@ -1,11 +1,15 @@
+import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Post extends StatelessWidget {
+  final String? currentUID;
+  final String? currentAccessLevel;
   final String postID;
   final String title;
-  final String author;
+  final String authorId;
+  final String authorName;
   final int votes;
   final int commentNumber;
   final String postContent;
@@ -13,9 +17,12 @@ class Post extends StatelessWidget {
   final bool? reaction;
   final bool? saveStatus;
   const Post(
-      {required this.postID,
+      {required this.currentUID,
+      required this.currentAccessLevel,
+      required this.postID,
       required this.title,
-      required this.author,
+      required this.authorId,
+      required this.authorName,
       required this.votes,
       required this.commentNumber,
       required this.postContent,
@@ -35,9 +42,12 @@ class Post extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return APost(
+                currentUID: userData["uid"],
+                currentAccessLevel: userData["type"],
                 postID: postID,
                 title: title,
-                author: author,
+                authorId: authorId,
+                authorName: authorName,
                 votes: votes,
                 commentNumber: commentNumber,
                 postContent: postContent,
@@ -82,7 +92,7 @@ class Post extends StatelessWidget {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                       child: Text(
                         "By:" +
-                            author +
+                            authorName +
                             " (" +
                             _printDuration(postedDuration) +
                             ")",
@@ -133,24 +143,6 @@ class Post extends StatelessWidget {
                     const SizedBox(
                       height: 2,
                     ),
-                    Container(
-                      decoration: const BoxDecoration(
-                          color: Color.fromARGB(255, 39, 53, 57)),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          TextButton(
-                              onPressed: () {},
-                              child: const Icon(Icons.arrow_upward_rounded)),
-                          TextButton(
-                              onPressed: () {},
-                              child: const Icon(Icons.arrow_downward_rounded)),
-                          TextButton(
-                              onPressed: () {},
-                              child: const Icon(Icons.bookmark_add)),
-                        ],
-                      ),
-                    )
                   ],
                 ),
               ),
