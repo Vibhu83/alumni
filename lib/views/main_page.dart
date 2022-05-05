@@ -1,6 +1,3 @@
-import 'dart:ffi';
-import 'dart:io';
-
 import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/chat_page.dart';
@@ -9,8 +6,9 @@ import 'package:alumni/views/events_page.dart';
 import 'package:alumni/views/forum_page.dart';
 import 'package:alumni/views/home_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
-import 'package:alumni/widgets/DefaultAppBar.dart';
-import 'package:alumni/widgets/LoginPopUp.dart';
+import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/login_popup.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -40,8 +38,6 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
-  late double appBarHeight;
-
   late List<Widget?> _floatingActionButtons;
 
   late final Widget loginModalSheet;
@@ -64,15 +60,17 @@ class _MainPageState extends State<MainPage> {
       //Forum Floating Button
       null
     ];
-    if (userData["id"] != null) {
-      _floatingActionButtons[0] = null;
-      if (userData["type"].toString().toLowerCase() == "user") {
+    if (userData["uid"] != null) {
+      if (userData["accessLevel"] == "admin") {
         _floatingActionButtons[1] =
             //Events Floating Button
             FloatingActionButton(
+          backgroundColor: Colors.blue.shade300,
           onPressed: () {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const CreateEvent()));
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const CreateEvent(
+                      eventUpdationFlag: false,
+                    )));
           },
           child: const Icon(Icons.add),
         );
@@ -80,11 +78,13 @@ class _MainPageState extends State<MainPage> {
       _floatingActionButtons[2] =
           //Chat Floating Button
           FloatingActionButton(
+        backgroundColor: Colors.blue.shade300,
         onPressed: () {},
         child: const Icon(Icons.message),
       );
       //Forum Floating Button
       _floatingActionButtons[3] = FloatingActionButton(
+        backgroundColor: Colors.blue.shade300,
         onPressed: () {
           Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const CreatePostPage()));
@@ -125,7 +125,7 @@ class _MainPageState extends State<MainPage> {
       userData["uid"] = currentUser.uid;
       _saveUserData();
     } else {
-      userData["id"] = null;
+      userData["uid"] = null;
     }
   }
 
@@ -147,28 +147,6 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     screenHeight = MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
-    appBarHeight = screenHeight * 0.045;
-    List<Widget> pageFeatureWidgets = [];
-    if (_selectedIndex == 1) {
-      pageFeatureWidgets.add(IconButton(
-        onPressed: () {},
-        icon: const Icon(Icons.history),
-        iconSize: 20,
-        splashRadius: 1,
-        padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
-      ));
-    } else if (_selectedIndex == 3) {
-      pageFeatureWidgets.add(IconButton(
-        iconSize: 20,
-        splashRadius: 1,
-        padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
-        icon: const Icon(Icons.search),
-        onPressed: () {},
-      ));
-    }
-    Row pageFeatures = Row(
-      children: pageFeatureWidgets,
-    );
     return FutureBuilder(
         future: initialiseApp(),
         builder: ((context, AsyncSnapshot<FirebaseApp> snapshot) {
@@ -179,30 +157,11 @@ class _MainPageState extends State<MainPage> {
             firestore = FirebaseFirestore.instance;
             _setUserLoginStatus();
             _setFloatingActionButtons();
-            return _buildPage(pageFeatures);
+            return _buildPage();
           } else if (snapshot.hasError) {
-            children = <Widget>[
-              const Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 60,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  '${snapshot.error}',
-                  style: const TextStyle(fontSize: 16),
-                ),
-              )
-            ];
+            children = buildFutureError(snapshot);
           } else {
-            children = const <Widget>[
-              SizedBox(
-                width: 60,
-                height: 60,
-                child: CircularProgressIndicator(),
-              ),
-            ];
+            children = buildFutureLoading(snapshot);
           }
           return Center(
             child: Column(
@@ -213,52 +172,65 @@ class _MainPageState extends State<MainPage> {
         }));
   }
 
-  Scaffold _buildPage(Row pageFeatures) {
+  Scaffold _buildPage() {
+    List<Widget> pageFeatureWidgets = [];
+    if (_selectedIndex == 1) {
+      var pastEventButton = buildAppBarIcon(
+          onPressed: () {
+            print("getting past events");
+          },
+          icon: Icons.history);
+
+      pageFeatureWidgets.add(pastEventButton);
+    } else if (_selectedIndex == 3) {
+      var searchForumButton = buildAppBarIcon(
+          onPressed: () {
+            print("Searching forum");
+          },
+          icon: Icons.search_rounded);
+      pageFeatureWidgets.add(searchForumButton);
+    }
+    Row pageFeatures = Row(
+      children: pageFeatureWidgets,
+    );
     return Scaffold(
         floatingActionButton: _floatingActionButtons[_selectedIndex],
         backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
         appBar: buildAppBar(
-          appBarHeight: appBarHeight,
+          appBarHeight: null,
           actions: <Widget>[
             Builder(builder: (context) => pageFeatures),
             Builder(
               builder: (context) {
-                return IconButton(
-                  iconSize: 20,
-                  splashRadius: 1,
-                  padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
-                  icon: const Icon(Icons.person),
-                  onPressed: () {
-                    if (userData["id"] != null) {
-                      Scaffold.of(context).openEndDrawer();
-                    } else {
-                      showModalBottomSheet(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return loginModalSheet;
-                          });
-                    }
-                  },
-                );
+                return buildAppBarIcon(
+                    onPressed: () {
+                      if (userData["uid"] != null) {
+                        Scaffold.of(context).openEndDrawer();
+                      } else {
+                        showModalBottomSheet(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return loginModalSheet;
+                            });
+                      }
+                    },
+                    icon: Icons.person);
               },
             ),
           ],
           leading: Builder(
             builder: (context) {
-              return IconButton(
-                iconSize: 16,
-                splashRadius: 1,
-                padding: const EdgeInsets.fromLTRB(0, 4, 4, 4),
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              );
+              return buildAppBarIcon(
+                  onPressed: () {
+                    Scaffold.of(context).openDrawer();
+                  },
+                  icon: Icons.menu_rounded);
             },
           ),
         ),
         drawer: _buildMenuDrawer(context),
-        endDrawer: userData["id"] == null ? null : _buildProfileDrawer(context),
+        endDrawer:
+            userData["uid"] == null ? null : _buildProfileDrawer(context),
         body: _widgetOptions.elementAt(_selectedIndex),
         bottomNavigationBar: _buildBottomNavBar());
   }
@@ -287,18 +259,24 @@ class _MainPageState extends State<MainPage> {
   List<BottomNavigationBarItem> _buildNavBarTabs() {
     return const <BottomNavigationBarItem>[
       BottomNavigationBarItem(
-        icon: Icon(Icons.home),
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home_sharp),
         label: 'Home',
       ),
       BottomNavigationBarItem(
-        icon: Icon(Icons.event_rounded),
+        icon: Icon(Icons.event_outlined),
+        activeIcon: Icon(Icons.event_sharp),
         label: 'Events',
       ),
       BottomNavigationBarItem(
-        icon: Icon(Icons.chat_bubble_outline_rounded),
-        label: 'Chat',
+        icon: Icon(Icons.people_alt_outlined),
+        activeIcon: Icon(Icons.people_alt_sharp),
+        label: 'People',
       ),
-      BottomNavigationBarItem(icon: Icon(Icons.forum_outlined), label: 'Forum')
+      BottomNavigationBarItem(
+          icon: Icon(Icons.forum_outlined),
+          activeIcon: Icon(Icons.forum_sharp),
+          label: 'Forum')
     ];
   }
 
@@ -420,7 +398,7 @@ class _MainPageState extends State<MainPage> {
                   leading: const Icon(Icons.settings),
                   title: const Text("Settings"),
                   trailing: IconButton(
-                    icon: Icon(Icons.logout_rounded),
+                    icon: const Icon(Icons.logout_rounded),
                     onPressed: () {
                       logoutUser();
                     },

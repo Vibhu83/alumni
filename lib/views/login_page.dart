@@ -1,8 +1,8 @@
 import 'package:alumni/firebase_options.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/register_page.dart';
-import 'package:alumni/widgets/InputField.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:alumni/widgets/input_field.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -68,7 +68,6 @@ class _LoginViewState extends State<LoginView> {
   Future<String?> loginUser() async {
     String email = _email.text;
     String password = _password.text;
-    String course;
     await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform);
     try {
@@ -105,7 +104,7 @@ class _LoginViewState extends State<LoginView> {
           padding: EdgeInsets.zero,
           child: TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Dismiss")),
+              child: const Text("Dismiss")),
         ),
       ],
       content: FutureBuilder(
@@ -139,26 +138,18 @@ class _LoginViewState extends State<LoginView> {
                   padding: const EdgeInsets.only(top: 16),
                   child: Text(
                     snapshot.data!,
-                    style: TextStyle(color: Colors.red),
+                    style: const TextStyle(color: Colors.red),
                   ),
                 )
               ];
             }
           } else {
-            children = const <Widget>[
-              SizedBox(
-                child: CircularProgressIndicator(),
-              ),
-              Padding(
-                padding: EdgeInsets.only(top: 16),
-                child: Text('Logging In'),
-              )
-            ];
+            children = buildFutureLoading(snapshot, text: "Logging you in");
           }
           return Container(
             height: screenHeight * 0.325,
             width: screenWidth,
-            padding: EdgeInsets.fromLTRB(0, 50, 0, 5),
+            padding: const EdgeInsets.fromLTRB(0, 50, 0, 5),
             decoration: BoxDecoration(color: Colors.grey.shade900),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -224,7 +215,8 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                   style: TextButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 100, 122, 177)),
+                      backgroundColor:
+                          const Color.fromARGB(255, 100, 122, 177)),
                   onPressed: submit),
             ),
             SizedBox(

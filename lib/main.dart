@@ -13,7 +13,16 @@ void main() {
       routes: {
         "/register": (context) => const RegisterView(),
         "/login": ((context) => const LoginView()),
-        "/Home": (context) => const MainPage()
+        "/Home": (context) => const MainPage(),
+        "/events": ((context) => const MainPage(
+              startingIndex: 1,
+            )),
+        "/people": (context) => const MainPage(
+              startingIndex: 2,
+            ),
+        "/forum": (context) => const MainPage(
+              startingIndex: 3,
+            ),
       },
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),

@@ -1,8 +1,6 @@
-import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
-import 'package:alumni/widgets/InputField.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -41,28 +39,33 @@ class _CreatePostPageState extends State<CreatePostPage> {
         _titleError = null;
         createFireStoreDoc = () async {
           String title = _titleController.text;
-          String authorId = userData["uid"];
-          String author = userData["name"];
+          String authorID = userData["uid"];
           int votes = 0;
-          int commentNumber = 0;
-          String postContent = _bodyController.text;
+          String postBody = _bodyController.text;
           Timestamp postTime = Timestamp.now();
-
-          firestore!.collection('postSummaries').add({
-            "authorId": authorId,
-            "title": title,
-            "authorName": author,
-            "votes": votes,
-            "commentNumber": commentNumber,
-            "postContent": postContent,
-            "postTime": postTime
-          }).then((value) {});
-          Navigator.of(context).popUntil(ModalRoute.withName(""));
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-            return const MainPage(
-              startingIndex: 3,
-            );
-          }));
+          if (widget.postId == null) {
+            firestore!.collection('posts').add({
+              "postAuthorID": authorID,
+              "postTitle": title,
+              "postVotes": votes,
+              "postBody": postBody,
+              "postedOn": postTime
+            }).then((value) {});
+          } else {
+            firestore!.collection("posts").doc(widget.postId).update({
+              "postAuthorID": authorID,
+              "postTitle": title,
+              "postVotes": votes,
+              "postBody": postBody,
+              "postedOn": postTime
+            });
+          }
+          Navigator.of(context).popUntil(ModalRoute.withName("/events"));
+          // Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+          //   return const MainPage(
+          //     startingIndex: 3,
+          //   );
+          // }));
         };
       });
     }

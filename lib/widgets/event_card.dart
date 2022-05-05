@@ -1,26 +1,26 @@
+import 'package:alumni/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../views/an_event_page.dart';
 
-class Event extends StatefulWidget {
+class AnEventCard extends StatefulWidget {
   final String eventID;
-  final Image? titleImage;
-  final String title;
-  final int attendeeNum;
+  final Image? eventTitleImage;
+  final String eventTitle;
+  final int eventAttendeesNumber;
   final String eventHolder;
-  final DateTime startTime;
+  final DateTime eventStartTime;
   final Duration eventDuration;
   final String? eventLink;
   final bool readOnly;
-  const Event(
+  const AnEventCard(
       {required this.eventID,
-      this.titleImage,
-      required this.title,
+      this.eventTitleImage,
+      required this.eventTitle,
       required this.eventHolder,
-      required this.attendeeNum,
-      required this.startTime,
+      required this.eventAttendeesNumber,
+      required this.eventStartTime,
       required this.eventDuration,
       this.readOnly = false,
       this.eventLink,
@@ -28,93 +28,13 @@ class Event extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<Event> createState() => _EventState();
+  State<AnEventCard> createState() => _AnEventCardState();
 }
 
-String formatDateTime(DateTime dateTime) {
-  final Map monthMap = {
-    1: "January",
-    2: "February",
-    3: "March",
-    4: "April",
-    5: "May",
-    6: "June",
-    7: "July",
-    8: "August",
-    9: "September",
-    10: "October",
-    11: "November",
-    12: "December"
-  };
-  DateTime current = DateTime.now();
-  String year = "";
-  String month = "";
-  String date = "";
-  String returnString = "";
-  String datePostFix = "";
-  if (current.year != dateTime.year) {
-    year = dateTime.year.toString();
-    month = monthMap[dateTime.month];
-    date = dateTime.day.toString();
-    int temp = dateTime.day % 10;
-    if (temp == 1) {
-      datePostFix = "st";
-    } else if (temp == 2) {
-      datePostFix = "nd";
-    } else if (temp == 3) {
-      datePostFix = "rd";
-    } else {
-      datePostFix = "th";
-    }
-    date += datePostFix;
-    returnString = month + " " + date + ", " + year;
-  } else {
-    if (current.month != dateTime.month) {
-      month = monthMap[dateTime.month];
-      date = dateTime.day.toString();
-      int temp = dateTime.day % 10;
-      if (temp == 1) {
-        datePostFix = "st";
-      } else if (temp == 2) {
-        datePostFix = "nd";
-      } else if (temp == 3) {
-        datePostFix = "rd";
-      } else {
-        datePostFix = "th";
-      }
-      date += datePostFix;
-      returnString = month + " " + date;
-    } else {
-      if (current.day == dateTime.day) {
-        date = "Today";
-      } else {
-        date = dateTime.day.toString();
-        int temp = dateTime.day % 10;
-        if (temp == 1) {
-          datePostFix = "st";
-        } else if (temp == 2) {
-          datePostFix = "nd";
-        } else if (temp == 3) {
-          datePostFix = "rd";
-        } else {
-          datePostFix = "th";
-        }
-        date += datePostFix;
-      }
-      returnString = date;
-    }
-  }
-
-  String hour = dateTime.hour.toString();
-  String minute = dateTime.minute.toString();
-  returnString += " at " + hour + ":" + minute;
-  return returnString;
-}
-
-class _EventState extends State<Event> {
-  late String title = widget.title;
+class _AnEventCardState extends State<AnEventCard> {
+  late String title = widget.eventTitle;
   late String eventHolder = widget.eventHolder;
-  late DateTime startTime = widget.startTime;
+  late DateTime startTime = widget.eventStartTime;
   late Map<String, bool> clickFlags;
 
   String? eventLink = "https://pub.dev/packages/url_launcher/install";
@@ -155,7 +75,7 @@ class _EventState extends State<Event> {
               Row(
                 children: [
                   Text(
-                    widget.attendeeNum.toString(),
+                    widget.eventAttendeesNumber.toString(),
                     style: GoogleFonts.lato(
                         fontSize: 14, fontWeight: FontWeight.bold),
                   ),
@@ -194,7 +114,7 @@ class _EventState extends State<Event> {
       ),
     ];
 
-    if (widget.titleImage != null) {
+    if (widget.eventTitleImage != null) {
       firstRowChildren.add(const Placeholder(
         fallbackHeight: 110,
         fallbackWidth: 125,
@@ -207,14 +127,12 @@ class _EventState extends State<Event> {
         onPressed: () {
           Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
             return AnEventPage(
-              eventID: widget.eventID,
-              title: title,
-              eventHolder: eventHolder,
-              attendeeNum: widget.attendeeNum,
-              startTime: startTime,
-              eventDuration: widget.eventDuration,
-              readOnly: widget.readOnly,
-            );
+                eventID: widget.eventID,
+                eventTitle: widget.eventTitle,
+                eventHolder: widget.eventHolder,
+                eventAttendeesNumber: widget.eventAttendeesNumber,
+                eventStartTime: widget.eventStartTime,
+                eventDuration: widget.eventDuration);
           })));
         },
         style: ButtonStyle(

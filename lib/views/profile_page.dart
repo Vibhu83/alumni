@@ -1,5 +1,5 @@
 import 'package:alumni/globals.dart';
-import 'package:alumni/widgets/DefaultAppBar.dart';
+import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ProfilePictureWidget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -79,7 +79,7 @@ class _ProfilePageState extends State<ProfilePage> {
             appBarActions.add(editUserButton);
             appBarActions.add(delUserButton);
           }
-          if (userData["type"] == "Admin") {
+          if (userData["accessLevel"] == "admin") {
             appBarActions.add(delUserButton);
           }
 
@@ -112,9 +112,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     onClicked: () {},
                   ),
                   SizedBox(height: screenHeight * 0.027),
-                  buildName(userData["name"], userData["type"]),
+                  buildName(userData["name"], userData["accessLevel"]),
                   SizedBox(height: screenHeight * 0.027),
-                  buildEmploymentDetails(userData["type"]),
+                  buildEmploymentDetails(userData["accessLevel"]),
                   buildContactDetails(userData["email"], userData["phone"]),
                   buildCollegeDetails(userData["batch"], userData["course"]),
                   buildAbout(),
@@ -297,20 +297,25 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget buildName(String name, String userType) => Column(
-        children: [
-          Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-          ),
-          SizedBox(height: screenHeight * 0.005),
-          Text(
-            userType,
-            style: const TextStyle(
-                color: Colors.grey, fontStyle: FontStyle.italic),
-          )
-        ],
-      );
+  Widget buildName(String name, String userType) {
+    String accessLevel =
+        userType.substring(0, 1).toUpperCase() + userType.substring(1);
+    return Column(
+      children: [
+        Text(
+          name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        SizedBox(height: screenHeight * 0.005),
+        Text(
+          accessLevel,
+          style:
+              const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        )
+      ],
+    );
+  }
+
   Widget buildAbout() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(

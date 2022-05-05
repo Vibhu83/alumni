@@ -1,6 +1,8 @@
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/notification_page.dart';
 import 'package:alumni/views/profile_page.dart';
-import 'package:alumni/widgets/LoginPopUp.dart';
+import 'package:alumni/widgets/login_popup.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -37,25 +39,9 @@ class _HomePageState extends State<HomePage> {
               return _buildProfileMessage(
                   context, data![0], data[1], data[2], data[3]);
             } else if (snapshot.hasError) {
-              children = <Widget>[
-                const Icon(
-                  Icons.error_outline,
-                  color: Colors.red,
-                  size: 60,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Text('${snapshot.error}'),
-                )
-              ];
+              children = buildFutureError(snapshot);
             } else {
-              children = const <Widget>[
-                SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: CircularProgressIndicator(),
-                ),
-              ];
+              children = buildFutureLoading(snapshot);
             }
             return Center(
               child: Column(
@@ -98,9 +84,14 @@ class _HomePageState extends State<HomePage> {
     }
     String title = "";
     String subtitle = "";
-    Function? onPressingNotificationButton;
+    Function? onPressingNotificationButton = () {};
     if (currentUser != null) {
-      onPressingNotificationButton = () {};
+      onPressingNotificationButton = () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+          return NotificationPage(uid: uid!);
+        }));
+      };
+
       var temp = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
@@ -115,8 +106,12 @@ class _HomePageState extends State<HomePage> {
     return [title, subtitle, onPressingNotificationButton, uid];
   }
 
-  Widget _buildProfileMessage(BuildContext context, String title,
-      String subtitle, Function? onPressingNotificationButton, String? uid) {
+  Widget _buildProfileMessage(
+      BuildContext context,
+      String title,
+      String subtitle,
+      void Function()? onPressingNotificationButton,
+      String? uid) {
     return Container(
         padding: const EdgeInsets.only(top: 0, bottom: 0, left: 24, right: 24),
         margin: const EdgeInsets.only(bottom: 16, top: 0),
@@ -149,7 +144,7 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
             trailing: IconButton(
-              onPressed: onPressingNotificationButton as void Function()?,
+              onPressed: onPressingNotificationButton,
               icon: const Icon(Icons.notifications),
             )));
   }

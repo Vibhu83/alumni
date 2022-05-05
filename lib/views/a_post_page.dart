@@ -1,33 +1,27 @@
-import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/ask_message_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class APost extends StatefulWidget {
-  final String? currentUID;
-  final String? currentAccessLevel;
   final String postID;
   final String title;
   final String authorId;
   final String authorName;
   final int votes;
-  final int commentNumber;
   final String postContent;
   final String postedDuration;
   final bool? reaction;
   final bool readOnly;
   const APost(
-      {required this.currentUID,
-      required this.currentAccessLevel,
-      required this.postID,
+      {required this.postID,
       required this.title,
       required this.authorId,
       required this.authorName,
       required this.votes,
-      required this.commentNumber,
       required this.postContent,
       required this.postedDuration,
       this.reaction,
@@ -45,7 +39,7 @@ class _APost extends State<APost> {
   }
 
   void deletePost() {
-    firestore!.collection("postSummaries").doc(widget.postID).delete();
+    firestore!.collection("posts").doc(widget.postID).delete();
     backToForumPage();
   }
 
@@ -60,39 +54,56 @@ class _APost extends State<APost> {
 
   @override
   Widget build(BuildContext context) {
-    IconButton deleteButton = IconButton(
-        splashRadius: 0.1,
-        onPressed: () {
-          deletePost();
-        },
-        icon: const Icon(
-          Icons.delete_rounded,
-          size: 20,
-        ));
-    IconButton editButton = IconButton(
-      onPressed: () {
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-          return CreatePostPage(
-            postId: widget.postID,
-            title: widget.title,
-            postContent: widget.postContent,
-          );
-        }));
-      },
-      icon: const Icon(
-        Icons.edit,
-        size: 20,
-      ),
-      splashRadius: 0.1,
-    );
     List<Widget> appBarActions = [];
-    print(userData["uid"]);
-    print(widget.authorId);
     if (userData["uid"] == widget.authorId) {
-      appBarActions.add(deleteButton);
+      if (userData["accessLevel"] == "admin") {
+        IconButton shareButton = buildAppBarIcon(
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AskMessagePopUp(
+                        editingFlag: false,
+                        title: widget.title,
+                        authorName: widget.authorName,
+                        id: widget.postID,
+                        type: "post");
+                  });
+            },
+            icon: Icons.notification_add_rounded);
+        appBarActions.add(shareButton);
+      }
+      IconButton editButton = buildAppBarIcon(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+              return CreatePostPage(
+                postId: widget.postID,
+                title: widget.title,
+                postContent: widget.postContent,
+              );
+            }));
+          },
+          icon: Icons.edit);
       appBarActions.add(editButton);
-    } else if (userData["type"] == "admin") {
+      IconButton deleteButton = buildAppBarIcon(
+          onPressed: () {
+            deletePost();
+          },
+          icon: Icons.delete_rounded);
       appBarActions.add(deleteButton);
+    } else if (userData["accessLevel"] == "admin") {
+      IconButton deleteButton = buildAppBarIcon(
+          onPressed: () {
+            deletePost();
+          },
+          icon: Icons.delete_rounded);
+      appBarActions.add(deleteButton);
+      IconButton shareButton = buildAppBarIcon(
+          onPressed: () {
+            print("sharing post");
+          },
+          icon: Icons.notification_add_rounded);
+      appBarActions.add(shareButton);
     }
     return FutureBuilder(
         future: getData(),
@@ -180,6 +191,7 @@ class _APost extends State<APost> {
         ),
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Row(
@@ -220,20 +232,10 @@ class _APost extends State<APost> {
                     const SizedBox(
                       height: 8,
                     ),
-                    Row(
-                      children: [
-                        Text(
-                          widget.votes.toString(),
-                          style: GoogleFonts.lato(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const Text(" \u2022 "),
-                        Text(
-                          widget.commentNumber.toString() + " comments",
-                          style: GoogleFonts.lato(
-                              fontSize: 14, color: Colors.grey.shade400),
-                        )
-                      ],
+                    Text(
+                      widget.votes.toString(),
+                      style: GoogleFonts.lato(
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(
                       height: 8,

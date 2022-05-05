@@ -1,14 +1,11 @@
-// import 'package:flutter/cupertino.dart';
-import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:alumni/widgets/InputField.dart';
-import 'package:alumni/widgets/PaddingBox.dart';
+import 'package:alumni/widgets/input_field.dart';
 
 class RegisterView extends StatefulWidget {
   final Function(String? email, String? password)? onSubmitted;
@@ -42,9 +39,6 @@ class _RegisterView extends State<RegisterView> {
 
   double _strength = 0;
   String _displayText = "";
-
-  late double screenHeight;
-  late double screenWidth;
 
   @override
   void initState() {
@@ -149,8 +143,10 @@ class _RegisterView extends State<RegisterView> {
     String email = _email.text;
     String password = _password.text;
     String batchYear = _batchYear.text;
-    var profilePhoto;
     String accessLevel = "user";
+    if (switchValue == true) {
+      accessLevel = "alumni";
+    }
     String? alumniDetails;
     if (switchValue == false) {
       alumniDetails = null;
@@ -169,14 +165,13 @@ class _RegisterView extends State<RegisterView> {
         var uid = userRecord.user?.uid;
         FirebaseFirestore.instance.collection("users").doc(uid).set({
           "id": id,
-          "photo": profilePhoto,
           "name": name,
           "email": email,
           "batch": batchYear,
           "course": course,
           "alumni": switchValue,
           "alumni-details": alumniDetails,
-          "type": accessLevel,
+          "accessLevel": accessLevel,
         }).then((value) {
           Navigator.of(context).popUntil(ModalRoute.withName(""));
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
@@ -241,15 +236,7 @@ class _RegisterView extends State<RegisterView> {
               ];
             }
           } else {
-            children = const <Widget>[
-              SizedBox(
-                child: CircularProgressIndicator(),
-              ),
-              Padding(
-                padding: EdgeInsets.only(top: 16),
-                child: Text('Registering'),
-              )
-            ];
+            children = buildFutureLoading(snapshot, text: "Registering");
           }
           return Container(
             height: screenHeight * 0.325,
@@ -279,8 +266,6 @@ class _RegisterView extends State<RegisterView> {
 
   @override
   Widget build(BuildContext context) {
-    screenHeight = MediaQuery.of(context).size.height;
-    screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(color: Color.fromARGB(255, 12, 35, 36)),
@@ -367,6 +352,12 @@ class _RegisterView extends State<RegisterView> {
           ],
         ),
       ),
+    );
+  }
+
+  SizedBox buildPadding(double size, BuildContext context) {
+    return SizedBox(
+      height: screenHeight * size,
     );
   }
 

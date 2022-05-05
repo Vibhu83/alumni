@@ -1,30 +1,31 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
-import 'package:alumni/widgets/DefaultAppBar.dart';
-import 'package:alumni/widgets/EventCard.dart';
-import 'package:alumni/widgets/InputField.dart';
+import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/input_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
 class CreateEvent extends StatefulWidget {
-  final String? id;
-  final String? title;
+  final String? eventId;
+  final String? eventTitle;
   final String? eventHolder;
-  final DateTime? startTime;
-  final int? duration;
+  final DateTime? eventStartTime;
+  final int? eventDuration;
   final String? eventLink;
-  final String? titleImage;
-  final String? description;
+  final String? eventTitleImage;
+  final String? eventDescription;
+  final bool eventUpdationFlag;
   const CreateEvent(
-      {this.id,
-      this.title,
-      this.titleImage,
+      {this.eventId,
+      this.eventTitle,
+      this.eventTitleImage,
       this.eventHolder,
-      this.startTime,
-      this.duration,
+      this.eventStartTime,
+      this.eventDuration,
       this.eventLink,
-      this.description,
+      this.eventDescription,
+      required this.eventUpdationFlag,
       Key? key})
       : super(key: key);
 
@@ -52,12 +53,14 @@ class _CreateEventState extends State<CreateEvent> {
 
   @override
   void initState() {
-    chosenStartTime = widget.startTime;
-    _titleController = TextEditingController(text: widget.title);
+    chosenStartTime = widget.eventStartTime;
+    _titleController = TextEditingController(text: widget.eventTitle);
     _holderController = TextEditingController(text: widget.eventHolder);
-    _durationController = initialiseController(widget.duration.toString(), "");
+    _durationController =
+        initialiseController(widget.eventDuration.toString(), "");
     _linkController = initialiseController(widget.eventLink.toString(), "");
-    _descriptionController = TextEditingController(text: widget.description);
+    _descriptionController =
+        TextEditingController(text: widget.eventDescription);
     super.initState();
   }
 
@@ -105,8 +108,35 @@ class _CreateEventState extends State<CreateEvent> {
 
   void submit() {
     if (validate()) {
-      saveEvent();
+      if (widget.eventUpdationFlag == false) {
+        saveEvent();
+      } else {
+        updateEvent();
+      }
     }
+  }
+
+  void updateEvent() {
+    String title = _titleController.text;
+    String holder = _holderController.text;
+    int duration = int.tryParse(_durationController.text)!;
+    int attendees = 0;
+    String link = _linkController.text;
+    String description = _descriptionController.text;
+    var startTime = Timestamp.fromDate(chosenStartTime!);
+
+    firestore!.collection("events").doc(widget.eventId).update({
+      "eventAttendeesNumber": attendees,
+      "eventDuration": duration,
+      "eventHolder": holder,
+      "eventLink": link,
+      "eventStartTime": startTime,
+      "eventTitle": title,
+      "eventTitleImage": null,
+      "eventDescription": description
+    });
+
+    Navigator.of(context).popUntil(ModalRoute.withName("/events"));
   }
 
   void saveEvent() {
@@ -119,20 +149,21 @@ class _CreateEventState extends State<CreateEvent> {
     var startTime = Timestamp.fromDate(chosenStartTime!);
 
     firestore!.collection('events').add({
-      "attendees": attendees,
-      "duration": duration,
-      "holder": holder,
-      "link": link,
-      "startTime": startTime,
-      "title": title,
-      "titleImage": null
+      "eventAttendeesNumber": attendees,
+      "eventDuration": duration,
+      "eventHolder": holder,
+      "eventLink": link,
+      "eventStartTime": startTime,
+      "eventTitle": title,
+      "eventTitleImage": null,
+      "eventDescription": description
     }).then((value) {});
-    Navigator.of(context).popUntil(ModalRoute.withName(""));
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return const MainPage(
-        startingIndex: 1,
-      );
-    }));
+    Navigator.of(context).popUntil(ModalRoute.withName("/events"));
+    // Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+    //   return const MainPage(
+    //     startingIndex: 1,
+    //   );
+    // }));
   }
 
   @override
@@ -143,7 +174,7 @@ class _CreateEventState extends State<CreateEvent> {
     }
     String title;
     String buttonText;
-    if (widget.title != null) {
+    if (widget.eventTitle != null) {
       title = "Edit the post";
       buttonText = "Edit";
     } else {
@@ -187,7 +218,7 @@ class _CreateEventState extends State<CreateEvent> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       "Start Time:",
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -197,14 +228,14 @@ class _CreateEventState extends State<CreateEvent> {
                 ),
                 Text(
                   text,
-                  style: TextStyle(color: Colors.red, fontSize: 12),
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
                 )
               ],
             ),
             Row(
               children: [
                 _buildDurationInput(),
-                Text(
+                const Text(
                   " in hours",
                   style: TextStyle(
                     fontSize: 16,

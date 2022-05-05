@@ -1,5 +1,6 @@
 import 'package:alumni/globals.dart';
-import 'package:alumni/widgets/EventCard.dart';
+import 'package:alumni/widgets/event_card.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -11,45 +12,22 @@ class EventsPage extends StatefulWidget {
 }
 
 class _EventsPageState extends State<EventsPage> {
-  List<List> eventSummariesData = [];
   late bool isNotLoggedIn;
-  var lastDoc;
-  Future<List<List>> getPosts() async {
+  Future<List<Map<String, dynamic>>> getPosts() async {
     userData["id"] != null ? isNotLoggedIn = false : isNotLoggedIn = true;
 
-    var postSummaries = firestore!.collection('events');
-    var querySnapshotFunction;
-    QuerySnapshot<Map<String, dynamic>> querySnapshot;
-    if (lastDoc == null) {
-      querySnapshotFunction = postSummaries.limit(20).get;
-    } else {
-      querySnapshotFunction =
-          postSummaries.startAfterDocument(lastDoc).limit(20).get;
-    }
-    querySnapshot = await querySnapshotFunction();
-    var allDocSnap = querySnapshot.docs;
-    lastDoc = allDocSnap[allDocSnap.length - 1];
+    var eventData = firestore!.collection('events');
+    var querySnapshot = await eventData.limit(20).get();
+    //lastDoc = allDocSnap[allDocSnap.length - 1];
     final List<Map<String, dynamic>> allData = (querySnapshot.docs.map((doc) {
-      Map<String, dynamic> value = doc.data();
-      Timestamp temp = value["startTime"];
-      value["startTime"] = temp.toDate();
-      value["id"] = doc.id;
-      value["duration"] = Duration(hours: value["duration"]);
-      return value;
+      Map<String, dynamic> data = doc.data();
+      Timestamp temp = data["eventStartTime"];
+      data["eventStartTime"] = temp.toDate();
+      data["eventID"] = doc.id;
+      data["eventDuration"] = Duration(hours: data["eventDuration"]);
+      return data;
     }).toList());
-    for (Map<String, dynamic> map in allData) {
-      eventSummariesData.add([
-        map["id"],
-        map["titleImage"],
-        map["title"],
-        map["attendees"],
-        map["holder"],
-        map["startTime"],
-        map["duration"],
-        map["link"],
-      ]);
-    }
-    return eventSummariesData;
+    return allData;
   }
 
   @override
@@ -58,49 +36,32 @@ class _EventsPageState extends State<EventsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
         child: FutureBuilder(
             future: getPosts(),
-            builder: ((context, snapshot) {
-              List<Widget> children;
+            builder:
+                (context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
+              late List<Widget> children;
               if (snapshot.hasData) {
+                List<Map<String, dynamic>> eventData = snapshot.data!;
                 return ListView.builder(
-                  itemCount: eventSummariesData.length,
+                  itemCount: eventData.length,
                   itemBuilder: (BuildContext context, int index) {
-                    return Event(
-                      eventID: eventSummariesData[index][0],
-                      titleImage: eventSummariesData[index][1],
-                      title: eventSummariesData[index][2],
-                      attendeeNum: eventSummariesData[index][3],
-                      eventHolder: eventSummariesData[index][4],
-                      startTime: eventSummariesData[index][5],
-                      eventDuration: eventSummariesData[index][6],
-                      eventLink: eventSummariesData[index][7],
+                    return AnEventCard(
+                      eventID: eventData[index]["eventID"],
+                      eventTitleImage: eventData[index]["eventTitleImage"],
+                      eventTitle: eventData[index]["eventTitle"],
+                      eventAttendeesNumber: eventData[index]
+                          ["eventAttendeesNumber"],
+                      eventHolder: eventData[index]["eventHolder"],
+                      eventStartTime: eventData[index]["eventStartTime"],
+                      eventDuration: eventData[index]["eventDuration"],
+                      eventLink: eventData[index]["eventLink"],
                       readOnly: isNotLoggedIn,
                     );
                   },
                 );
               } else if (snapshot.hasError) {
-                children = <Widget>[
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.red,
-                    size: 60,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text('Error: ${snapshot.error}'),
-                  )
-                ];
+                children = buildFutureError(snapshot);
               } else {
-                children = const <Widget>[
-                  SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: CircularProgressIndicator(),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: Text('Fetching events'),
-                  )
-                ];
+                children = buildFutureLoading(snapshot, text: "Loading events");
               }
               return Center(
                 child: Column(
@@ -108,6 +69,6 @@ class _EventsPageState extends State<EventsPage> {
                   children: children,
                 ),
               );
-            })));
+            }));
   }
 }

@@ -3,55 +3,46 @@ import 'package:alumni/views/a_post_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class Post extends StatelessWidget {
-  final String? currentUID;
-  final String? currentAccessLevel;
+class APostCard extends StatelessWidget {
   final String postID;
-  final String title;
-  final String authorId;
-  final String authorName;
-  final int votes;
-  final int commentNumber;
-  final String postContent;
-  final DateTime postTime;
-  final bool? reaction;
-  final bool? saveStatus;
-  const Post(
-      {required this.currentUID,
-      required this.currentAccessLevel,
-      required this.postID,
-      required this.title,
-      required this.authorId,
-      required this.authorName,
-      required this.votes,
-      required this.commentNumber,
-      required this.postContent,
-      required this.postTime,
-      this.reaction,
-      this.saveStatus,
+  final String postTitle;
+  final String postAuthorID;
+  final String postAuthorName;
+  final int postVotes;
+  final String postBody;
+  final DateTime postedOn;
+  final bool? postReaction;
+  final bool? postSaveStatus;
+  const APostCard(
+      {required this.postID,
+      required this.postTitle,
+      required this.postAuthorID,
+      required this.postAuthorName,
+      required this.postVotes,
+      required this.postBody,
+      required this.postedOn,
+      this.postReaction,
+      this.postSaveStatus,
       Key? key})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     Duration postedDuration;
-    postedDuration = postTime.difference(DateTime.now());
+    postedDuration = postedOn.difference(DateTime.now());
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ElevatedButton(
         onPressed: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return APost(
-                currentUID: userData["uid"],
-                currentAccessLevel: userData["type"],
                 postID: postID,
-                title: title,
-                authorId: authorId,
-                authorName: authorName,
-                votes: votes,
-                commentNumber: commentNumber,
-                postContent: postContent,
-                postedDuration: _printDuration(postedDuration));
+                title: postTitle,
+                authorId: postAuthorID,
+                authorName: postAuthorName,
+                votes: postVotes,
+                postContent: postBody,
+                postedDuration: printDuration(postedDuration));
           }));
         },
         style: ButtonStyle(
@@ -72,7 +63,7 @@ class Post extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      title,
+                      postTitle,
                       style: GoogleFonts.lato(
                           fontSize: 16,
                           height: 1.3,
@@ -92,9 +83,9 @@ class Post extends StatelessWidget {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                       child: Text(
                         "By:" +
-                            authorName +
+                            postAuthorName +
                             " (" +
-                            _printDuration(postedDuration) +
+                            printDuration(postedDuration) +
                             ")",
                         style: GoogleFonts.lato(
                             fontSize: 10, color: Colors.grey.shade300),
@@ -103,20 +94,10 @@ class Post extends StatelessWidget {
                     const SizedBox(
                       height: 8,
                     ),
-                    Row(
-                      children: [
-                        Text(
-                          votes.toString(),
-                          style: GoogleFonts.lato(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const Text(" \u2022 "),
-                        Text(
-                          commentNumber.toString() + " comments",
-                          style: GoogleFonts.lato(
-                              fontSize: 14, color: Colors.grey.shade400),
-                        )
-                      ],
+                    Text(
+                      postVotes.toString(),
+                      style: GoogleFonts.lato(
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(
                       height: 8,
@@ -132,7 +113,7 @@ class Post extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6.0, vertical: 4),
                               child: Text(
-                                postContent,
+                                postBody,
                                 maxLines: 5,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.lato(
@@ -151,24 +132,5 @@ class Post extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _printDuration(Duration duration) {
-    int days = duration.inDays.abs();
-    int hours = duration.inHours.abs();
-    int mins = duration.inMinutes.abs();
-    int secs = duration.inSeconds.abs();
-    if (days != 0) {
-      hours = hours.remainder(24);
-      return days.toString() + "d" + " " + hours.toString() + "h";
-    } else if (hours != 0) {
-      mins = mins.remainder(60);
-      return hours.toString() + "h" + " " + mins.toString() + "m";
-    } else if (mins != 0) {
-      secs = secs.remainder(60);
-      return mins.toString() + "m" + " " + secs.toString() + "s";
-    } else {
-      return secs.toString() + "s";
-    }
   }
 }
