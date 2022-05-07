@@ -8,24 +8,20 @@ import 'package:google_fonts/google_fonts.dart';
 
 class APost extends StatefulWidget {
   final String postID;
-  final String title;
-  final String authorId;
+  final String postTitle;
+  final String authorID;
   final String authorName;
-  final int votes;
-  final String postContent;
+  final String postBody;
   final String postedDuration;
   final bool? reaction;
-  final bool readOnly;
   const APost(
       {required this.postID,
-      required this.title,
-      required this.authorId,
+      required this.postTitle,
+      required this.authorID,
       required this.authorName,
-      required this.votes,
-      required this.postContent,
+      required this.postBody,
       required this.postedDuration,
       this.reaction,
-      this.readOnly = false,
       Key? key})
       : super(key: key);
 
@@ -34,13 +30,72 @@ class APost extends StatefulWidget {
 }
 
 class _APost extends State<APost> {
-  Future<bool> getData() async {
-    return true;
+  Future<int?> getData() async {
+    votes = await firestore!.collection("posts").doc(widget.postID).get().then(
+      (value) {
+        return value.data()!["postVotes"];
+      },
+    );
+    if (userData["uid"] == null) {
+      return null;
+    }
+
+    print(userData);
+    bool? voteValue = await firestore!
+        .collection("userVotes")
+        .doc(userData["uid"])
+        .get()
+        .then((value) {
+      print(value);
+      return value.data()![widget.postID];
+    });
+    return voteBoolToVoteOffsetMap[voteValue];
   }
+
+  final Map voteOffsetToVoteBoolMap = {
+    -1: false,
+    0: null,
+    1: true,
+  };
+
+  final Map voteBoolToVoteOffsetMap = {false: -1, null: 0, true: 1};
+
+  late int voteOffset;
+  late int votes;
 
   void deletePost() {
     firestore!.collection("posts").doc(widget.postID).delete();
     backToForumPage();
+  }
+
+  void editPost() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return CreatePostPage(
+        postID: widget.postID,
+        postTitle: postTitle,
+        postBody: postBody,
+      );
+    })).then((value) {
+      if (updatedPostID == widget.postID) {
+        setState(() {
+          postTitle = updatedPostData["postTitle"];
+          postBody = updatedPostData["postBody"];
+        });
+      }
+    });
+  }
+
+  void sharePost() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AskMessagePopUp(
+              editingFlag: false,
+              title: postTitle,
+              authorName: widget.authorName,
+              id: widget.postID,
+              type: "post");
+        });
   }
 
   void backToForumPage() {
@@ -52,65 +107,62 @@ class _APost extends State<APost> {
     }));
   }
 
-  @override
-  Widget build(BuildContext context) {
+  List<Widget> getAppBarActions() {
+    IconButton shareButton = buildAppBarIcon(
+        onPressed: () {
+          sharePost();
+        },
+        icon: Icons.notification_add_rounded);
+    IconButton editButton = buildAppBarIcon(
+        onPressed: () {
+          editPost();
+        },
+        icon: Icons.edit);
+    IconButton deleteButton = buildAppBarIcon(
+        onPressed: () {
+          deletePost();
+        },
+        icon: Icons.delete_rounded);
     List<Widget> appBarActions = [];
-    if (userData["uid"] == widget.authorId) {
+    if (userData["uid"] == widget.authorID) {
       if (userData["accessLevel"] == "admin") {
-        IconButton shareButton = buildAppBarIcon(
-            onPressed: () {
-              showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AskMessagePopUp(
-                        editingFlag: false,
-                        title: widget.title,
-                        authorName: widget.authorName,
-                        id: widget.postID,
-                        type: "post");
-                  });
-            },
-            icon: Icons.notification_add_rounded);
         appBarActions.add(shareButton);
       }
-      IconButton editButton = buildAppBarIcon(
-          onPressed: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-              return CreatePostPage(
-                postId: widget.postID,
-                title: widget.title,
-                postContent: widget.postContent,
-              );
-            }));
-          },
-          icon: Icons.edit);
+
       appBarActions.add(editButton);
-      IconButton deleteButton = buildAppBarIcon(
-          onPressed: () {
-            deletePost();
-          },
-          icon: Icons.delete_rounded);
       appBarActions.add(deleteButton);
     } else if (userData["accessLevel"] == "admin") {
-      IconButton deleteButton = buildAppBarIcon(
-          onPressed: () {
-            deletePost();
-          },
-          icon: Icons.delete_rounded);
       appBarActions.add(deleteButton);
-      IconButton shareButton = buildAppBarIcon(
-          onPressed: () {
-            print("sharing post");
-          },
-          icon: Icons.notification_add_rounded);
       appBarActions.add(shareButton);
     }
+    return appBarActions;
+  }
+
+  late String postTitle;
+  late String postBody;
+
+  @override
+  void initState() {
+    votes = 0;
+    voteOffset = 0;
+    postBody = widget.postBody;
+    postTitle = widget.postTitle;
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder(
         future: getData(),
-        builder: (context, snapshot) {
+        builder: (context, AsyncSnapshot<int?> snapshot) {
           List<Widget> children = [];
           if (snapshot.hasData) {
-            return _buildPage(appBarActions);
+            if (snapshot.data != null) {
+              voteOffset = snapshot.data!;
+            }
+            votes -= voteOffset;
+            print(voteOffset);
+            return _buildPage();
           } else if (snapshot.hasError) {
             children = <Widget>[
               const Icon(
@@ -141,22 +193,112 @@ class _APost extends State<APost> {
         });
   }
 
-  Scaffold _buildPage(List<Widget> appBarActions) {
+  Future<void> upvote() async {
+    print("upvote");
+    var doc = await firestore!
+        .collection("posts")
+        .doc(widget.postID)
+        .get()
+        .then((value) => value);
+    int votes = doc.data()!["postVotes"];
+    int changeInVote = 0;
+    int nextVoteOffset = 0;
+    if (voteOffset == 1) {
+      nextVoteOffset = 0;
+      changeInVote = -1;
+    } else if (voteOffset == 0) {
+      nextVoteOffset = 1;
+      changeInVote = 1;
+    } else {
+      nextVoteOffset = 1;
+      changeInVote = 2;
+    }
+    firestore!
+        .collection("posts")
+        .doc(widget.postID)
+        .update({"postVotes": votes + changeInVote});
+    firestore!
+        .collection("userVotes")
+        .doc(userData["uid"])
+        .update({widget.postID: voteOffsetToVoteBoolMap[nextVoteOffset]});
+    setState(() {
+      voteOffset = nextVoteOffset;
+    });
+  }
+
+  Future<void> downvote() async {
+    print("downvote");
+    var doc = await firestore!
+        .collection("posts")
+        .doc(widget.postID)
+        .get()
+        .then((value) => value);
+    int votes = doc.data()!["postVotes"];
+    int changeInVote = 0;
+    int nextVoteOffset = 0;
+    if (voteOffset == -1) {
+      nextVoteOffset = 0;
+      changeInVote = 1;
+    } else if (voteOffset == 0) {
+      nextVoteOffset = -1;
+      changeInVote = -1;
+    } else {
+      nextVoteOffset = -1;
+      changeInVote = -2;
+    }
+    firestore!
+        .collection("posts")
+        .doc(widget.postID)
+        .update({"postVotes": votes + changeInVote});
+    firestore!
+        .collection("userVotes")
+        .doc(userData["uid"])
+        .update({widget.postID: voteOffsetToVoteBoolMap[nextVoteOffset]});
+    setState(() {
+      voteOffset = nextVoteOffset;
+    });
+  }
+
+  Scaffold _buildPage() {
+    var appBarActions = getAppBarActions();
     Widget postButtons = const SizedBox(
       height: 0,
     );
+    Color votesColor = Colors.grey;
+    Color upvoteButtonColor = Colors.grey;
+    Color downvoteButtonColor = Colors.grey;
+    if (voteOffset == 1) {
+      upvoteButtonColor = Colors.blue;
+      votesColor = upvoteButtonColor;
+    } else if (voteOffset == -1) {
+      downvoteButtonColor = Colors.deepOrange;
+      votesColor = downvoteButtonColor;
+    }
+
+    IconButton upvoteButton = IconButton(
+        splashRadius: 1,
+        color: upvoteButtonColor,
+        onPressed: () {
+          upvote();
+        },
+        icon: const Icon(Icons.arrow_upward_sharp));
+
+    IconButton downvoteButton = IconButton(
+        splashRadius: 1,
+        color: downvoteButtonColor,
+        onPressed: () {
+          downvote();
+        },
+        icon: const Icon(Icons.arrow_downward_sharp));
+
     if (userData["uid"] != null) {
       postButtons = Container(
-        decoration: const BoxDecoration(color: Color.fromARGB(255, 39, 53, 57)),
+        decoration: const BoxDecoration(color: Color.fromARGB(255, 31, 41, 44)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            TextButton(
-                onPressed: () {},
-                child: const Icon(Icons.arrow_upward_rounded)),
-            TextButton(
-                onPressed: () {},
-                child: const Icon(Icons.arrow_downward_rounded)),
+            upvoteButton,
+            downvoteButton,
             TextButton(onPressed: () {}, child: const Icon(Icons.bookmark_add)),
           ],
         ),
@@ -204,7 +346,7 @@ class _APost extends State<APost> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      widget.title,
+                      postTitle,
                       style: GoogleFonts.lato(
                           fontSize: 16,
                           height: 1.3,
@@ -233,9 +375,11 @@ class _APost extends State<APost> {
                       height: 8,
                     ),
                     Text(
-                      widget.votes.toString(),
+                      (votes + voteOffset).toString(),
                       style: GoogleFonts.lato(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: votesColor),
                     ),
                     const SizedBox(
                       height: 8,
@@ -252,7 +396,7 @@ class _APost extends State<APost> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6.0, vertical: 4),
                               child: Text(
-                                widget.postContent,
+                                postBody,
                                 style: GoogleFonts.lato(
                                     fontSize: 14, color: Colors.grey.shade50),
                               ),

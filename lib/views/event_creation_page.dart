@@ -1,7 +1,9 @@
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/an_event_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/input_field.dart';
+import 'package:alumni/widgets/year_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
@@ -116,49 +118,82 @@ class _CreateEventState extends State<CreateEvent> {
     }
   }
 
-  void updateEvent() {
-    String title = _titleController.text;
-    String holder = _holderController.text;
-    int duration = int.tryParse(_durationController.text)!;
-    int attendees = 0;
-    String link = _linkController.text;
-    String description = _descriptionController.text;
-    var startTime = Timestamp.fromDate(chosenStartTime!);
+  void updateEvent() async {
+    String eventTitle = _titleController.text;
+    String eventHolder = _holderController.text;
+    int eventDuration = int.tryParse(_durationController.text)!;
+    int eventAttendeesNumber = 0;
+    String eventLink = _linkController.text;
+    String eventDescription = _descriptionController.text;
+    var eventStartTime = Timestamp.fromDate(chosenStartTime!);
 
-    firestore!.collection("events").doc(widget.eventId).update({
-      "eventAttendeesNumber": attendees,
-      "eventDuration": duration,
-      "eventHolder": holder,
-      "eventLink": link,
-      "eventStartTime": startTime,
-      "eventTitle": title,
+    firestore!.collection('events').doc(widget.eventId).update({
+      "eventAttendeesNumber": eventAttendeesNumber,
+      "eventDuration": eventDuration,
+      "eventHolder": eventHolder,
+      "eventLink": eventLink,
+      "eventStartTime": eventStartTime,
+      "eventTitle": eventTitle,
       "eventTitleImage": null,
-      "eventDescription": description
+      "eventDescription": eventDescription
     });
+    Navigator.of(context).pop();
+    Navigator.of(context).pop();
+    Navigator.of(context).pop();
 
-    Navigator.of(context).popUntil(ModalRoute.withName("/events"));
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return const MainPage(
+        startingIndex: 1,
+      );
+    }));
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return AnEventPage(
+          eventID: widget.eventId!,
+          eventTitle: eventTitle,
+          eventHolder: eventHolder,
+          eventAttendeesNumber: eventAttendeesNumber,
+          eventStartTime: eventStartTime.toDate(),
+          eventDuration: Duration(hours: eventDuration));
+    }));
   }
 
-  void saveEvent() {
-    String title = _titleController.text;
-    String holder = _holderController.text;
-    int duration = int.tryParse(_durationController.text)!;
-    int attendees = 0;
-    String link = _linkController.text;
-    String description = _descriptionController.text;
-    var startTime = Timestamp.fromDate(chosenStartTime!);
+  void saveEvent() async {
+    String eventTitle = _titleController.text;
+    String eventHolder = _holderController.text;
+    int eventDuration = int.tryParse(_durationController.text)!;
+    int eventAttendeesNumber = 0;
+    String eventLink = _linkController.text;
+    String eventDescription = _descriptionController.text;
+    var eventStartTime = Timestamp.fromDate(chosenStartTime!);
 
-    firestore!.collection('events').add({
-      "eventAttendeesNumber": attendees,
-      "eventDuration": duration,
-      "eventHolder": holder,
-      "eventLink": link,
-      "eventStartTime": startTime,
-      "eventTitle": title,
+    String eventID = await firestore!.collection('events').add({
+      "eventAttendeesNumber": eventAttendeesNumber,
+      "eventDuration": eventDuration,
+      "eventHolder": eventHolder,
+      "eventLink": eventLink,
+      "eventStartTime": eventStartTime,
+      "eventTitle": eventTitle,
       "eventTitleImage": null,
-      "eventDescription": description
-    }).then((value) {});
-    Navigator.of(context).popUntil(ModalRoute.withName("/events"));
+      "eventDescription": eventDescription
+    }).then((value) {
+      return value.id;
+    });
+    Navigator.of(context).pop();
+    Navigator.of(context).pop();
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return const MainPage(
+        startingIndex: 2,
+      );
+    }));
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return AnEventPage(
+          eventID: eventID,
+          eventTitle: eventTitle,
+          eventHolder: eventHolder,
+          eventAttendeesNumber: eventAttendeesNumber,
+          eventStartTime: eventStartTime.toDate(),
+          eventDuration: Duration(hours: eventDuration));
+    }));
     // Navigator.of(context).push(MaterialPageRoute(builder: (context) {
     //   return const MainPage(
     //     startingIndex: 1,
@@ -235,10 +270,10 @@ class _CreateEventState extends State<CreateEvent> {
             Row(
               children: [
                 _buildDurationInput(),
-                const Text(
+                Text(
                   " in hours",
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: screenHeight * 0.02,
                   ),
                 ),
               ],
@@ -281,6 +316,10 @@ class _CreateEventState extends State<CreateEvent> {
     return TextButton(
         onPressed: () {
           DatePicker.showDatePicker(context,
+              theme: DatePickerTheme(
+                  backgroundColor: Colors.grey.shade900,
+                  itemStyle: const TextStyle(color: Colors.white),
+                  cancelStyle: const TextStyle(color: Colors.deepOrange)),
               currentTime: chosenStartTime,
               minTime: DateTime.now(),
               maxTime: DateTime.now().add(const Duration(days: 365)),

@@ -3,7 +3,7 @@ import 'package:alumni/views/a_post_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class APostCard extends StatelessWidget {
+class APostCard extends StatefulWidget {
   final String postID;
   final String postTitle;
   final String postAuthorID;
@@ -27,23 +27,45 @@ class APostCard extends StatelessWidget {
       : super(key: key);
 
   @override
+  State<APostCard> createState() => _APostCardState();
+}
+
+class _APostCardState extends State<APostCard> {
+  late String postTitle;
+  late String postBody;
+
+  @override
+  void initState() {
+    postTitle = widget.postTitle;
+    postBody = widget.postBody;
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     Duration postedDuration;
-    postedDuration = postedOn.difference(DateTime.now());
+    postedDuration = widget.postedOn.difference(DateTime.now());
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ElevatedButton(
         onPressed: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return APost(
-                postID: postID,
-                title: postTitle,
-                authorId: postAuthorID,
-                authorName: postAuthorName,
-                votes: postVotes,
-                postContent: postBody,
-                postedDuration: printDuration(postedDuration));
-          }));
+                postID: widget.postID,
+                postTitle: postTitle,
+                authorID: widget.postAuthorID,
+                authorName: widget.postAuthorName,
+                postBody: postBody,
+                postedDuration:
+                    printDuration(widget.postedOn.difference(DateTime.now())));
+          })).then((value) {
+            if (updatedPostID == widget.postID) {
+              setState(() {
+                postTitle = updatedPostData["postTitle"];
+                postBody = updatedPostData["postBody"];
+              });
+            }
+          });
         },
         style: ButtonStyle(
           overlayColor: MaterialStateProperty.all(Colors.transparent),
@@ -83,7 +105,7 @@ class APostCard extends StatelessWidget {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                       child: Text(
                         "By:" +
-                            postAuthorName +
+                            widget.postAuthorName +
                             " (" +
                             printDuration(postedDuration) +
                             ")",
@@ -95,7 +117,7 @@ class APostCard extends StatelessWidget {
                       height: 8,
                     ),
                     Text(
-                      postVotes.toString(),
+                      widget.postVotes.toString(),
                       style: GoogleFonts.lato(
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),

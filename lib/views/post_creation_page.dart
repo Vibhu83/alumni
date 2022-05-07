@@ -1,14 +1,15 @@
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/a_post_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CreatePostPage extends StatefulWidget {
-  final String? postId;
-  final String? title;
-  final String? postContent;
-  const CreatePostPage({this.postId, this.title, this.postContent, Key? key})
+  final String? postID;
+  final String? postTitle;
+  final String? postBody;
+  const CreatePostPage({this.postID, this.postTitle, this.postBody, Key? key})
       : super(key: key);
 
   @override
@@ -20,10 +21,76 @@ class _CreatePostPageState extends State<CreatePostPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _bodyController;
 
+  void popOldPostPage() {
+    Navigator.of(context).pop();
+  }
+
+  Future<String> addPost(String postTitle, String authorID, int postVotes,
+      String postBody, Timestamp postTime) async {
+    String temp = await firestore!.collection('posts').add({
+      "postAuthorID": authorID,
+      "postTitle": postTitle,
+      "postVotes": postVotes,
+      "postBody": postBody,
+      "postedOn": postTime
+    }).then((value) {
+      return value.id;
+    });
+    return temp;
+  }
+
+  void updatePost(String postTitle, String postBody) {
+    firestore!.collection("posts").doc(widget.postID).update({
+      "postTitle": postTitle,
+      "postBody": postBody,
+    });
+    updatedPostID = widget.postID;
+    updatedPostData = {
+      "postTitle": postTitle,
+      "postBody": postBody,
+    };
+  }
+
+  void saveOrUpdateData() async {
+    String postTitle = _titleController.text;
+    String authorID = userData["uid"];
+    int postVotes = 0;
+    String postBody = _bodyController.text;
+    Timestamp postTime = Timestamp.now();
+    if (widget.postID == null) {
+      String postID =
+          await addPost(postTitle, authorID, postVotes, postBody, postTime);
+      Navigator.of(context).pop();
+      String authorName = await getAuthorNameByID(authorID);
+      Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
+        return APost(
+            postID: postID,
+            postTitle: postTitle,
+            authorID: authorID,
+            authorName: authorName,
+            postBody: postBody,
+            postedDuration:
+                printDuration(postTime.toDate().difference(DateTime.now())));
+      })));
+    } else {
+      updatePost(postTitle, postBody);
+      print(updatedPostData);
+      Navigator.of(context).pop();
+    }
+    // Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+    //   return const MainPage(
+    //     startingIndex: 3,
+    //   );
+    // }));
+  }
+
   @override
   void initState() {
-    _titleController = TextEditingController(text: widget.title);
-    _bodyController = TextEditingController(text: widget.postContent);
+    _titleController = TextEditingController(text: widget.postTitle);
+    if (widget.postTitle != null) {
+      createFireStoreDoc = saveOrUpdateData;
+    }
+    _bodyController = TextEditingController(text: widget.postBody);
     super.initState();
   }
 
@@ -37,36 +104,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     } else {
       setState(() {
         _titleError = null;
-        createFireStoreDoc = () async {
-          String title = _titleController.text;
-          String authorID = userData["uid"];
-          int votes = 0;
-          String postBody = _bodyController.text;
-          Timestamp postTime = Timestamp.now();
-          if (widget.postId == null) {
-            firestore!.collection('posts').add({
-              "postAuthorID": authorID,
-              "postTitle": title,
-              "postVotes": votes,
-              "postBody": postBody,
-              "postedOn": postTime
-            }).then((value) {});
-          } else {
-            firestore!.collection("posts").doc(widget.postId).update({
-              "postAuthorID": authorID,
-              "postTitle": title,
-              "postVotes": votes,
-              "postBody": postBody,
-              "postedOn": postTime
-            });
-          }
-          Navigator.of(context).popUntil(ModalRoute.withName("/events"));
-          // Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-          //   return const MainPage(
-          //     startingIndex: 3,
-          //   );
-          // }));
-        };
+        createFireStoreDoc = saveOrUpdateData;
       });
     }
   }
@@ -75,7 +113,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   Widget build(BuildContext context) {
     String title;
     String buttonText;
-    if (widget.title != null) {
+    if (widget.postTitle != null) {
       title = "Edit the post";
       buttonText = "Edit";
     } else {
@@ -116,9 +154,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   child: TextButton(
                       style:
                           TextButton.styleFrom(primary: Colors.blue.shade100),
-                      onPressed: () {
-                        createFireStoreDoc!();
-                      },
+                      onPressed: createFireStoreDoc as void Function()?,
                       child: Text(
                         buttonText,
                         style: const TextStyle(

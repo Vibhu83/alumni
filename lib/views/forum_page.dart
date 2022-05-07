@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/a_post_page.dart';
 import 'package:alumni/widgets/post_card.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,7 +15,6 @@ class ForumPage extends StatefulWidget {
 }
 
 class _ForumPageState extends State<ForumPage> {
-  List<Map<String, dynamic>> postsData = [];
   DocumentSnapshot? lastDoc;
 
   Future<List<Map<String, dynamic>>> getPosts() async {
@@ -29,11 +29,11 @@ class _ForumPageState extends State<ForumPage> {
       value["postID"] = doc.id;
       return value;
     }).toList());
-    for (Map<String, dynamic> map in allData) {
-      map["authorName"] = await getAuthorNameByID(map["postAuthorID"]);
-      postsData.add(map);
+    for (int i = 0; i < allData.length; i++) {
+      allData[i]["authorName"] =
+          await getAuthorNameByID(allData[i]["postAuthorID"]);
     }
-    return postsData;
+    return allData;
   }
 
   @override
@@ -42,9 +42,11 @@ class _ForumPageState extends State<ForumPage> {
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
         child: FutureBuilder(
             future: getPosts(),
-            builder: ((context, snapshot) {
+            builder:
+                ((context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
               List<Widget> children;
               if (snapshot.hasData) {
+                var postsData = snapshot.data!;
                 return ListView.builder(
                   itemCount: postsData.length,
                   itemBuilder: (BuildContext context, int index) {
@@ -57,13 +59,14 @@ class _ForumPageState extends State<ForumPage> {
                     String postBody = postsData[index]["postBody"];
                     DateTime postedOn = postsData[index]["postedOn"];
                     return APostCard(
-                        postID: postID,
-                        postTitle: postTitle,
-                        postAuthorID: postAuthorID,
-                        postAuthorName: postAuthorName,
-                        postVotes: postVotes,
-                        postBody: postBody,
-                        postedOn: postedOn);
+                      postID: postID,
+                      postTitle: postTitle,
+                      postAuthorID: postAuthorID,
+                      postAuthorName: postAuthorName,
+                      postVotes: postVotes,
+                      postBody: postBody,
+                      postedOn: postedOn,
+                    );
                   },
                 );
               } else if (snapshot.hasError) {

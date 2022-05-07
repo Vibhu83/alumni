@@ -100,13 +100,11 @@ class _NotificationPageState extends State<NotificationPage> {
                       Navigator.of(context)
                           .push(MaterialPageRoute(builder: (context) {
                         return APost(
-                            readOnly: readOnly,
                             postID: item["recommendedItemID"],
-                            title: item["recommendationTitle"],
-                            authorId: item["postAuthorID"],
+                            postTitle: item["recommendationTitle"],
+                            authorID: item["postAuthorID"],
                             authorName: item["authorName"],
-                            votes: item["postVotes"],
-                            postContent: item["postBody"],
+                            postBody: item["postBody"],
                             postedDuration: printDuration(postedDuration));
                       }));
                     };

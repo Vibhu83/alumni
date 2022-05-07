@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 FirebaseApp? app;
 FirebaseAuth? auth;
 FirebaseFirestore? firestore;
+
 Map<String, dynamic> userData = {};
 
 late double screenHeight;
@@ -106,7 +107,10 @@ String formatDateTime(DateTime dateTime) {
 
   String hour = dateTime.hour.toString();
   String minute = dateTime.minute.toString();
-  returnString += " at " + hour + ":" + minute;
+  if (minute == "0") {
+    minute = "00";
+  }
+  returnString += " At " + hour + ":" + minute;
   return returnString;
 }
 
@@ -122,3 +126,6 @@ Future<String> getAuthorNameByID(String authorID) async {
 
 bool? deleteLastOpenedRecommendation;
 String? updateLastRecommendationText;
+
+String? updatedPostID;
+Map<String, dynamic> updatedPostData = {};

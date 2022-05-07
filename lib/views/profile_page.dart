@@ -78,8 +78,7 @@ class _ProfilePageState extends State<ProfilePage> {
           if (isTheProfileOfCurrentUser == true) {
             appBarActions.add(editUserButton);
             appBarActions.add(delUserButton);
-          }
-          if (userData["accessLevel"] == "admin") {
+          } else if (userData["accessLevel"] == "admin") {
             appBarActions.add(delUserButton);
           }
 

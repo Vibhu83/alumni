@@ -3,7 +3,6 @@ import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,7 +16,6 @@ class AnEventPage extends StatefulWidget {
   final DateTime eventStartTime;
   final Duration eventDuration;
   final String? eventLink;
-  final bool readOnly;
   const AnEventPage(
       {required this.eventID,
       this.eventTitleImage,
@@ -27,7 +25,6 @@ class AnEventPage extends StatefulWidget {
       required this.eventStartTime,
       required this.eventDuration,
       this.eventLink,
-      this.readOnly = false,
       Key? key})
       : super(key: key);
 
@@ -36,86 +33,6 @@ class AnEventPage extends StatefulWidget {
 }
 
 class _AnEventPageState extends State<AnEventPage> {
-  String formatDateTime(DateTime dateTime) {
-    final Map monthMap = {
-      1: "January",
-      2: "February",
-      3: "March",
-      4: "April",
-      5: "May",
-      6: "June",
-      7: "July",
-      8: "August",
-      9: "September",
-      10: "October",
-      11: "November",
-      12: "December"
-    };
-    DateTime current = DateTime.now();
-    String year = "";
-    String month = "";
-    String date = "";
-    String returnString = "";
-    String datePostFix = "";
-    if (current.year != dateTime.year) {
-      year = dateTime.year.toString();
-      month = monthMap[dateTime.month];
-      date = dateTime.day.toString();
-      int temp = dateTime.day % 10;
-      if (temp == 1) {
-        datePostFix = "st";
-      } else if (temp == 2) {
-        datePostFix = "nd";
-      } else if (temp == 3) {
-        datePostFix = "rd";
-      } else {
-        datePostFix = "th";
-      }
-      date += datePostFix;
-      returnString = month + " " + date + ", " + year;
-    } else {
-      if (current.month != dateTime.month) {
-        month = monthMap[dateTime.month];
-        date = dateTime.day.toString();
-        int temp = dateTime.day % 10;
-        if (temp == 1) {
-          datePostFix = "st";
-        } else if (temp == 2) {
-          datePostFix = "nd";
-        } else if (temp == 3) {
-          datePostFix = "rd";
-        } else {
-          datePostFix = "th";
-        }
-        date += datePostFix;
-        returnString = month + " " + date;
-      } else {
-        if (current.day == dateTime.day) {
-          date = "Today";
-        } else {
-          date = dateTime.day.toString();
-          int temp = dateTime.day % 10;
-          if (temp == 1) {
-            datePostFix = "st";
-          } else if (temp == 2) {
-            datePostFix = "nd";
-          } else if (temp == 3) {
-            datePostFix = "rd";
-          } else {
-            datePostFix = "th";
-          }
-          date += datePostFix;
-        }
-        returnString = date;
-      }
-    }
-
-    String hour = dateTime.hour.toString();
-    String minute = dateTime.minute.toString();
-    returnString += " at " + hour + ":" + minute;
-    return returnString;
-  }
-
   late Map<String, bool> clickFlags;
   late int attendeeOffset;
 
@@ -129,35 +46,59 @@ class _AnEventPageState extends State<AnEventPage> {
     super.initState();
   }
 
+  Future<bool?> getEventAttendanceStatus() async {
+    bool? isBeingAttended = await firestore!
+        .collection("usersEventAttendanceStatus")
+        .doc(userData["uid"])
+        .get()
+        .then((value) {
+      return value.data()![widget.eventID];
+    });
+    isBeingAttended ??= false;
+    return isBeingAttended;
+  }
+
   Future<void> changeAttendeeNumber() async {
-    var doc = await FirebaseFirestore.instance
+    int dbAttendeeNum = await firestore!
         .collection("events")
         .doc(widget.eventID)
         .get()
-        .then((value) => value);
-    int dbAttendeeNum = doc.data()!["eventAttendeesNumber"];
+        .then((value) => value["eventAttendeesNumber"]);
+    bool nextAttendingFlag = false;
+    int nextAttendeeOffset = 0;
+    int changeInDbAttendee = 0;
+    if (clickFlags["attending"] == true) {
+      nextAttendingFlag = false;
+      nextAttendeeOffset = 0;
+      changeInDbAttendee = -1;
+    } else {
+      nextAttendingFlag = true;
+      nextAttendeeOffset = 1;
+      changeInDbAttendee = 1;
+    }
+    firestore!
+        .collection("events")
+        .doc(widget.eventID)
+        .update({"eventAttendeesNumber": dbAttendeeNum + changeInDbAttendee});
+    firestore!
+        .collection("usersEventAttendanceStatus")
+        .doc(userData["uid"])
+        .update({widget.eventID: nextAttendingFlag});
     setState(() {
-      if (clickFlags["attending"] == true) {
-        clickFlags["attending"] = false;
-        attendeeOffset = 0;
-        FirebaseFirestore.instance
-            .collection("events")
-            .doc(widget.eventID)
-            .update({"eventAttendeesNumber": dbAttendeeNum - 1});
-      } else {
-        clickFlags["attending"] = true;
-        attendeeOffset = 1;
-        FirebaseFirestore.instance
-            .collection("events")
-            .doc(widget.eventID)
-            .update({"eventAttendeesNumber": dbAttendeeNum + 1});
-      }
+      clickFlags["attending"] = nextAttendingFlag;
+      attendeeOffset = nextAttendeeOffset;
     });
   }
 
   void deleteEvent() {
     firestore!.collection("events").doc(widget.eventID).delete();
-    Navigator.of(context).popUntil(ModalRoute.withName("/events"));
+    Navigator.pop(context);
+    Navigator.pop(context);
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return const MainPage(
+        startingIndex: 1,
+      );
+    }));
   }
 
   List<Widget> _setActionButtons() {
@@ -348,7 +289,7 @@ class _AnEventPageState extends State<AnEventPage> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: iconButtons,
         ));
-    if (widget.readOnly == true) {
+    if (userData["uid"] == null) {
       eventOptions = const SizedBox(
         height: 0,
       );

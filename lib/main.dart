@@ -13,7 +13,7 @@ void main() {
       routes: {
         "/register": (context) => const RegisterView(),
         "/login": ((context) => const LoginView()),
-        "/Home": (context) => const MainPage(),
+        "/home": (context) => const MainPage(),
         "/events": ((context) => const MainPage(
               startingIndex: 1,
             )),

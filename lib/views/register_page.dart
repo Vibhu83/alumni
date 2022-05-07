@@ -2,7 +2,7 @@ import 'package:alumni/globals.dart';
 import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:alumni/widgets/group_box.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:alumni/widgets/input_field.dart';
@@ -95,12 +95,14 @@ class _RegisterView extends State<RegisterView> {
       name = "Please enter a name";
       isValid = false;
     }
-    if (int.tryParse(_id.text) == null) {
-      id = "ID must only have digits";
-      isValid = false;
-    } else if (_id.text.length < 6) {
-      id = "ID must be of 6 digits";
-      isValid = false;
+    if (_id.text.isNotEmpty) {
+      if (int.tryParse(_id.text) == null) {
+        id = "ID must only have digits";
+        isValid = false;
+      } else if (_id.text.length < 6) {
+        id = "ID must be of 6 digits";
+        isValid = false;
+      }
     }
 
     if (_email.text.isEmpty || !emailExp.hasMatch(_email.text)) {
@@ -163,7 +165,9 @@ class _RegisterView extends State<RegisterView> {
           .createUserWithEmailAndPassword(email: email, password: password)
           .then((userRecord) {
         var uid = userRecord.user?.uid;
-        FirebaseFirestore.instance.collection("users").doc(uid).set({
+        firestore!.collection("eventAttendanceStatus").doc(uid).set({});
+        firestore!.collection("userVotes").doc(uid).set({});
+        firestore!.collection("users").doc(uid).set({
           "id": id,
           "name": name,
           "email": email,
@@ -267,6 +271,30 @@ class _RegisterView extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 27, 30, 32),
+      bottomNavigationBar: TextButton(
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+            return const LoginView();
+          }));
+        },
+        child: RichText(
+          textAlign: TextAlign.center,
+          text: const TextSpan(
+            text: "I'm already a member, ",
+            style: TextStyle(color: Colors.white),
+            children: [
+              TextSpan(
+                text: "Sign In",
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: Container(
         decoration: const BoxDecoration(color: Color.fromARGB(255, 12, 35, 36)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -303,11 +331,6 @@ class _RegisterView extends State<RegisterView> {
                 buildPadding(0.001, context),
                 _buildSwitch(),
                 buildPadding(0.015, context),
-              ],
-            )),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
                 SizedBox(
                   height: screenHeight * .065,
                   width: double.maxFinite,
@@ -323,32 +346,8 @@ class _RegisterView extends State<RegisterView> {
                       onPressed: submit),
                 ),
                 buildPadding(.01, context),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (context) {
-                      return const LoginView();
-                    }));
-                  },
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: const TextSpan(
-                      text: "I'm already a member, ",
-                      style: TextStyle(color: Colors.white),
-                      children: [
-                        TextSpan(
-                          text: "Sign In",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
               ],
-            )
+            )),
           ],
         ),
       ),
@@ -438,7 +437,7 @@ class _RegisterView extends State<RegisterView> {
   InputField _buildIdField(TextEditingController _id) {
     return InputField(
       autoCorrect: false,
-      labelText: "ID",
+      labelText: "ID(Optional)",
       controller: _id,
       maxLength: 6,
       keyboardType: TextInputType.number,
@@ -449,7 +448,7 @@ class _RegisterView extends State<RegisterView> {
   InputField _buildNameField(TextEditingController _name) {
     return InputField(
       autoCorrect: false,
-      labelText: "Name",
+      labelText: "Name*",
       errorText: nameError,
       controller: _name,
     );
@@ -458,7 +457,7 @@ class _RegisterView extends State<RegisterView> {
   InputField _buildPasswordField(TextEditingController _password) {
     return InputField(
       autoCorrect: false,
-      labelText: "Password",
+      labelText: "Password*",
       obscureText: true,
       controller: _password,
       onChanged: (value) => _checkPassword(value),
@@ -470,7 +469,7 @@ class _RegisterView extends State<RegisterView> {
       TextEditingController _confirmPassword) {
     return InputField(
       onSubmitted: (value) => submit(),
-      labelText: "Confirm Password",
+      labelText: "Confirm Password*",
       errorText: passwordError,
       obscureText: true,
       textInputAction: TextInputAction.done,
