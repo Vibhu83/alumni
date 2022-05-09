@@ -53,49 +53,39 @@ class _AnEventPageState extends State<AnEventPage> {
   }
 
   Future<bool?> getEventAttendanceStatus() async {
-    bool? isBeingAttended = await firestore!
-        .collection("eventAttendanceStatus")
-        .doc(userData["uid"])
-        .get()
-        .then((value) {
-      return value.data()![widget.eventID];
-    });
-    isBeingAttended ??= false;
-    print("user is attending event?" + isBeingAttended.toString());
-    return isBeingAttended;
+    if (isInitialBuild && userData["uid"] != null) {
+      isInitialBuild = false;
+      bool? isBeingAttended = await firestore!
+          .collection("eventAttendanceStatus")
+          .doc(userData["uid"])
+          .get()
+          .then((value) {
+        return value.data()![widget.eventID];
+      });
+      isBeingAttended ??= false;
+      print("user is attending event?" + isBeingAttended.toString());
+      clickFlags["attending"] = isBeingAttended;
+      return true;
+    } else {
+      return true;
+    }
   }
 
   Future<void> changeAttendeeNumber() async {
-    int dbAttendeeNum = await firestore!
-        .collection("events")
-        .doc(widget.eventID)
-        .get()
-        .then((value) => value["eventAttendeesNumber"]);
     bool nextAttendingFlag = false;
-    int nextAttendeeOffset = 0;
-    int changeInDbAttendee = 0;
+    int nextAttendeeNum = 0;
     if (clickFlags["attending"] == true) {
       nextAttendingFlag = false;
-      nextAttendeeOffset = 0;
-      changeInDbAttendee = -1;
+      nextAttendeeNum = attendees - 1;
     } else {
       nextAttendingFlag = true;
-      nextAttendeeOffset = 1;
-      changeInDbAttendee = 1;
+      nextAttendeeNum = attendees + 1;
     }
-    firestore!
-        .collection("events")
-        .doc(widget.eventID)
-        .update({"eventAttendeesNumber": dbAttendeeNum + changeInDbAttendee});
-    print("attendance status changed to" + nextAttendingFlag.toString());
-    firestore!
-        .collection("eventAttendanceStatus")
-        .doc(userData["uid"])
-        .update({widget.eventID: nextAttendingFlag});
     setState(() {
-      attendees = widget.eventAttendeesNumber + changeInDbAttendee;
+      attendees = nextAttendeeNum;
       clickFlags["attending"] = nextAttendingFlag;
-      attendeeOffset = nextAttendeeOffset;
+      lastEventAttendeeChange = attendees - widget.eventAttendeesNumber;
+      lastEventBool = clickFlags["attending"];
     });
   }
 
@@ -164,10 +154,6 @@ class _AnEventPageState extends State<AnEventPage> {
         builder: (context, AsyncSnapshot<bool?> snapshot) {
           List<Widget> children = [];
           if (snapshot.hasData) {
-            clickFlags = {
-              "attending": snapshot.data!,
-              "bookmark": false,
-            };
             return _buildPage();
           } else if (snapshot.hasError) {
             children = buildFutureError(snapshot);
@@ -192,17 +178,9 @@ class _AnEventPageState extends State<AnEventPage> {
       bookMarkIconColor = Colors.blue;
     }
     if (clickFlags["attending"] == true) {
-      attendeeOffset = 1;
       attendeeNumberColor = Colors.blue;
       attendingIconColor = Colors.blue;
       attendingIcon = Icons.event_busy_rounded;
-    }
-    int currentAttendees;
-    if (isInitialBuild) {
-      currentAttendees = widget.eventAttendeesNumber;
-      isInitialBuild = false;
-    } else {
-      currentAttendees = widget.eventAttendeesNumber + attendeeOffset;
     }
     //
 
@@ -238,7 +216,7 @@ class _AnEventPageState extends State<AnEventPage> {
               Row(
                 children: [
                   Text(
-                    currentAttendees.toString(),
+                    attendees.toString(),
                     style: GoogleFonts.lato(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,

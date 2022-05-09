@@ -34,11 +34,13 @@ class APostCard extends StatefulWidget {
 class _APostCardState extends State<APostCard> {
   late String postTitle;
   late String postBody;
+  late int postVotes;
 
   @override
   void initState() {
     postTitle = widget.postTitle;
     postBody = widget.postBody;
+    postVotes = widget.postVotes;
     super.initState();
   }
 
@@ -65,6 +67,15 @@ class _APostCardState extends State<APostCard> {
                 postTitle = updatedPostData["postTitle"];
                 postBody = updatedPostData["postBody"];
               });
+            }
+            if (lastPostChangeInVote != null && lastPostChangeInVote != 0) {
+              setState(() {
+                postVotes += lastPostChangeInVote!;
+              });
+              changeVote(widget.postID);
+            } else {
+              lastPostChangeInVote = null;
+              lastPostBool = null;
             }
           });
         },
@@ -118,7 +129,7 @@ class _APostCardState extends State<APostCard> {
                       height: 8,
                     ),
                     Text(
-                      widget.postVotes.toString(),
+                      postVotes.toString(),
                       style: GoogleFonts.lato(
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),

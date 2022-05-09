@@ -1,5 +1,6 @@
 import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/firebase_options.dart';
+import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/register_page.dart';
 import 'package:alumni/widgets/input_field.dart';
@@ -20,8 +21,6 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   late TextEditingController _email, _password;
   String? emailError, passwordError;
-  late double screenHeight;
-  late double screenWidth;
   Function(String? email, String? password)? get onSubmitted =>
       widget.onSubmitted;
 

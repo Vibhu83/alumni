@@ -32,24 +32,36 @@ class APost extends StatefulWidget {
 }
 
 class _APost extends State<APost> {
-  Future<int?> getData() async {
-    votes = await firestore!.collection("posts").doc(widget.postID).get().then(
-      (value) {
-        return value.data()!["postVotes"];
-      },
-    );
-    if (userData["uid"] == null) {
-      return null;
-    }
+  late bool isInitialRun;
+  late int originalVotes;
 
-    bool? voteValue = await firestore!
-        .collection("userVotes")
-        .doc(userData["uid"])
-        .get()
-        .then((value) {
-      return value.data()![widget.postID];
-    });
-    return voteBoolToVoteOffsetMap[voteValue];
+  Future<bool> getData() async {
+    if (isInitialRun == true) {
+      isInitialRun = false;
+      votes =
+          await firestore!.collection("posts").doc(widget.postID).get().then(
+        (value) {
+          return value.data()!["postVotes"];
+        },
+      );
+      originalVotes = votes;
+      if (userData["uid"] == null) {
+        return false;
+      }
+
+      bool? voteValue = await firestore!
+          .collection("userVotes")
+          .doc(userData["uid"])
+          .get()
+          .then((value) {
+        return value.data()![widget.postID];
+      });
+
+      voteOffset = voteBoolToVoteOffsetMap[voteValue];
+      return false;
+    } else {
+      return false;
+    }
   }
 
   final Map voteOffsetToVoteBoolMap = {
@@ -143,6 +155,8 @@ class _APost extends State<APost> {
 
   @override
   void initState() {
+    originalVotes = 0;
+    isInitialRun = true;
     votes = 0;
     voteOffset = 0;
     postBody = widget.postBody;
@@ -154,13 +168,9 @@ class _APost extends State<APost> {
   Widget build(BuildContext context) {
     return FutureBuilder(
         future: getData(),
-        builder: (context, AsyncSnapshot<int?> snapshot) {
+        builder: (context, AsyncSnapshot<bool> snapshot) {
           List<Widget> children = [];
           if (snapshot.hasData) {
-            if (snapshot.data != null) {
-              voteOffset = snapshot.data!;
-            }
-            votes -= voteOffset;
             return _buildPage();
           } else if (snapshot.hasError) {
             children = buildFutureError(snapshot);
@@ -171,61 +181,45 @@ class _APost extends State<APost> {
         });
   }
 
-  void upvote() async {
-    firestore!.collection("posts").doc(widget.postID).get().then((value) {
-      int votes = value.data()!["postVotes"];
-      int changeInVote = 0;
-      int nextVoteOffset = 0;
-      if (voteOffset == 1) {
-        nextVoteOffset = 0;
-        changeInVote = -1;
-      } else if (voteOffset == 0) {
-        nextVoteOffset = 1;
-        changeInVote = 1;
-      } else {
-        nextVoteOffset = 1;
-        changeInVote = 2;
-      }
-      firestore!
-          .collection("posts")
-          .doc(widget.postID)
-          .update({"postVotes": votes + changeInVote});
-      firestore!
-          .collection("userVotes")
-          .doc(userData["uid"])
-          .update({widget.postID: voteOffsetToVoteBoolMap[nextVoteOffset]});
-      setState(() {
-        voteOffset = nextVoteOffset;
-      });
+  void upvote() {
+    int changeInVote = 0;
+    int nextVoteOffset = 0;
+    if (voteOffset == 1) {
+      nextVoteOffset = 0;
+      changeInVote = -1;
+    } else if (voteOffset == 0) {
+      nextVoteOffset = 1;
+      changeInVote = 1;
+    } else {
+      nextVoteOffset = 1;
+      changeInVote = 2;
+    }
+    setState(() {
+      voteOffset = nextVoteOffset;
+      votes += changeInVote;
+      lastPostChangeInVote = votes - originalVotes;
+      lastPostBool = voteOffsetToVoteBoolMap[voteOffset];
     });
   }
 
-  Future<void> downvote() async {
-    firestore!.collection("posts").doc(widget.postID).get().then((value) {
-      int votes = value.data()!["postVotes"];
-      int changeInVote = 0;
-      int nextVoteOffset = 0;
-      if (voteOffset == -1) {
-        nextVoteOffset = 0;
-        changeInVote = 1;
-      } else if (voteOffset == 0) {
-        nextVoteOffset = -1;
-        changeInVote = -1;
-      } else {
-        nextVoteOffset = -1;
-        changeInVote = -2;
-      }
-      firestore!
-          .collection("posts")
-          .doc(widget.postID)
-          .update({"postVotes": votes + changeInVote});
-      firestore!
-          .collection("userVotes")
-          .doc(userData["uid"])
-          .update({widget.postID: voteOffsetToVoteBoolMap[nextVoteOffset]});
-      setState(() {
-        voteOffset = nextVoteOffset;
-      });
+  void downvote() {
+    int changeInVote = 0;
+    int nextVoteOffset = 0;
+    if (voteOffset == -1) {
+      nextVoteOffset = 0;
+      changeInVote = 1;
+    } else if (voteOffset == 0) {
+      nextVoteOffset = -1;
+      changeInVote = -1;
+    } else {
+      nextVoteOffset = -1;
+      changeInVote = -2;
+    }
+    setState(() {
+      voteOffset = nextVoteOffset;
+      votes += changeInVote;
+      lastPostChangeInVote = votes - originalVotes;
+      lastPostBool = voteOffsetToVoteBoolMap[voteOffset];
     });
   }
 
@@ -275,8 +269,6 @@ class _APost extends State<APost> {
         ),
       );
     }
-    String voteInText = (votes + voteOffset).toString();
-    double appBarHeight = screenHeight * 0.045;
     return Scaffold(
       backgroundColor: const Color(postPageBackground),
       appBar: buildAppBar(
@@ -329,7 +321,7 @@ class _APost extends State<APost> {
                       height: 8,
                     ),
                     Text(
-                      voteInText,
+                      votes.toString(),
                       style: GoogleFonts.lato(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

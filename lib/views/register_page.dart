@@ -259,6 +259,54 @@ class _RegisterView extends State<RegisterView> {
 
   @override
   Widget build(BuildContext context) {
+    Widget additionalDetails = const SizedBox();
+    if (switchValue == true) {
+      additionalDetails = GroupBox(
+          child: SizedBox(),
+          title: "Additional Details",
+          titleBackground: Color(backgroundColor));
+    }
+    List<Widget> form = [
+      buildPadding(0.005, context),
+      _buildRegisterTitle(),
+      _buildIdField(_id),
+      buildPadding(0.015, context),
+      _buildNameField(_name),
+      buildPadding(0.015, context),
+      _buildEmailField(_email),
+      buildPadding(0.015, context),
+      _buildPasswordField(_password),
+      buildPadding(0.005, context),
+      _buildPasswordStrengthProgress(_strength),
+      buildPadding(0.015, context),
+      _buildConfirmPasswordField(_confirmPassword),
+      buildPadding(0.015, context),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SizedBox(width: screenWidth * 0.45, child: _buildBatchYearField()),
+          SizedBox(width: screenWidth * 0.45, child: _buildCourseDropDown()),
+        ],
+      ),
+      buildPadding(0.001, context),
+      _buildSwitch(),
+      buildPadding(0.015, context),
+      buildPadding(0.015, context),
+      SizedBox(
+        height: screenHeight * .065,
+        width: double.maxFinite,
+        child: TextButton(
+            child: Text(
+              buttonText,
+              style: const TextStyle(fontSize: 18, color: Colors.white),
+            ),
+            style: TextButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 100, 122, 177)),
+            onPressed: submit),
+      ),
+      buildPadding(.01, context),
+    ];
+
     return Scaffold(
       backgroundColor: const Color(backgroundColor),
       bottomNavigationBar: TextButton(
@@ -289,54 +337,7 @@ class _RegisterView extends State<RegisterView> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
-            Flexible(
-                child: ListView(
-              children: [
-                buildPadding(0.005, context),
-                _buildRegisterTitle(),
-                _buildIdField(_id),
-                buildPadding(0.015, context),
-                _buildNameField(_name),
-                buildPadding(0.015, context),
-                _buildEmailField(_email),
-                buildPadding(0.015, context),
-                _buildPasswordField(_password),
-                buildPadding(0.005, context),
-                _buildPasswordStrengthProgress(_strength),
-                buildPadding(0.015, context),
-                _buildConfirmPasswordField(_confirmPassword),
-                buildPadding(0.015, context),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SizedBox(
-                        width: screenWidth * 0.45,
-                        child: _buildBatchYearField()),
-                    SizedBox(
-                        width: screenWidth * 0.45,
-                        child: _buildCourseDropDown()),
-                  ],
-                ),
-                buildPadding(0.001, context),
-                _buildSwitch(),
-                buildPadding(0.015, context),
-                SizedBox(
-                  height: screenHeight * .065,
-                  width: double.maxFinite,
-                  child: TextButton(
-                      child: Text(
-                        buttonText,
-                        style:
-                            const TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                      style: TextButton.styleFrom(
-                          backgroundColor:
-                              const Color.fromARGB(255, 100, 122, 177)),
-                      onPressed: submit),
-                ),
-                buildPadding(.01, context),
-              ],
-            )),
+            Flexible(child: ListView(children: form)),
           ],
         ),
       ),

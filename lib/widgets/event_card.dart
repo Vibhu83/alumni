@@ -36,7 +36,7 @@ class _AnEventCardState extends State<AnEventCard> {
   late String title = widget.eventTitle;
   late String eventHolder = widget.eventHolder;
   late DateTime startTime = widget.eventStartTime;
-  late Map<String, bool> clickFlags;
+  late int eventAttendees = widget.eventAttendeesNumber;
 
   String? eventLink = "https://pub.dev/packages/url_launcher/install";
 
@@ -75,7 +75,7 @@ class _AnEventCardState extends State<AnEventCard> {
               Row(
                 children: [
                   Text(
-                    widget.eventAttendeesNumber.toString(),
+                    eventAttendees.toString(),
                     style: GoogleFonts.lato(
                         fontSize: 14, fontWeight: FontWeight.bold),
                   ),
@@ -128,12 +128,21 @@ class _AnEventCardState extends State<AnEventCard> {
           Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
             return AnEventPage(
                 eventID: widget.eventID,
-                eventTitle: widget.eventTitle,
-                eventHolder: widget.eventHolder,
-                eventAttendeesNumber: widget.eventAttendeesNumber,
-                eventStartTime: widget.eventStartTime,
+                eventTitle: title,
+                eventHolder: eventHolder,
+                eventAttendeesNumber: eventAttendees,
+                eventStartTime: startTime,
                 eventDuration: widget.eventDuration);
-          })));
+          }))).then((value) {
+            if (lastEventAttendeeChange != null &&
+                lastEventAttendeeChange != 0) {
+              print("changing values");
+              setState(() {
+                eventAttendees += lastEventAttendeeChange!;
+              });
+              changeAttendeeNumber(widget.eventID);
+            }
+          });
         },
         style: ButtonStyle(
           overlayColor: MaterialStateProperty.all(Colors.transparent),

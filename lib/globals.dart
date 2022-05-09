@@ -113,7 +113,7 @@ String formatDateTime(DateTime dateTime) {
   if (minute == "0") {
     minute = "00";
   }
-  returnString += " At " + hour + ":" + minute;
+  returnString += " at " + hour + ":" + minute;
   return returnString;
 }
 
@@ -143,4 +143,58 @@ void setScreenDimensions(BuildContext context) {
     screenHeight = mediaQuery.size.height;
     screenWidth = mediaQuery.size.width;
   }
+}
+
+final Map voteOffsetToVoteBoolMap = {
+  -1: false,
+  0: null,
+  1: true,
+};
+
+final Map voteBoolToVoteOffsetMap = {false: -1, null: 0, true: 1};
+
+int? lastPostChangeInVote;
+bool? lastPostBool;
+
+int? lastEventAttendeeChange;
+bool? lastEventBool;
+
+void changeVote(String postID) {
+  print(postID);
+  print("changing vote");
+  firestore!.collection("posts").doc(postID).get().then((value) {
+    int votes = value.data()!["postVotes"];
+    print(votes);
+    firestore!
+        .collection("posts")
+        .doc(postID)
+        .update({"postVotes": votes + lastPostChangeInVote!}).then((value) {
+      lastPostChangeInVote = null;
+    });
+    firestore!
+        .collection("userVotes")
+        .doc(userData["uid"])
+        .update({postID: lastPostBool}).then((value) {
+      lastPostBool = null;
+    });
+  });
+}
+
+void changeAttendeeNumber(String eventID) {
+  firestore!.collection("events").doc(eventID).get().then((value) {
+    int dbAttendeeNum = value["eventAttendeesNumber"];
+    firestore!.collection("events").doc(eventID).update({
+      "eventAttendeesNumber": dbAttendeeNum + lastEventAttendeeChange!
+    }).then((value) {
+      print("num changed");
+      lastEventAttendeeChange = null;
+    });
+    print("attendance status changed to" + lastEventBool.toString());
+    firestore!
+        .collection("eventAttendanceStatus")
+        .doc(userData["uid"])
+        .update({eventID: lastEventBool}).then((value) {
+      lastEventBool = null;
+    });
+  });
 }
