@@ -3,7 +3,6 @@ import 'package:alumni/views/an_event_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/input_field.dart';
-import 'package:alumni/widgets/year_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';

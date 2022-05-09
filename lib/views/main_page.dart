@@ -1,3 +1,4 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/chat_page.dart';
@@ -6,6 +7,7 @@ import 'package:alumni/views/events_page.dart';
 import 'package:alumni/views/forum_page.dart';
 import 'package:alumni/views/home_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
+import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
@@ -42,13 +44,6 @@ class _MainPageState extends State<MainPage> {
 
   late final Widget loginModalSheet;
 
-  Future<FirebaseApp> initialiseFirebaseApp() async {
-    var temp = await Firebase.initializeApp(
-            options: DefaultFirebaseOptions.currentPlatform)
-        .then((value) => value);
-    return temp;
-  }
-
   void _setFloatingActionButtons() {
     _floatingActionButtons = [
       //Home Floating Button
@@ -65,7 +60,7 @@ class _MainPageState extends State<MainPage> {
         _floatingActionButtons[1] =
             //Events Floating Button
             FloatingActionButton(
-          backgroundColor: Colors.blue.shade300,
+          backgroundColor: const Color(floatingButtonColor),
           onPressed: () {
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => const CreateEvent(
@@ -78,13 +73,13 @@ class _MainPageState extends State<MainPage> {
       _floatingActionButtons[2] =
           //Chat Floating Button
           FloatingActionButton(
-        backgroundColor: Colors.blue.shade300,
+        backgroundColor: const Color(floatingButtonColor),
         onPressed: () {},
         child: const Icon(Icons.message),
       );
       //Forum Floating Button
       _floatingActionButtons[3] = FloatingActionButton(
-        backgroundColor: Colors.blue.shade300,
+        backgroundColor: const Color(floatingButtonColor),
         onPressed: () {
           Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const CreatePostPage()));
@@ -94,7 +89,21 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  Future<FirebaseApp> initialiseApp() async {
+  Future<bool?> initialiseApp() async {
+    bool? returnVal = false;
+    returnVal = await initialiseFireBaseApp().then((app) async {
+      auth = FirebaseAuth.instance;
+      firestore = FirebaseFirestore.instance;
+      _setUserLoginStatus();
+      await _saveUserData();
+      _setFloatingActionButtons();
+      return true;
+    });
+    print("initialised");
+    return returnVal;
+  }
+
+  Future<FirebaseApp> initialiseFireBaseApp() async {
     if (Firebase.apps.isEmpty) {
       var temp = await Firebase.initializeApp(
               options: DefaultFirebaseOptions.currentPlatform)
@@ -107,15 +116,19 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  void _saveUserData() async {
-    await firestore!
+  Future<bool> _saveUserData() async {
+    print(firestore);
+    return await firestore!
         .collection("users")
         .doc(userData["uid"])
         .get()
         .then((value) {
       var temp = value.data();
-      temp!["uid"] = userData["uid"];
-      userData = temp;
+      if (temp != null) {
+        temp["uid"] = userData["uid"];
+        userData = temp;
+      }
+      return true;
     });
   }
 
@@ -123,7 +136,6 @@ class _MainPageState extends State<MainPage> {
     User? currentUser = auth!.currentUser;
     if (currentUser != null) {
       userData["uid"] = currentUser.uid;
-      _saveUserData();
     } else {
       userData["uid"] = null;
     }
@@ -145,18 +157,13 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    screenHeight = MediaQuery.of(context).size.height;
-    screenWidth = MediaQuery.of(context).size.width;
+    setScreenDimensions(context);
     return FutureBuilder(
         future: initialiseApp(),
-        builder: ((context, AsyncSnapshot<FirebaseApp> snapshot) {
+        builder: ((context, AsyncSnapshot<bool?> snapshot) {
           List<Widget> children;
-          if (snapshot.hasData) {
-            app = snapshot.data;
-            auth = FirebaseAuth.instance;
-            firestore = FirebaseFirestore.instance;
-            _setUserLoginStatus();
-            _setFloatingActionButtons();
+          if (snapshot.data == true) {
+            print("future done");
             return _buildPage();
           } else if (snapshot.hasError) {
             children = buildFutureError(snapshot);
@@ -173,29 +180,47 @@ class _MainPageState extends State<MainPage> {
   }
 
   Scaffold _buildPage() {
+    print("page");
     List<Widget> pageFeatureWidgets = [];
-    if (_selectedIndex == 1) {
-      var pastEventButton = buildAppBarIcon(
-          onPressed: () {
-            print("getting past events");
-          },
-          icon: Icons.history);
+    switch (_selectedIndex) {
+      case 0:
+        var addNoticeButton = buildAppBarIcon(
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return const AddNoticePopUp();
+                  });
+            },
+            icon: Icons.notification_add_sharp);
+        if (userData["accessLevel"] == "admin") {
+          pageFeatureWidgets.add(addNoticeButton);
+        }
+        break;
+      case 1:
+        var pastEventButton = buildAppBarIcon(
+            onPressed: () {
+              print("getting past events");
+            },
+            icon: Icons.history);
 
-      pageFeatureWidgets.add(pastEventButton);
-    } else if (_selectedIndex == 3) {
-      var searchForumButton = buildAppBarIcon(
-          onPressed: () {
-            print("Searching forum");
-          },
-          icon: Icons.search_rounded);
-      pageFeatureWidgets.add(searchForumButton);
+        pageFeatureWidgets.add(pastEventButton);
+        break;
+      case 2:
+        var searchForumButton = buildAppBarIcon(
+            onPressed: () {
+              print("Searching forum");
+            },
+            icon: Icons.search_rounded);
+        pageFeatureWidgets.add(searchForumButton);
+        break;
     }
     Row pageFeatures = Row(
       children: pageFeatureWidgets,
     );
     return Scaffold(
         floatingActionButton: _floatingActionButtons[_selectedIndex],
-        backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
+        backgroundColor: const Color(backgroundColor),
         appBar: buildAppBar(
           appBarHeight: null,
           actions: <Widget>[
@@ -239,7 +264,8 @@ class _MainPageState extends State<MainPage> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade800))),
+          border: Border(top: BorderSide(color: Colors.grey.shade800)),
+          color: const Color(tabBarColor)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4.0),
         child: BottomNavigationBar(
@@ -250,7 +276,7 @@ class _MainPageState extends State<MainPage> {
           type: BottomNavigationBarType.fixed,
           selectedItemColor: Colors.white70,
           unselectedItemColor: Colors.white24,
-          backgroundColor: const Color.fromARGB(255, 56, 56, 56),
+          backgroundColor: Color.fromARGB(90, 56, 56, 56),
         ),
       ),
     );
@@ -291,7 +317,7 @@ class _MainPageState extends State<MainPage> {
         borderRadius: const BorderRadius.only(
             topRight: Radius.circular(4), bottomRight: Radius.circular(4)),
         child: Drawer(
-          backgroundColor: const Color.fromARGB(0xFF, 0x26, 0x26, 0x26),
+          backgroundColor: const Color(drawerColor),
           child: Column(
             children: [
               Expanded(
@@ -358,26 +384,28 @@ class _MainPageState extends State<MainPage> {
         borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(4), bottomLeft: Radius.circular(4)),
         child: Drawer(
-          backgroundColor: const Color.fromARGB(0xFF, 0x26, 0x26, 0x26),
+          backgroundColor: const Color(drawerColor),
           child: Column(
             children: [
               Expanded(
-                child: Container(
-                  alignment: Alignment.center,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Column(children: [
-                    IconButton(
-                        iconSize: 200,
-                        onPressed: () {},
-                        icon: const Icon(Icons.person)),
-                    Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                        child: _buildDrawListTile("My Profile", () {})),
-                    _buildDrawListTile("Notifications", () {}),
-                    _buildDrawListTile("Saved Posts", () {}),
-                    _buildDrawListTile("Inbox", () {}),
-                  ]),
+                child: SingleChildScrollView(
+                  child: Container(
+                    alignment: Alignment.center,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Column(children: [
+                      IconButton(
+                          iconSize: 200,
+                          onPressed: () {},
+                          icon: const Icon(Icons.person)),
+                      Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+                          child: _buildDrawListTile("My Profile", () {})),
+                      _buildDrawListTile("Notifications", () {}),
+                      _buildDrawListTile("Saved Posts", () {}),
+                      _buildDrawListTile("Inbox", () {}),
+                    ]),
+                  ),
                 ),
               ),
               Container(

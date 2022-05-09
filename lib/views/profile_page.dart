@@ -1,3 +1,4 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ProfilePictureWidget.dart';
@@ -13,8 +14,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late double screenHeight;
-  late double screenWidth;
   late bool isTheProfileOfCurrentUser;
 
   @override
@@ -47,9 +46,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    screenHeight = MediaQuery.of(context).size.height;
-    screenWidth = MediaQuery.of(context).size.width;
-    double appBarHeight = screenHeight * 0.045;
     return FutureBuilder(
       future: getUserDetails(),
       builder: (context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
@@ -82,12 +78,10 @@ class _ProfilePageState extends State<ProfilePage> {
             appBarActions.add(delUserButton);
           }
 
-          print(userData);
           return Scaffold(
-            backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
+            backgroundColor: const Color(backgroundColor),
             appBar: buildAppBar(
               actions: appBarActions,
-              appBarHeight: appBarHeight,
               leading: IconButton(
                 splashRadius: 0.1,
                 icon: const Icon(

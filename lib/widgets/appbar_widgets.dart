@@ -1,8 +1,9 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:flutter/material.dart';
 
 PreferredSize buildAppBar(
-    {double? appBarHeight = null,
+    {double? appBarHeight,
     Widget? leading,
     List<Widget>? actions,
     Widget? title}) {
@@ -15,7 +16,7 @@ PreferredSize buildAppBar(
       child: AppBar(
           title: title,
           shadowColor: Colors.transparent,
-          backgroundColor: Colors.transparent,
+          backgroundColor: const Color(appBarColor),
           shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(8))),
           leading: leading,

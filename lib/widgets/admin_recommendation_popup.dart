@@ -63,7 +63,7 @@ class AdminRecommendationPopUp extends StatelessWidget {
         icon: const Icon(Icons.open_in_new_outlined)));
 
     return AlertDialog(
-        backgroundColor: Color.fromARGB(255, 25, 33, 36),
+        backgroundColor: const Color.fromARGB(255, 25, 33, 36),
         titlePadding: EdgeInsets.zero,
         actions: [
           Container(

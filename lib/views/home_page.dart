@@ -1,8 +1,10 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/notification_page.dart';
 import 'package:alumni/views/profile_page.dart';
 import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
+import 'package:alumni/widgets/notice_popup.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -16,16 +18,44 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Widget loginModalSheet = const LoginRegisterPopUp();
-
+  Widget? noticeWidget;
   @override
   void initState() {
+    noticeWidget = const SizedBox();
     super.initState();
+  }
+
+  Future<Widget> checkForNotices() async {
+    print("notices Dismissed");
+    print(userData["noticesDismissed"]);
+    var notices = await firestore!
+        .collection("notices")
+        .where("noticeID", whereNotIn: userData["noticesDismissed"])
+        .get()
+        .then((value) {
+      return value.docs.map((e) {
+        print(e.data());
+        return e.data();
+      }).toList();
+    });
+    print(notices);
+    {
+      if (notices.isNotEmpty) {
+        return Notices(
+          notices: notices,
+        );
+      } else {
+        return const SizedBox();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(0, 0, 0, 15),
+      height: 1200,
+      color: const Color(backgroundColor),
+      margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       child: SingleChildScrollView(
           child:
@@ -51,9 +81,22 @@ class _HomePageState extends State<HomePage> {
             );
           },
         ),
+        FutureBuilder(
+            future: checkForNotices(),
+            builder: (context, AsyncSnapshot<Widget> snapshot) {
+              List<Widget> children;
+              if (snapshot.hasData) {
+                return snapshot.data!;
+              } else if (snapshot.hasError) {
+                children = buildFutureError(snapshot);
+              } else {
+                children = buildFutureLoading(snapshot);
+              }
+              return buildFuture(children: children);
+            }),
         // _buildTopAlum(),
         // _buildTopEvents(),
-        _buildTopPosts()
+        _buildTopPosts(),
       ])),
     );
   }
@@ -77,6 +120,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<List> getUserSummary() async {
+    noticeWidget = await checkForNotices();
     User? currentUser = auth!.currentUser;
     String? uid;
     if (currentUser != null) {
@@ -116,6 +160,7 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.only(top: 0, bottom: 0, left: 24, right: 24),
         margin: const EdgeInsets.only(bottom: 16, top: 0),
         child: ListTile(
+            tileColor: Colors.grey.shade900,
             onTap: () {
               if (uid == null) {
                 showModalBottomSheet(

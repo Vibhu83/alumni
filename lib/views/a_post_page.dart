@@ -1,8 +1,10 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -40,13 +42,11 @@ class _APost extends State<APost> {
       return null;
     }
 
-    print(userData);
     bool? voteValue = await firestore!
         .collection("userVotes")
         .doc(userData["uid"])
         .get()
         .then((value) {
-      print(value);
       return value.data()![widget.postID];
     });
     return voteBoolToVoteOffsetMap[voteValue];
@@ -161,101 +161,71 @@ class _APost extends State<APost> {
               voteOffset = snapshot.data!;
             }
             votes -= voteOffset;
-            print(voteOffset);
             return _buildPage();
           } else if (snapshot.hasError) {
-            children = <Widget>[
-              const Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 60,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text('Error: ${snapshot.error}'),
-              )
-            ];
+            children = buildFutureError(snapshot);
           } else {
-            children = const <Widget>[
-              SizedBox(
-                width: 60,
-                height: 60,
-                child: CircularProgressIndicator(),
-              ),
-            ];
+            children = buildFutureLoading(snapshot);
           }
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: children,
-            ),
-          );
+          return buildFuture(children: children);
         });
   }
 
-  Future<void> upvote() async {
-    print("upvote");
-    var doc = await firestore!
-        .collection("posts")
-        .doc(widget.postID)
-        .get()
-        .then((value) => value);
-    int votes = doc.data()!["postVotes"];
-    int changeInVote = 0;
-    int nextVoteOffset = 0;
-    if (voteOffset == 1) {
-      nextVoteOffset = 0;
-      changeInVote = -1;
-    } else if (voteOffset == 0) {
-      nextVoteOffset = 1;
-      changeInVote = 1;
-    } else {
-      nextVoteOffset = 1;
-      changeInVote = 2;
-    }
-    firestore!
-        .collection("posts")
-        .doc(widget.postID)
-        .update({"postVotes": votes + changeInVote});
-    firestore!
-        .collection("userVotes")
-        .doc(userData["uid"])
-        .update({widget.postID: voteOffsetToVoteBoolMap[nextVoteOffset]});
-    setState(() {
-      voteOffset = nextVoteOffset;
+  void upvote() async {
+    firestore!.collection("posts").doc(widget.postID).get().then((value) {
+      int votes = value.data()!["postVotes"];
+      int changeInVote = 0;
+      int nextVoteOffset = 0;
+      if (voteOffset == 1) {
+        nextVoteOffset = 0;
+        changeInVote = -1;
+      } else if (voteOffset == 0) {
+        nextVoteOffset = 1;
+        changeInVote = 1;
+      } else {
+        nextVoteOffset = 1;
+        changeInVote = 2;
+      }
+      firestore!
+          .collection("posts")
+          .doc(widget.postID)
+          .update({"postVotes": votes + changeInVote});
+      firestore!
+          .collection("userVotes")
+          .doc(userData["uid"])
+          .update({widget.postID: voteOffsetToVoteBoolMap[nextVoteOffset]});
+      setState(() {
+        voteOffset = nextVoteOffset;
+      });
     });
   }
 
   Future<void> downvote() async {
-    print("downvote");
-    var doc = await firestore!
-        .collection("posts")
-        .doc(widget.postID)
-        .get()
-        .then((value) => value);
-    int votes = doc.data()!["postVotes"];
-    int changeInVote = 0;
-    int nextVoteOffset = 0;
-    if (voteOffset == -1) {
-      nextVoteOffset = 0;
-      changeInVote = 1;
-    } else if (voteOffset == 0) {
-      nextVoteOffset = -1;
-      changeInVote = -1;
-    } else {
-      nextVoteOffset = -1;
-      changeInVote = -2;
-    }
-    firestore!
-        .collection("posts")
-        .doc(widget.postID)
-        .update({"postVotes": votes + changeInVote});
-    firestore!
-        .collection("userVotes")
-        .doc(userData["uid"])
-        .update({widget.postID: voteOffsetToVoteBoolMap[nextVoteOffset]});
-    setState(() {
-      voteOffset = nextVoteOffset;
+    firestore!.collection("posts").doc(widget.postID).get().then((value) {
+      int votes = value.data()!["postVotes"];
+      int changeInVote = 0;
+      int nextVoteOffset = 0;
+      if (voteOffset == -1) {
+        nextVoteOffset = 0;
+        changeInVote = 1;
+      } else if (voteOffset == 0) {
+        nextVoteOffset = -1;
+        changeInVote = -1;
+      } else {
+        nextVoteOffset = -1;
+        changeInVote = -2;
+      }
+      firestore!
+          .collection("posts")
+          .doc(widget.postID)
+          .update({"postVotes": votes + changeInVote});
+      firestore!
+          .collection("userVotes")
+          .doc(userData["uid"])
+          .update({widget.postID: voteOffsetToVoteBoolMap[nextVoteOffset]});
+      setState(() {
+        voteOffset = nextVoteOffset;
+      });
     });
   }
 
@@ -293,7 +263,8 @@ class _APost extends State<APost> {
 
     if (userData["uid"] != null) {
       postButtons = Container(
-        decoration: const BoxDecoration(color: Color.fromARGB(255, 31, 41, 44)),
+        decoration:
+            BoxDecoration(color: Colors.blueGrey.shade900.withOpacity(0.25)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -304,34 +275,17 @@ class _APost extends State<APost> {
         ),
       );
     }
+    String voteInText = (votes + voteOffset).toString();
     double appBarHeight = screenHeight * 0.045;
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(appBarHeight),
-        child: Container(
-          decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey.shade800))),
-          child: AppBar(
-            shadowColor: Colors.transparent,
-            backgroundColor: Colors.transparent,
-            shape: const RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.vertical(bottom: Radius.circular(8))),
-            leading: IconButton(
-              splashRadius: 0.1,
-              icon: const Icon(
-                Icons.close_rounded,
-                size: 20,
-              ),
+      backgroundColor: const Color(postPageBackground),
+      appBar: buildAppBar(
+          leading: buildAppBarIcon(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.of(context).pop();
               },
-            ),
-            actions: appBarActions,
-          ),
-        ),
-      ),
+              icon: Icons.close_rounded),
+          actions: appBarActions),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
@@ -375,7 +329,7 @@ class _APost extends State<APost> {
                       height: 8,
                     ),
                     Text(
-                      (votes + voteOffset).toString(),
+                      voteInText,
                       style: GoogleFonts.lato(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -389,8 +343,8 @@ class _APost extends State<APost> {
                             margin: const EdgeInsets.only(bottom: 4),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 0, vertical: 4),
-                            decoration: const BoxDecoration(
-                                color: Color.fromARGB(255, 39, 53, 57)),
+                            decoration: BoxDecoration(
+                                color: Colors.grey.shade900.withOpacity(0.75)),
                             width: double.maxFinite,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(

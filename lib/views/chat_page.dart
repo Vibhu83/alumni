@@ -1,7 +1,6 @@
 import 'package:alumni/classes/ChatMessage.dart';
 import 'package:alumni/classes/ChatUser.dart';
 import 'package:flutter/material.dart';
-import 'package:alumni/views/conversations_list.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);

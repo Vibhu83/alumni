@@ -1,3 +1,4 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/register_page.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +18,7 @@ class LoginRegisterPopUp extends StatelessWidget {
           borderRadius: BorderRadius.all(
             Radius.circular(6),
           ),
-          color: Color.fromARGB(255, 19, 37, 36),
+          color: Color(drawerColor),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 32.0),
@@ -91,7 +92,7 @@ class LoginRegisterPopUp extends StatelessWidget {
                       ),
                     ),
                     border: Border.all(
-                      color: Color(0xffB4C5E4),
+                      color: const Color(0xffB4C5E4),
                       width: 1,
                     ),
                   ),

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:alumni/globals.dart';
-import 'package:alumni/views/a_post_page.dart';
 import 'package:alumni/widgets/post_card.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -47,10 +46,10 @@ class _ForumPageState extends State<ForumPage> {
               List<Widget> children;
               if (snapshot.hasData) {
                 var postsData = snapshot.data!;
+                print(postsData);
                 return ListView.builder(
                   itemCount: postsData.length,
                   itemBuilder: (BuildContext context, int index) {
-                    print(postsData[index]);
                     String postID = postsData[index]["postID"];
                     String postTitle = postsData[index]["postTitle"];
                     String postAuthorID = postsData[index]["postAuthorID"];

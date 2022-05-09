@@ -33,7 +33,6 @@ class AskMessagePopUp extends StatelessWidget {
   }
 
   void updateTheRecommendation(String content) {
-    print("updating");
     firestore!
         .collection("recommendationFromAdmins")
         .doc(recommendationId)

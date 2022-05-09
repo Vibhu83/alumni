@@ -1,8 +1,10 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,9 +37,13 @@ class AnEventPage extends StatefulWidget {
 class _AnEventPageState extends State<AnEventPage> {
   late Map<String, bool> clickFlags;
   late int attendeeOffset;
+  late bool isInitialBuild;
+  late int attendees;
 
   @override
   void initState() {
+    attendees = widget.eventAttendeesNumber;
+    isInitialBuild = true;
     attendeeOffset = 0;
     clickFlags = {
       "attending": false,
@@ -48,13 +54,14 @@ class _AnEventPageState extends State<AnEventPage> {
 
   Future<bool?> getEventAttendanceStatus() async {
     bool? isBeingAttended = await firestore!
-        .collection("usersEventAttendanceStatus")
+        .collection("eventAttendanceStatus")
         .doc(userData["uid"])
         .get()
         .then((value) {
       return value.data()![widget.eventID];
     });
     isBeingAttended ??= false;
+    print("user is attending event?" + isBeingAttended.toString());
     return isBeingAttended;
   }
 
@@ -80,11 +87,13 @@ class _AnEventPageState extends State<AnEventPage> {
         .collection("events")
         .doc(widget.eventID)
         .update({"eventAttendeesNumber": dbAttendeeNum + changeInDbAttendee});
+    print("attendance status changed to" + nextAttendingFlag.toString());
     firestore!
-        .collection("usersEventAttendanceStatus")
+        .collection("eventAttendanceStatus")
         .doc(userData["uid"])
         .update({widget.eventID: nextAttendingFlag});
     setState(() {
+      attendees = widget.eventAttendeesNumber + changeInDbAttendee;
       clickFlags["attending"] = nextAttendingFlag;
       attendeeOffset = nextAttendeeOffset;
     });
@@ -150,6 +159,26 @@ class _AnEventPageState extends State<AnEventPage> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: getEventAttendanceStatus(),
+        builder: (context, AsyncSnapshot<bool?> snapshot) {
+          List<Widget> children = [];
+          if (snapshot.hasData) {
+            clickFlags = {
+              "attending": snapshot.data!,
+              "bookmark": false,
+            };
+            return _buildPage();
+          } else if (snapshot.hasError) {
+            children = buildFutureError(snapshot);
+          } else {
+            children = buildFutureLoading(snapshot);
+          }
+          return buildFuture(children: children);
+        });
+  }
+
+  Scaffold _buildPage() {
     //setting various eventAction button's icon and color
     double appBarHeight = screenHeight * 0.045;
     Color bookMarkIconColor = Colors.grey;
@@ -168,7 +197,13 @@ class _AnEventPageState extends State<AnEventPage> {
       attendingIconColor = Colors.blue;
       attendingIcon = Icons.event_busy_rounded;
     }
-    int currentAttendees = attendeeOffset + widget.eventAttendeesNumber;
+    int currentAttendees;
+    if (isInitialBuild) {
+      currentAttendees = widget.eventAttendeesNumber;
+      isInitialBuild = false;
+    } else {
+      currentAttendees = widget.eventAttendeesNumber + attendeeOffset;
+    }
     //
 
     List<Widget> firstRowChildren = [
@@ -278,13 +313,14 @@ class _AnEventPageState extends State<AnEventPage> {
       IconButton(
           onPressed: () {
             if (widget.eventLink != null) {
-              launch(widget.eventLink!);
+              launchUrl(Uri.parse(widget.eventLink!));
             }
           },
           icon: const Icon(Icons.open_in_new))
     ];
     Widget eventOptions = Container(
-        decoration: const BoxDecoration(color: Color.fromARGB(255, 39, 53, 57)),
+        decoration:
+            BoxDecoration(color: Colors.grey.shade900.withOpacity(0.75)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: iconButtons,
@@ -297,7 +333,7 @@ class _AnEventPageState extends State<AnEventPage> {
     List<Widget> appBarActions = _setActionButtons();
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
+      backgroundColor: const Color(eventPageBackground),
       appBar: buildAppBar(
           actions: appBarActions,
           appBarHeight: appBarHeight,

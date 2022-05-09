@@ -1,3 +1,4 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
 import 'package:flutter/material.dart';
@@ -71,7 +72,7 @@ class _APostCardState extends State<APostCard> {
           overlayColor: MaterialStateProperty.all(Colors.transparent),
           padding: MaterialStateProperty.all(EdgeInsets.zero),
           backgroundColor:
-              MaterialStateProperty.all(const Color.fromARGB(255, 33, 44, 47)),
+              MaterialStateProperty.all(const Color(postCardColor)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(8.0),

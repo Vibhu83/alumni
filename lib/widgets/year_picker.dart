@@ -9,7 +9,7 @@ class CustomYearPicker extends CommonPickerModel {
   CustomYearPicker(
       {required DateTime currentTime,
       required this.minYear,
-      required LocaleType locale})
+      LocaleType locale = LocaleType.en})
       : super(locale: locale) {
     this.currentTime = currentTime;
     setLeftIndex(this.currentTime.hour);

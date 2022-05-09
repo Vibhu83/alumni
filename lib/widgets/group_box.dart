@@ -7,6 +7,7 @@ class GroupBox extends StatelessWidget {
   final double width;
   final double? height;
   final String? errorText;
+  final EdgeInsets padding;
   const GroupBox(
       {required this.child,
       required this.title,
@@ -14,6 +15,7 @@ class GroupBox extends StatelessWidget {
       this.width = double.maxFinite,
       this.height,
       this.errorText,
+      this.padding = const EdgeInsets.symmetric(vertical: 2, horizontal: 10),
       Key? key})
       : super(key: key);
 
@@ -25,7 +27,7 @@ class GroupBox extends StatelessWidget {
         height: height,
         width: width,
         margin: const EdgeInsets.fromLTRB(0, 10, 0, 16),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        padding: padding,
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade700, width: 1),
           borderRadius: BorderRadius.circular(5),
@@ -40,7 +42,7 @@ class GroupBox extends StatelessWidget {
             color: titleBackground,
             child: Text(
               title,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
           )),
     ];

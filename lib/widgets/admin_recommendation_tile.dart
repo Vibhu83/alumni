@@ -1,5 +1,7 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/admin_recommendation_popup.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -9,12 +11,14 @@ class AdminRecommendationListTile extends StatefulWidget {
   final String recommendationId;
   final String recommendedItemTitle;
   final String content;
+  final Timestamp recommendedTime;
   const AdminRecommendationListTile(
       {required this.recommendationId,
       required this.recommendationType,
       required this.onPressed,
       required this.recommendedItemTitle,
       required this.content,
+      required this.recommendedTime,
       Key? key})
       : super(key: key);
 
@@ -37,6 +41,8 @@ class _AdminRecommendationListTileState
 
   @override
   Widget build(BuildContext context) {
+    String time = printDuration(
+        widget.recommendedTime.toDate().difference(DateTime.now()));
     String title =
         "Admin Team has recommended this " + widget.recommendationType + ":";
     if (returnEmpty != true) {
@@ -48,7 +54,7 @@ class _AdminRecommendationListTileState
             overlayColor: MaterialStateProperty.all(Colors.transparent),
             padding: MaterialStateProperty.all(EdgeInsets.zero),
             backgroundColor: MaterialStateProperty.all(
-                const Color.fromARGB(255, 33, 44, 47)),
+                const Color(eventCardColor).withAlpha(255)),
           ),
           onPressed: () {
             showDialog(
@@ -114,6 +120,16 @@ class _AdminRecommendationListTileState
                             fontSize: 13,
                             fontWeight: FontWeight.normal),
                       ),
+                      const SizedBox(
+                        height: 2,
+                      ),
+                      Text(
+                        "(" + time + " ago)",
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade600,
+                            fontStyle: FontStyle.italic),
+                      )
                     ],
                   ),
                 ),
@@ -123,7 +139,7 @@ class _AdminRecommendationListTileState
         ),
       );
     } else {
-      return SizedBox(
+      return const SizedBox(
         height: 0,
       );
     }

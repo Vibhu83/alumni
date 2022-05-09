@@ -1,11 +1,15 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
+import 'package:alumni/classes/dark_picker_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
+import 'package:alumni/widgets/year_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:alumni/widgets/input_field.dart';
+import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
 class RegisterView extends StatefulWidget {
   final Function(String? email, String? password)? onSubmitted;
@@ -17,12 +21,7 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterView extends State<RegisterView> {
-  late TextEditingController _email,
-      _password,
-      _confirmPassword,
-      _id,
-      _name,
-      _batchYear;
+  late TextEditingController _email, _password, _confirmPassword, _id, _name;
   String? courseValue;
   late bool switchValue;
 
@@ -34,6 +33,8 @@ class _RegisterView extends State<RegisterView> {
       idError,
       batchYearError,
       courseError;
+
+  late int? _batchYear;
   Function(String? email, String? password)? get onSubmitted =>
       widget.onSubmitted;
 
@@ -50,7 +51,7 @@ class _RegisterView extends State<RegisterView> {
     _confirmPassword = TextEditingController();
     _id = TextEditingController();
     _name = TextEditingController();
-    _batchYear = TextEditingController();
+    _batchYear = null;
 
     emailError = null;
     passwordError = null;
@@ -68,7 +69,6 @@ class _RegisterView extends State<RegisterView> {
     _confirmPassword.dispose();
     _id.dispose();
     _name.dispose();
-    _batchYear.dispose();
 
     super.dispose();
   }
@@ -110,18 +110,6 @@ class _RegisterView extends State<RegisterView> {
       isValid = false;
     }
 
-    var temp = int.tryParse(_batchYear.text);
-    if (temp == null) {
-      batchYear = "Must only contain digits";
-      isValid = false;
-    } else if (temp < 2000) {
-      batchYear = "Must be >= 2000";
-      isValid = false;
-    } else if (temp > DateTime.now().year) {
-      batchYear = "Must be <= " + DateTime.now().year.toString();
-      isValid = false;
-    }
-
     if (_password.text.isEmpty || _confirmPassword.text.isEmpty) {
       password = "Please enter a password";
       isValid = false;
@@ -144,7 +132,7 @@ class _RegisterView extends State<RegisterView> {
     String name = _name.text;
     String email = _email.text;
     String password = _password.text;
-    String batchYear = _batchYear.text;
+    String batchYear = _batchYear.toString();
     String accessLevel = "user";
     if (switchValue == true) {
       accessLevel = "alumni";
@@ -168,6 +156,7 @@ class _RegisterView extends State<RegisterView> {
         firestore!.collection("eventAttendanceStatus").doc(uid).set({});
         firestore!.collection("userVotes").doc(uid).set({});
         firestore!.collection("users").doc(uid).set({
+          "uid": uid,
           "id": id,
           "name": name,
           "email": email,
@@ -271,7 +260,7 @@ class _RegisterView extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 27, 30, 32),
+      backgroundColor: const Color(backgroundColor),
       bottomNavigationBar: TextButton(
         onPressed: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
@@ -296,7 +285,7 @@ class _RegisterView extends State<RegisterView> {
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(color: Color.fromARGB(255, 12, 35, 36)),
+        decoration: const BoxDecoration(color: Color(backgroundColor)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
@@ -322,7 +311,7 @@ class _RegisterView extends State<RegisterView> {
                   children: [
                     SizedBox(
                         width: screenWidth * 0.45,
-                        child: _buildBatchYearField(_batchYear)),
+                        child: _buildBatchYearField()),
                     SizedBox(
                         width: screenWidth * 0.45,
                         child: _buildCourseDropDown()),
@@ -381,15 +370,44 @@ class _RegisterView extends State<RegisterView> {
     ]);
   }
 
-  InputField _buildBatchYearField(TextEditingController _batchController) {
-    return InputField(
-      errorText: batchYearError,
-      autoCorrect: false,
-      labelText: "Batch Year",
-      controller: _batchController,
-      maxLength: 4,
-      keyboardType: TextInputType.number,
-    );
+  Widget _buildBatchYearField() {
+    String text = "Select Year";
+    if (_batchYear != null) {
+      text = _batchYear.toString();
+    }
+    return GroupBox(
+        errorText: batchYearError,
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
+        child: TextButton(
+            style: TextButton.styleFrom(),
+            onPressed: () {
+              DatePicker.showPicker(context,
+                      pickerModel: CustomYearPicker(
+                        currentTime: DateTime.now(),
+                        minYear: 1990,
+                      ),
+                      theme: getDarkDatePickerTheme())
+                  .then((value) {
+                setState(() {
+                  if (value != null) {
+                    _batchYear = value.year;
+                  } else {
+                    _batchYear = null;
+                  }
+                });
+              });
+            },
+            child: RichText(
+                text: TextSpan(
+                    text: text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                      color: Colors.blue,
+                    )))),
+        title: "Year of Admission",
+        titleBackground: const Color(backgroundColor));
   }
 
   InputField _buildEmailField(TextEditingController _email) {
@@ -478,29 +496,30 @@ class _RegisterView extends State<RegisterView> {
   }
 
   Widget _buildCourseDropDown() {
-    return ButtonTheme(
-      alignedDropdown: true,
-      child: DropdownButton(
-          underline: Container(
-            height: 2,
-            color: Colors.grey,
-          ),
-          isExpanded: true,
-          value: courseValue,
-          style: const TextStyle(fontSize: 14),
-          hint: const Text("Select a course"),
-          items: <String>["BCA", "BSC", "BCOM", "BVoc"]
-              .map<DropdownMenuItem<String>>(
-                  (String value) => DropdownMenuItem<String>(
-                        child: Text(value),
-                        value: value,
-                      ))
-              .toList(),
-          onChanged: (String? newValue) {
-            setState(() {
-              courseValue = newValue!;
-            });
-          }),
+    return GroupBox(
+      titleBackground: const Color(backgroundColor),
+      title: "Course",
+      child: ButtonTheme(
+        alignedDropdown: true,
+        child: DropdownButton(
+            icon: null,
+            underline: null,
+            isExpanded: true,
+            value: courseValue,
+            style: const TextStyle(fontSize: 14),
+            items: <String>["BCA", "BSC", "BCOM", "BVoc"]
+                .map<DropdownMenuItem<String>>(
+                    (String value) => DropdownMenuItem<String>(
+                          child: Text(value),
+                          value: value,
+                        ))
+                .toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                courseValue = newValue!;
+              });
+            }),
+      ),
     );
   }
 

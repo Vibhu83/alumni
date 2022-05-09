@@ -42,7 +42,7 @@ class InputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 10, horizontal: 1),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 1),
       child: TextField(
         onTap: onTap,
         readOnly: readOnly,

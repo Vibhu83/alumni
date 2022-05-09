@@ -3,6 +3,7 @@ library globals;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
 
 FirebaseApp? app;
 FirebaseAuth? auth;
@@ -12,6 +13,8 @@ Map<String, dynamic> userData = {};
 
 late double screenHeight;
 late double screenWidth;
+late Orientation orientation;
+
 String printDuration(Duration duration) {
   int days = duration.inDays.abs();
   int hours = duration.inHours.abs();
@@ -129,3 +132,15 @@ String? updateLastRecommendationText;
 
 String? updatedPostID;
 Map<String, dynamic> updatedPostData = {};
+
+void setScreenDimensions(BuildContext context) {
+  var mediaQuery = MediaQuery.of(context);
+  orientation = mediaQuery.orientation;
+  if (orientation == Orientation.landscape) {
+    screenHeight = mediaQuery.size.width;
+    screenWidth = mediaQuery.size.height;
+  } else {
+    screenHeight = mediaQuery.size.height;
+    screenWidth = mediaQuery.size.width;
+  }
+}

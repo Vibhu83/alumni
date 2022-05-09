@@ -1,3 +1,4 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/firebase_options.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/register_page.dart';
@@ -163,10 +164,8 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    screenHeight = MediaQuery.of(context).size.height;
-    screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
+      backgroundColor: const Color(backgroundColor),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: ListView(

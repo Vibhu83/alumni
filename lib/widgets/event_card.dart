@@ -1,3 +1,4 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -42,7 +43,6 @@ class _AnEventCardState extends State<AnEventCard> {
   late List<Widget> eventAttributes = [];
   @override
   Widget build(BuildContext context) {
-    double screenwidth = MediaQuery.of(context).size.width;
     List<Widget> firstRowChildren = [
       Flexible(
         child: Padding(
@@ -98,7 +98,7 @@ class _AnEventCardState extends State<AnEventCard> {
                   width: 2,
                 ),
                 SizedBox(
-                  width: (screenwidth * .38),
+                  width: (screenWidth * .38),
                   child: Text(
                       "On: " +
                           formatDateTime(startTime) +
@@ -139,7 +139,7 @@ class _AnEventCardState extends State<AnEventCard> {
           overlayColor: MaterialStateProperty.all(Colors.transparent),
           padding: MaterialStateProperty.all(EdgeInsets.zero),
           backgroundColor:
-              MaterialStateProperty.all(const Color.fromARGB(255, 33, 44, 47)),
+              MaterialStateProperty.all(const Color(eventCardColor)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(8.0),

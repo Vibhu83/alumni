@@ -1,6 +1,8 @@
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
 import 'package:alumni/views/main_page.dart';
+import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -122,73 +124,59 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
     double appBarHeight = screenHeight * 0.045;
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
+      backgroundColor: const Color(postPageBackground),
       resizeToAvoidBottomInset: false,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(appBarHeight),
-        child: Container(
-          decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey.shade800))),
-          child: AppBar(
-            shadowColor: Colors.transparent,
-            backgroundColor: Colors.transparent,
-            shape: const RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.vertical(bottom: Radius.circular(8))),
-            leading: IconButton(
-              icon: const Icon(
-                Icons.close_rounded,
-                size: 20,
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
-            title: Text(
-              title,
-              style: const TextStyle(fontSize: 18),
-            ),
-            actions: [
-              Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  child: TextButton(
-                      style:
-                          TextButton.styleFrom(primary: Colors.blue.shade100),
-                      onPressed: createFireStoreDoc as void Function()?,
-                      child: Text(
-                        buttonText,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      )))
-            ],
-          ),
+      appBar: buildAppBar(
+        leading: buildAppBarIcon(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          icon: Icons.close_rounded,
         ),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 18),
+        ),
+        actions: [
+          Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              child: TextButton(
+                  style: TextButton.styleFrom(primary: Colors.blue.shade100),
+                  onPressed: createFireStoreDoc as void Function()?,
+                  child: Text(
+                    buttonText,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  )))
+        ],
       ),
-      body: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-          child: Column(
-            children: [
-              InputField(
-                autoCorrect: true,
-                maxLines: 2,
-                controller: _titleController,
-                labelText: "Title",
-                errorText: _titleError,
-                onChanged: (value) => checkTitle(),
-                keyboardType: TextInputType.multiline,
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              InputField(
-                autoCorrect: true,
-                maxLines: 20,
-                controller: _bodyController,
-                labelText: "Body(Optional)",
-                keyboardType: TextInputType.multiline,
-              )
-            ],
-          )),
+      body: SingleChildScrollView(
+        child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+            child: Column(
+              children: [
+                InputField(
+                  autoCorrect: true,
+                  maxLines: 2,
+                  controller: _titleController,
+                  labelText: "Title",
+                  errorText: _titleError,
+                  onChanged: (value) => checkTitle(),
+                  keyboardType: TextInputType.multiline,
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                InputField(
+                  autoCorrect: true,
+                  maxLines: 20,
+                  controller: _bodyController,
+                  labelText: "Body(Optional)",
+                  keyboardType: TextInputType.multiline,
+                )
+              ],
+            )),
+      ),
     );
   }
 }
