@@ -7,6 +7,7 @@ import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/year_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
@@ -257,14 +258,256 @@ class _RegisterView extends State<RegisterView> {
     }
   }
 
+  String? nationalityChosen;
+  bool? isNRI = null;
+
   @override
   Widget build(BuildContext context) {
-    Widget additionalDetails = const SizedBox();
+    Widget otherNationalityInputField = const SizedBox();
+    if (nationalityChosen == "Other") {
+      otherNationalityInputField = const InputField(
+        labelText: "Other Nationality",
+      );
+    }
+
+    List<Widget> additionalDetails = [const SizedBox()];
     if (switchValue == true) {
-      additionalDetails = GroupBox(
-          child: SizedBox(),
-          title: "Additional Details",
-          titleBackground: Color(backgroundColor));
+      additionalDetails = [
+        SizedBox(
+          height: screenHeight * 0.02,
+        ),
+        const Text(
+          "Additional Details",
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        buildPadding(.04, context),
+        const Text(
+          "Personal Details",
+          style: TextStyle(
+            fontSize: 20,
+          ),
+        ),
+        buildPadding(.01, context),
+        const InputField(
+          labelText: "Mother's Name*",
+        ),
+        const InputField(
+          labelText: "Father's Name*",
+        ),
+        GroupBox(
+            child: TextButton(
+                onPressed: () {
+                  DatePicker.showDatePicker(context,
+                      theme: getDarkDatePickerTheme());
+                },
+                child: RichText(
+                    text: const TextSpan(
+                        text: "Select date",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                          color: Colors.blue,
+                        )))),
+            title: "Data of Birth*",
+            titleBackground: const Color(backgroundColor)),
+        InputField(
+          labelText: "Permanent/Correspondence Address*",
+          maxLines: (screenHeight * 0.01).toInt(),
+        ),
+        _buildYearOfLeavingField(),
+        GroupBox(
+            height: screenHeight * 0.18,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 50,
+                      width: screenWidth * 0.40,
+                      child: Row(children: [
+                        Radio<String>(
+                          value: "Indian",
+                          groupValue: nationalityChosen,
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              nationalityChosen = newValue;
+                            });
+                          },
+                        ),
+                        const Text("Indian")
+                      ]),
+                    ),
+                    SizedBox(
+                      height: 50,
+                      width: screenWidth * 0.40,
+                      child: Row(children: [
+                        Radio<String>(
+                          value: "Other",
+                          groupValue: nationalityChosen,
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              nationalityChosen = newValue;
+                            });
+                          },
+                        ),
+                        const Text("Other")
+                      ]),
+                    ),
+                  ],
+                ),
+                otherNationalityInputField
+              ],
+            ),
+            title: "Nationality",
+            titleBackground: const Color(backgroundColor)),
+        GroupBox(
+            height: screenHeight * 0.08,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 50,
+                      width: screenWidth * 0.40,
+                      child: Row(children: [
+                        Radio<bool>(
+                          value: true,
+                          groupValue: isNRI,
+                          onChanged: (bool? newValue) {
+                            setState(() {
+                              isNRI = newValue;
+                            });
+                          },
+                        ),
+                        const Text("Yes")
+                      ]),
+                    ),
+                    SizedBox(
+                      height: 50,
+                      width: screenWidth * 0.40,
+                      child: Row(children: [
+                        Radio<bool>(
+                          value: false,
+                          groupValue: isNRI,
+                          onChanged: (bool? newValue) {
+                            setState(() {
+                              isNRI = newValue;
+                            });
+                          },
+                        ),
+                        const Text("No")
+                      ]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            title: "NRI*",
+            titleBackground: const Color(backgroundColor)),
+        const InputField(
+          labelText: "Achievements & Awards",
+        ),
+        buildPadding(.04, context),
+        const Text(
+          "Spouse's Details",
+          style: TextStyle(
+            fontSize: 20,
+          ),
+        ),
+        buildPadding(.01, context),
+        const InputField(
+          labelText: "Name of spouse",
+        ),
+        const InputField(
+          labelText: "Name of spouse's organization",
+        ),
+        const InputField(
+          labelText: "Designation",
+        ),
+        GroupBox(
+            child: TextButton(
+                onPressed: () {
+                  DatePicker.showDatePicker(context,
+                      theme: getDarkDatePickerTheme());
+                },
+                child: const Text("Select date")),
+            title: "Working since",
+            titleBackground: const Color(backgroundColor)),
+        const InputField(
+          labelText: "Contact No.(Office)",
+          keyboardType: TextInputType.phone,
+        ),
+        const InputField(
+          labelText: "Contact No.(Mobile)*",
+          keyboardType: TextInputType.phone,
+        ),
+        buildPadding(.04, context),
+        const Text(
+          "Current Organization",
+          style: TextStyle(
+            fontSize: 20,
+          ),
+        ),
+        buildPadding(.01, context),
+        const InputField(
+          labelText: "Name of the current organization",
+        ),
+        const InputField(
+          labelText: "Desigation",
+        ),
+        GroupBox(
+            child: TextButton(
+                onPressed: () {
+                  DatePicker.showDatePicker(context,
+                      theme: getDarkDatePickerTheme());
+                },
+                child: const Text("Select date")),
+            title: "Working since",
+            titleBackground: const Color(backgroundColor)),
+        const InputField(
+          labelText: "Contact No.(Residence)",
+          keyboardType: TextInputType.phone,
+        ),
+        const InputField(
+          labelText: "Contact No.(Office)",
+          keyboardType: TextInputType.phone,
+        ),
+        const InputField(
+          labelText: "Contact No.(Mobile)*",
+          keyboardType: TextInputType.phone,
+        ),
+        buildPadding(.04, context),
+        const Text(
+          "Previous Organization",
+          style: TextStyle(
+            fontSize: 20,
+          ),
+        ),
+        buildPadding(.01, context),
+        const InputField(
+          labelText: "Name of the previous organization",
+        ),
+        const InputField(
+          labelText: "Desigation",
+        ),
+        GroupBox(
+            child: TextButton(
+                onPressed: () {
+                  DatePicker.showDatePicker(context,
+                      theme: getDarkDatePickerTheme());
+                },
+                child: const Text("Select date")),
+            title: "Were working for since",
+            titleBackground: const Color(backgroundColor)),
+        const InputField(
+          labelText: "Contact No.(Office)",
+          keyboardType: TextInputType.phone,
+        ),
+      ];
     }
     List<Widget> form = [
       buildPadding(0.005, context),
@@ -281,16 +524,14 @@ class _RegisterView extends State<RegisterView> {
       buildPadding(0.015, context),
       _buildConfirmPasswordField(_confirmPassword),
       buildPadding(0.015, context),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SizedBox(width: screenWidth * 0.45, child: _buildBatchYearField()),
-          SizedBox(width: screenWidth * 0.45, child: _buildCourseDropDown()),
-        ],
-      ),
+      _buildYearOfAdmissionField(),
+      _buildCourseDropDown(),
       buildPadding(0.001, context),
       _buildSwitch(),
       buildPadding(0.015, context),
+    ];
+    form.addAll(additionalDetails);
+    form.addAll([
       buildPadding(0.015, context),
       SizedBox(
         height: screenHeight * .065,
@@ -305,7 +546,7 @@ class _RegisterView extends State<RegisterView> {
             onPressed: submit),
       ),
       buildPadding(.01, context),
-    ];
+    ]);
 
     return Scaffold(
       backgroundColor: const Color(backgroundColor),
@@ -371,7 +612,7 @@ class _RegisterView extends State<RegisterView> {
     ]);
   }
 
-  Widget _buildBatchYearField() {
+  Widget _buildYearOfAdmissionField() {
     String text = "Select Year";
     if (_batchYear != null) {
       text = _batchYear.toString();
@@ -407,7 +648,35 @@ class _RegisterView extends State<RegisterView> {
                       decoration: TextDecoration.underline,
                       color: Colors.blue,
                     )))),
-        title: "Year of Admission",
+        title: "Year of Admission*",
+        titleBackground: const Color(backgroundColor));
+  }
+
+  Widget _buildYearOfLeavingField() {
+    String text = "Select Year";
+    return GroupBox(
+        errorText: batchYearError,
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
+        child: TextButton(
+            style: TextButton.styleFrom(),
+            onPressed: () {
+              DatePicker.showPicker(context,
+                  pickerModel: CustomYearPicker(
+                    currentTime: DateTime.now(),
+                    minYear: 1990,
+                  ),
+                  theme: getDarkDatePickerTheme());
+            },
+            child: RichText(
+                text: TextSpan(
+                    text: text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                      color: Colors.blue,
+                    )))),
+        title: "Year of Leaving*",
         titleBackground: const Color(backgroundColor));
   }
 
@@ -508,7 +777,27 @@ class _RegisterView extends State<RegisterView> {
             isExpanded: true,
             value: courseValue,
             style: const TextStyle(fontSize: 14),
-            items: <String>["BCA", "BSC", "BCOM", "BVoc"]
+            items: <String>[
+              "B.A.",
+              "B.Com",
+              "B.Sc",
+              "B.B.A.",
+              "B.B.A.-MS",
+              "B.C.A.",
+              "B.Com-Hons.",
+              "B.A.J.M.C",
+              "B.Voc-Banking & Finance",
+              "B.Voc-Software Development & E-Governance",
+              "M.Com",
+              "M.A.(Anthropology)",
+              "M.A.(English)",
+              "M.A.(Economics)",
+              "M.A.(Geography)",
+              "M.A. (Political Science)",
+              "M.A.(Psychology)",
+              "M.Voc-Banking, Stock, & Insurance",
+              "M.Voc-Software & E-Governance"
+            ]
                 .map<DropdownMenuItem<String>>(
                     (String value) => DropdownMenuItem<String>(
                           child: Text(value),
