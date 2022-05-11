@@ -12,8 +12,6 @@ class APostCard extends StatefulWidget {
   final int postVotes;
   final String postBody;
   final DateTime postedOn;
-  final bool? postReaction;
-  final bool? postSaveStatus;
   const APostCard(
       {required this.postID,
       required this.postTitle,
@@ -22,8 +20,6 @@ class APostCard extends StatefulWidget {
       required this.postVotes,
       required this.postBody,
       required this.postedOn,
-      this.postReaction,
-      this.postSaveStatus,
       Key? key})
       : super(key: key);
 

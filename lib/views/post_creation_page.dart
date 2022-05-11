@@ -29,16 +29,20 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
   Future<String> addPost(String postTitle, String authorID, int postVotes,
       String postBody, Timestamp postTime) async {
-    String temp = await firestore!.collection('posts').add({
-      "postAuthorID": authorID,
-      "postTitle": postTitle,
-      "postVotes": postVotes,
-      "postBody": postBody,
-      "postedOn": postTime
-    }).then((value) {
-      return value.id;
+    String postID =
+        await firestore!.collection("posts").add({}).then((value) async {
+      String postID = value.id;
+      await firestore!.collection('posts').doc(postID).set({
+        "postID": postID,
+        "postAuthorID": authorID,
+        "postTitle": postTitle,
+        "postVotes": postVotes,
+        "postBody": postBody,
+        "postedOn": postTime
+      }, SetOptions(merge: true));
+      return postID;
     });
-    return temp;
+    return postID;
   }
 
   void updatePost(String postTitle, String postBody) {
@@ -63,7 +67,17 @@ class _CreatePostPageState extends State<CreatePostPage> {
       String postID =
           await addPost(postTitle, authorID, postVotes, postBody, postTime);
       Navigator.of(context).pop();
-      String authorName = await getAuthorNameByID(authorID);
+      String authorName = userData["name"];
+      postAdded = true;
+      addedPostData = {
+        "postID": postID,
+        "postAuthorID": authorID,
+        "postTitle": postTitle,
+        "postVotes": postVotes,
+        "postBody": postBody,
+        "postedOn": postTime.toDate(),
+        "authorName": authorName
+      };
       Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
         return APost(
             postID: postID,
@@ -76,7 +90,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
       })));
     } else {
       updatePost(postTitle, postBody);
-      print(updatedPostData);
       Navigator.of(context).pop();
     }
     // Navigator.of(context).push(MaterialPageRoute(builder: (context) {
@@ -122,7 +135,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
       title = "Create a post";
       buttonText = "Post";
     }
-    double appBarHeight = screenHeight * 0.045;
     return Scaffold(
       backgroundColor: const Color(postPageBackground),
       resizeToAvoidBottomInset: false,

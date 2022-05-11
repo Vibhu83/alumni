@@ -26,19 +26,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<Widget> checkForNotices() async {
-    print("notices Dismissed");
-    print(userData["noticesDismissed"]);
     var notices = await firestore!
         .collection("notices")
         .where("noticeID", whereNotIn: userData["noticesDismissed"])
         .get()
         .then((value) {
       return value.docs.map((e) {
-        print(e.data());
         return e.data();
       }).toList();
     });
-    print(notices);
     {
       if (notices.isNotEmpty) {
         return Notices(

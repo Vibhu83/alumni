@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class Notices extends StatefulWidget {
@@ -10,6 +11,18 @@ class Notices extends StatefulWidget {
 
 class _NoticesState extends State<Notices> {
   bool shouldReturnEmpty = false;
+  late List<Map<String, dynamic>> sortedNotices;
+
+  @override
+  void initState() {
+    sortedNotices = widget.notices;
+    sortedNotices.sort((a, b) {
+      Timestamp aPostedOn = a["noticePostedOn"];
+      Timestamp bPostedOn = b["noticePostedOn"];
+      return bPostedOn.compareTo(aPostedOn);
+    });
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +33,7 @@ class _NoticesState extends State<Notices> {
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          color: const Color.fromARGB(90, 0, 162, 255)),
+          color: const Color.fromARGB(120, 0, 162, 255)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -40,10 +53,10 @@ class _NoticesState extends State<Notices> {
             alignment: Alignment.center,
             height: 300,
             child: PageView.builder(
-                itemCount: widget.notices.length,
+                itemCount: sortedNotices.length,
                 itemBuilder: ((context, index) {
                   return SingleChildScrollView(
-                      child: Text(widget.notices[index]["noticeMessage"]));
+                      child: Text(sortedNotices[index]["noticeMessage"]));
                 })),
           ),
           Container(

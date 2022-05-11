@@ -23,12 +23,20 @@ class AskMessagePopUp extends StatelessWidget {
       Key? key})
       : super(key: key);
 
-  void shareThisPostWithMessage(String? content) {
-    firestore!.collection("recommendationFromAdmins").add({
-      "recommendedItemID": id,
-      "recommendedTime": Timestamp.fromDate(DateTime.now()),
-      "recommendationType": type,
-      "recommendationMessage": content
+  void shareThisPostWithMessage(String? content) async {
+    firestore!.collection("recommendationFromAdmins").add({}).then((value) {
+      String recommendationID = value.id;
+      firestore!
+          .collection("recommendationFromAdmins")
+          .doc(recommendationID)
+          .set({
+        "recommendationID": recommendationID,
+        "recommendedItemID": id,
+        "recommendedTime": Timestamp.fromDate(DateTime.now()),
+        "recommendationType": type,
+        "recommendationMessage": content
+      }, SetOptions(merge: true));
+      return recommendationID;
     });
   }
 

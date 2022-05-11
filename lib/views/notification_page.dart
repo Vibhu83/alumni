@@ -27,7 +27,6 @@ class _NotificationPageState extends State<NotificationPage> {
 
     switch (orderType) {
       case 1:
-        print("case1");
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .where("recommendedTime",
@@ -44,7 +43,6 @@ class _NotificationPageState extends State<NotificationPage> {
 
         break;
       case 2:
-        print("case2");
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .where("recommendedTime",
@@ -62,7 +60,6 @@ class _NotificationPageState extends State<NotificationPage> {
         });
         break;
       case 3:
-        print("case3");
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .where("recommendedTime",
@@ -78,7 +75,6 @@ class _NotificationPageState extends State<NotificationPage> {
         });
         break;
       case 4:
-        print("case4");
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .where("recommendedTime",
@@ -95,7 +91,6 @@ class _NotificationPageState extends State<NotificationPage> {
         });
         break;
       default:
-        print("casedef");
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .orderBy("recommendedTime", descending: true)
@@ -109,8 +104,6 @@ class _NotificationPageState extends State<NotificationPage> {
         });
         break;
     }
-    print("Before title");
-    print(notifications);
     for (int i = 0; i < notifications.length; i++) {
       var temp = await getTitle(notifications[i]["recommendationType"],
           notifications[i]["recommendedItemID"]);
@@ -120,8 +113,6 @@ class _NotificationPageState extends State<NotificationPage> {
         notifications[i].addAll(temp);
       }
     }
-    print("After Title");
-    print(notifications);
     return notifications;
   }
 

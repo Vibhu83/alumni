@@ -1,11 +1,17 @@
+import 'dart:io';
+
+import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/an_event_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 class CreateEvent extends StatefulWidget {
   final String? eventId;
@@ -14,7 +20,7 @@ class CreateEvent extends StatefulWidget {
   final DateTime? eventStartTime;
   final int? eventDuration;
   final String? eventLink;
-  final String? eventTitleImage;
+  final Image? eventTitleImage;
   final String? eventDescription;
   final bool eventUpdationFlag;
   const CreateEvent(
@@ -52,8 +58,13 @@ class _CreateEventState extends State<CreateEvent> {
     _startTimeError = null;
   }
 
+  final FirebaseStorage storage = FirebaseStorage.instance;
+
+  Image? eventTitleImage;
+
   @override
   void initState() {
+    eventTitleImage = widget.eventTitleImage;
     chosenStartTime = widget.eventStartTime;
     _titleController = TextEditingController(text: widget.eventTitle);
     _holderController = TextEditingController(text: widget.eventHolder);
@@ -165,23 +176,28 @@ class _CreateEventState extends State<CreateEvent> {
     String eventDescription = _descriptionController.text;
     var eventStartTime = Timestamp.fromDate(chosenStartTime!);
 
-    String eventID = await firestore!.collection('events').add({
-      "eventAttendeesNumber": eventAttendeesNumber,
-      "eventDuration": eventDuration,
-      "eventHolder": eventHolder,
-      "eventLink": eventLink,
-      "eventStartTime": eventStartTime,
-      "eventTitle": eventTitle,
-      "eventTitleImage": null,
-      "eventDescription": eventDescription
-    }).then((value) {
-      return value.id;
+    String eventID =
+        await firestore!.collection("events").add({}).then((value) async {
+      String eventID = value.id;
+      await firestore!.collection('events').doc(eventID).set({
+        "eventID": eventID,
+        "eventAttendeesNumber": eventAttendeesNumber,
+        "eventDuration": eventDuration,
+        "eventHolder": eventHolder,
+        "eventLink": eventLink,
+        "eventStartTime": eventStartTime,
+        "eventTitle": eventTitle,
+        "eventTitleImage": null,
+        "eventDescription": eventDescription
+      }, SetOptions(merge: true));
+      return eventID;
     });
+
     Navigator.of(context).pop();
     Navigator.of(context).pop();
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return const MainPage(
-        startingIndex: 2,
+        startingIndex: 1,
       );
     }));
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
@@ -217,7 +233,7 @@ class _CreateEventState extends State<CreateEvent> {
     }
     double appBarHeight = screenHeight * 0.045;
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 0x24, 0x24, 0x24),
+      backgroundColor: const Color(eventPageBackground),
       resizeToAvoidBottomInset: false,
       appBar: buildAppBar(
         title: Text(
@@ -244,6 +260,7 @@ class _CreateEventState extends State<CreateEvent> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: ListView(
           children: [
+            _buildTitleImageInput(),
             _buildTitleInput(),
             _buildEventHolderInput(),
             Column(
@@ -283,6 +300,30 @@ class _CreateEventState extends State<CreateEvent> {
         ),
       ),
     );
+  }
+
+  Widget _buildTitleImageInput() {
+    dynamic child = TextButton(
+        onPressed: () {
+          ImagePicker()
+              .pickImage(
+                  source: ImageSource.gallery, maxHeight: 110, maxWidth: 125)
+              .then((value) {
+            if (value != null) {
+              eventTitleImage = Image.file(File(value.path));
+            } else {
+              eventTitleImage = null;
+            }
+          });
+        },
+        child: const Text("Choose image"));
+    if (eventTitleImage != null) {
+      child = eventTitleImage;
+    }
+    return GroupBox(
+        child: child,
+        title: "Title Image(Optional)",
+        titleBackground: const Color(eventPageBackground));
   }
 
   Widget _buildTitleInput() {

@@ -1,11 +1,11 @@
 import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
-import 'package:alumni/views/chat_page.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/events_page.dart';
 import 'package:alumni/views/forum_page.dart';
 import 'package:alumni/views/home_page.dart';
+import 'package:alumni/views/people_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
 import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
@@ -30,7 +30,7 @@ class _MainPageState extends State<MainPage> {
   late final List<Widget> _widgetOptions = <Widget>[
     const HomePage(),
     const EventsPage(),
-    const ChatPage(),
+    const PeoplePage(),
     const ForumPage()
   ];
 
@@ -243,17 +243,7 @@ class _MainPageState extends State<MainPage> {
               },
             ),
           ],
-          leading: Builder(
-            builder: (context) {
-              return buildAppBarIcon(
-                  onPressed: () {
-                    Scaffold.of(context).openDrawer();
-                  },
-                  icon: Icons.menu_rounded);
-            },
-          ),
         ),
-        drawer: _buildMenuDrawer(context),
         endDrawer:
             userData["uid"] == null ? null : _buildProfileDrawer(context),
         body: _widgetOptions.elementAt(_selectedIndex),

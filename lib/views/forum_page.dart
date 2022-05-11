@@ -46,7 +46,6 @@ class _ForumPageState extends State<ForumPage> {
               List<Widget> children;
               if (snapshot.hasData) {
                 var postsData = snapshot.data!;
-                print(postsData);
                 return ListView.builder(
                   itemCount: postsData.length,
                   itemBuilder: (BuildContext context, int index) {

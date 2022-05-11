@@ -133,6 +133,9 @@ String? updateLastRecommendationText;
 String? updatedPostID;
 Map<String, dynamic> updatedPostData = {};
 
+bool? postAdded;
+Map<String, dynamic>? addedPostData = {};
+
 void setScreenDimensions(BuildContext context) {
   var mediaQuery = MediaQuery.of(context);
   orientation = mediaQuery.orientation;
@@ -160,11 +163,8 @@ int? lastEventAttendeeChange;
 bool? lastEventBool;
 
 void changeVote(String postID) {
-  print(postID);
-  print("changing vote");
   firestore!.collection("posts").doc(postID).get().then((value) {
     int votes = value.data()!["postVotes"];
-    print(votes);
     firestore!
         .collection("posts")
         .doc(postID)
@@ -186,10 +186,8 @@ void changeAttendeeNumber(String eventID) {
     firestore!.collection("events").doc(eventID).update({
       "eventAttendeesNumber": dbAttendeeNum + lastEventAttendeeChange!
     }).then((value) {
-      print("num changed");
       lastEventAttendeeChange = null;
     });
-    print("attendance status changed to" + lastEventBool.toString());
     firestore!
         .collection("eventAttendanceStatus")
         .doc(userData["uid"])

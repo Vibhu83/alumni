@@ -6,8 +6,8 @@ import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/year_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
@@ -166,7 +166,7 @@ class _RegisterView extends State<RegisterView> {
           "alumni": switchValue,
           "alumni-details": alumniDetails,
           "accessLevel": accessLevel,
-        }).then((value) {
+        }, SetOptions(merge: true)).then((value) {
           Navigator.of(context).popUntil(ModalRoute.withName(""));
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return const MainPage();
