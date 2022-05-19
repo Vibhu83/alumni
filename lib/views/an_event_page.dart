@@ -1,11 +1,10 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
+import 'package:alumni/widgets/full_screen_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -55,18 +54,18 @@ class _AnEventPageState extends State<AnEventPage> {
 
   Future<Map<String, dynamic>> getEventDetails() async {
     await getEventAttendanceStatus();
+    dynamic variable = null;
     Map<String, dynamic> eventDetails = {
-      "eventDescription":
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+      "eventDescription": """Loren ipsum
+      
+      and son""",
       "peopleInEvent": [
         {
-          "uid": null,
+          "uid": variable,
           "name": "Guest1",
-          "position": "Some position at some organisation",
-          "contactDetails": {
-            "email": "someEmail@example.com",
-            "phone": "1234567890"
-          }
+          "description": "Some position at some organisation",
+          "email": "someEmail@example.com",
+          "phone": "1234567890"
         },
         {"uid": "nhiTh5NYDaU64CsY5KDzgiU6DhD3"}
       ],
@@ -78,20 +77,27 @@ class _AnEventPageState extends State<AnEventPage> {
       ]
     };
     List<Map<String, dynamic>> idHolder = [];
-    List<Map<String, dynamic>> people = eventDetails["peopleInEvent"];
-    for (int i = 0; i < people.length; i++) {
-      if (people[i]["uid"] != null) {
-        idHolder.add({"index": i, "uid": people[i]["uid"]});
+    for (int i = 0; i < eventDetails["peopleInEvent"].length; i++) {
+      if (eventDetails["peopleInEvent"][i]["uid"] != null) {
+        idHolder
+            .add({"index": i, "uid": eventDetails["peopleInEvent"][i]["uid"]});
       }
     }
     List<Map<String, dynamic>> idDetails = await getPeopleDetailsByID(idHolder);
     for (Map<String, dynamic> map in idDetails) {
-      int index = map["index"];
-      map.remove("index");
-      people[index] = map;
+      int index = map.remove("index");
+      eventDetails["peopleInEvent"][index] = map;
     }
-    eventDetails["peopleInEvent"] = people;
+    eventDetails["gallery"] = getImagesFromLinks(eventDetails["gallery"]);
     return eventDetails;
+  }
+
+  List<Image> getImagesFromLinks(List<String> links) {
+    List<Image> galleryImages = [];
+    for (String link in links) {
+      galleryImages.add(Image.network(link));
+    }
+    return galleryImages;
   }
 
   Future<List<Map<String, dynamic>>> getPeopleDetailsByID(
@@ -110,8 +116,8 @@ class _AnEventPageState extends State<AnEventPage> {
         count++;
         Map<String, dynamic> value = e.data();
         String? phone;
-        if (value["phone"]["public?"]) {
-          phone = value["phone"]["number"];
+        if (value["mobileContactNo"] == true) {
+          phone = value["mobileContactNo"];
         }
         String? position;
         if (value["designation"] != null ||
@@ -123,8 +129,9 @@ class _AnEventPageState extends State<AnEventPage> {
           "uid": value["uid"],
           "index": idHolder[count]["index"],
           "name": value["name"],
-          "position": position,
-          "contactDetails": {"email": value["email"], "phone": phone}
+          "description": position,
+          "email": value["email"],
+          "phone": phone
         };
       }).toList();
     });
@@ -153,17 +160,19 @@ class _AnEventPageState extends State<AnEventPage> {
   void changeAttendeeNumber() async {
     bool nextAttendingFlag = false;
     int nextAttendeeNum = 0;
+    int changeInAttendeeNum = 0;
     if (clickFlags["attending"] == true) {
       nextAttendingFlag = false;
-      nextAttendeeNum = attendees - 1;
+      changeInAttendeeNum = -1;
     } else {
       nextAttendingFlag = true;
-      nextAttendeeNum = attendees + 1;
+      changeInAttendeeNum = 1;
     }
+    nextAttendeeNum = attendees + changeInAttendeeNum;
     setState(() {
       attendees = nextAttendeeNum;
       clickFlags["attending"] = nextAttendingFlag;
-      lastEventAttendeeChange = attendees - widget.eventAttendeesNumber;
+      lastEventAttendeeChange = changeInAttendeeNum;
       lastEventBool = clickFlags["attending"];
     });
   }
@@ -245,11 +254,11 @@ class _AnEventPageState extends State<AnEventPage> {
   Scaffold _buildPage(Map<String, dynamic> details) {
     //setting various eventAction button's icon and color
     double appBarHeight = screenHeight * 0.045;
-    Color bookMarkIconColor = Colors.grey;
+    Color bookMarkIconColor = Theme.of(context).appBarTheme.foregroundColor!;
     IconData bookMarkIcon = Icons.bookmark_add;
-    Color attendingIconColor = Colors.grey;
+    Color attendingIconColor = Theme.of(context).appBarTheme.foregroundColor!;
     IconData attendingIcon = Icons.event_available_rounded;
-    Color attendeeNumberColor = Colors.grey;
+    Color attendeeNumberColor = Theme.of(context).appBarTheme.foregroundColor!;
     attendeeOffset = 0;
     if (clickFlags["bookmark"] == true) {
       bookMarkIcon = Icons.bookmark_added;
@@ -282,8 +291,10 @@ class _AnEventPageState extends State<AnEventPage> {
               ),
               Text(
                 "By: " + widget.eventHolder,
-                style:
-                    GoogleFonts.lato(fontSize: 11, color: Colors.grey.shade300),
+                style: GoogleFonts.lato(
+                  fontSize: 11,
+                  // color: Colors.grey.shade300
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 softWrap: false,
@@ -303,20 +314,24 @@ class _AnEventPageState extends State<AnEventPage> {
                   Text(
                     " Attendees",
                     style: GoogleFonts.lato(
-                        fontSize: 14, color: Colors.grey.shade400),
+                        fontSize: 14,
+                        color: Theme.of(context)
+                            .appBarTheme
+                            .shadowColor!
+                            .withOpacity(0.9)),
                   )
                 ],
               ),
-              const SizedBox(
-                height: 4,
+              SizedBox(
+                height: screenHeight * 0.005,
               ),
               Row(mainAxisAlignment: MainAxisAlignment.start, children: [
                 const Icon(
                   Icons.event_note_rounded,
                   size: 18,
                 ),
-                const SizedBox(
-                  width: 2,
+                SizedBox(
+                  width: screenWidth * 0.01,
                 ),
                 SizedBox(
                   width: (screenWidth * .38),
@@ -346,6 +361,7 @@ class _AnEventPageState extends State<AnEventPage> {
           splashRadius: 1,
           onPressed: () {
             changeAttendeeNumber();
+            changeAttendeeNumberInDB(widget.eventID);
           },
           icon: Icon(
             attendingIcon,
@@ -375,12 +391,32 @@ class _AnEventPageState extends State<AnEventPage> {
           icon: const Icon(Icons.open_in_new))
     ];
     Widget eventOptions = Container(
-        decoration:
-            BoxDecoration(color: Colors.grey.shade900.withOpacity(0.75)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: iconButtons,
-        ));
+        padding: EdgeInsets.zero,
+        decoration: BoxDecoration(
+            color: Colors.transparent,
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context)
+                    .appBarTheme
+                    .shadowColor!
+                    .withOpacity(0.25),
+                blurStyle: BlurStyle.solid,
+                spreadRadius: 0.1,
+                blurRadius: 0.5,
+                offset: const Offset(0, -1),
+              ),
+            ],
+            borderRadius: BorderRadius.circular(2)),
+        height: screenHeight * .06,
+        child: Card(
+            color: Theme.of(context).appBarTheme.backgroundColor,
+            shadowColor: Theme.of(context).appBarTheme.shadowColor,
+            elevation: 2,
+            margin: const EdgeInsets.only(bottom: 1),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: iconButtons,
+            )));
     if (userData["uid"] == null) {
       eventOptions = const SizedBox(
         height: 0,
@@ -389,8 +425,9 @@ class _AnEventPageState extends State<AnEventPage> {
     List<Widget> appBarActions = _setActionButtons();
     List<Map<String, dynamic>> people = details["peopleInEvent"];
     return Scaffold(
+      bottomNavigationBar: eventOptions,
       resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(eventPageBackground),
+      backgroundColor: Theme.of(context).canvasColor,
       appBar: buildAppBar(
           actions: appBarActions,
           appBarHeight: appBarHeight,
@@ -400,102 +437,138 @@ class _AnEventPageState extends State<AnEventPage> {
               },
               icon: Icons.close)),
       body: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                children: firstRowChildren,
+        margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Material(
+              color: Theme.of(context).cardColor,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
+                  children: firstRowChildren,
+                ),
               ),
-              const SizedBox(
-                height: 8,
-              ),
-              eventOptions,
-              SizedBox(height: screenHeight * 0.01),
-              DefaultTabController(
+            ),
+            Flexible(
+              child: DefaultTabController(
                   length: 3,
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const TabBar(tabs: [
-                        Tab(
-                          text: "Description",
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 1),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context)
+                                    .appBarTheme
+                                    .shadowColor!
+                                    .withOpacity(0.15),
+                                blurStyle: BlurStyle.solid,
+                                spreadRadius: 0.1,
+                                blurRadius: 0.5,
+                                offset: const Offset(0, -1),
+                              ),
+                            ]),
+                        child: Card(
+                          shadowColor:
+                              Theme.of(context).appBarTheme.shadowColor,
+                          elevation: 0.2,
+                          margin: EdgeInsets.zero,
+                          color: Theme.of(context).appBarTheme.backgroundColor,
+                          child: TabBar(
+                              indicatorColor: Theme.of(context)
+                                  .floatingActionButtonTheme
+                                  .backgroundColor,
+                              unselectedLabelColor: Theme.of(context)
+                                  .appBarTheme
+                                  .shadowColor!
+                                  .withOpacity(0.6),
+                              labelColor:
+                                  Theme.of(context).appBarTheme.shadowColor,
+                              tabs: const [
+                                Tab(
+                                  text: "Description",
+                                ),
+                                Tab(
+                                  text: "People",
+                                ),
+                                Tab(
+                                  text: "Gallery",
+                                )
+                              ]),
                         ),
-                        Tab(
-                          text: "People",
-                        ),
-                        Tab(
-                          text: "Gallery",
-                        )
-                      ]),
-                      SizedBox(
-                        height: screenHeight * .625,
+                      ),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
+                        color: Theme.of(context).canvasColor,
+                        height: userData["uid"] != null
+                            ? screenHeight * .65
+                            : screenHeight * 0.71,
                         child: TabBarView(children: [
                           SingleChildScrollView(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 2, vertical: 8),
-                              child: Text(details["eventDescription"]),
-                            ),
+                            child: Text(details["eventDescription"]),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 2, vertical: 8),
-                            child: ListView.builder(
-                                itemCount: people.length,
-                                itemBuilder: ((context, index) {
-                                  String subTitle = "";
-                                  if (people[index]["position"] == null) {
-                                    subTitle = "";
-                                  } else {
-                                    subTitle = people[index]["position"];
-                                  }
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 4, vertical: 4),
-                                    decoration: BoxDecoration(
-                                        color: const Color(eventCardColor),
-                                        borderRadius: BorderRadius.circular(4)),
-                                    child: ListTile(
-                                      isThreeLine: true,
-                                      title: Text(people[index]["name"]),
-                                      subtitle: Text(subTitle),
-                                    ),
-                                  );
-                                })),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 2, vertical: 8),
-                            child: GridView.builder(
-                                itemCount: details["gallery"].length,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 3,
-                                        crossAxisSpacing: 5,
-                                        mainAxisSpacing: 5),
-                                itemBuilder: (context, index) {
-                                  return Container(
+                          ListView.builder(
+                              itemCount: people.length,
+                              itemBuilder: ((context, index) {
+                                String subTitle = "";
+                                if (people[index]["description"] == null) {
+                                  subTitle = "";
+                                } else {
+                                  subTitle = people[index]["description"];
+                                }
+                                return Container(
+                                  margin: const EdgeInsets.only(
+                                      left: 4, right: 4, top: 4, bottom: 8),
+                                  decoration: BoxDecoration(
+                                      color: Theme.of(context).cardColor,
+                                      borderRadius: BorderRadius.circular(4)),
+                                  child: ListTile(
+                                    title: Text(people[index]["name"]),
+                                    subtitle: Text(subTitle),
+                                  ),
+                                );
+                              })),
+                          GridView.builder(
+                              itemCount: details["gallery"].length,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 5,
+                                      mainAxisSpacing: 5),
+                              itemBuilder: (context, index) {
+                                final Image image = details["gallery"][index];
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                        MaterialPageRoute(builder: ((context) {
+                                      return FullScreenImageViewer(
+                                          child: details["gallery"],
+                                          dark: true);
+                                    })));
+                                  },
+                                  child: Container(
                                       decoration: BoxDecoration(
-                                    color: const Color(postCardColor),
+                                    // color: const Color(postCardColor),
                                     image: DecorationImage(
                                       fit: BoxFit.cover,
-                                      image: NetworkImage(
-                                          details["gallery"][index]),
+                                      image: image.image,
                                     ),
-                                  ));
-                                }),
-                          )
+                                  )),
+                                );
+                              })
                         ]),
                       )
                     ],
                   )),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

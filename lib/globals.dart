@@ -1,9 +1,14 @@
 library globals;
 
+import 'dart:io';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 FirebaseApp? app;
 FirebaseAuth? auth;
@@ -34,7 +39,12 @@ String printDuration(Duration duration) {
   }
 }
 
-String formatDateTime(DateTime dateTime) {
+bool isNumerical(String str) {
+  RegExp _numberExp = RegExp(r'^-?[0-9]+$');
+  return _numberExp.hasMatch(str);
+}
+
+String formatDateTime(DateTime dateTime, {bool showTime = true}) {
   final Map monthMap = {
     1: "January",
     2: "February",
@@ -113,7 +123,9 @@ String formatDateTime(DateTime dateTime) {
   if (minute == "0") {
     minute = "00";
   }
-  returnString += " at " + hour + ":" + minute;
+  if (showTime == true) {
+    returnString += " at " + hour + ":" + minute;
+  }
   return returnString;
 }
 
@@ -156,43 +168,79 @@ final Map voteOffsetToVoteBoolMap = {
 
 final Map voteBoolToVoteOffsetMap = {false: -1, null: 0, true: 1};
 
-int? lastPostChangeInVote;
+int? lastPostNewVotes;
 bool? lastPostBool;
 
 int? lastEventAttendeeChange;
 bool? lastEventBool;
 
-void changeVote(String postID) {
+void changeVote(String postID, int changeBy) {
+  DateTime postedOn;
+  int votes = 0;
+
   firestore!.collection("posts").doc(postID).get().then((value) {
-    int votes = value.data()!["postVotes"];
+    votes = value.data()!["postVotes"];
+    Timestamp temp = value.data()!["postedOn"];
+    postedOn = temp.toDate();
     firestore!
         .collection("posts")
         .doc(postID)
-        .update({"postVotes": votes + lastPostChangeInVote!}).then((value) {
-      lastPostChangeInVote = null;
-    });
+        .update({"postVotes": votes + changeBy});
     firestore!
         .collection("userVotes")
         .doc(userData["uid"])
-        .update({postID: lastPostBool}).then((value) {
-      lastPostBool = null;
-    });
+        .update({postID: lastPostBool});
+    int totalVotes = votes + changeBy;
+    int rating = getRating(totalVotes, postedOn);
+    print(rating);
+    firestore!.collection("posts").doc(postID).update({"rating": rating});
   });
 }
 
-void changeAttendeeNumber(String eventID) {
+int getRating(
+  int score,
+  DateTime postedOn,
+) {
+  double order = log(max(score.abs(), 1)) / ln10;
+  int sign = 0;
+  if (score > 0) {
+    sign = 1;
+  } else if (sign < 0) {
+    sign = 0;
+  } else {
+    sign = -1;
+  }
+  int seconds = getEpochSeconds(postedOn) - 1134028003;
+  return (sign * order + seconds / 45000).round();
+}
+
+int getEpochSeconds(DateTime postedOn) {
+  int difference = postedOn.difference(DateTime(1970, 1, 1)).inSeconds;
+  return difference;
+}
+
+void changeAttendeeNumberInDB(String eventID) {
   firestore!.collection("events").doc(eventID).get().then((value) {
     int dbAttendeeNum = value["eventAttendeesNumber"];
-    firestore!.collection("events").doc(eventID).update({
-      "eventAttendeesNumber": dbAttendeeNum + lastEventAttendeeChange!
-    }).then((value) {
-      lastEventAttendeeChange = null;
-    });
+    firestore!.collection("events").doc(eventID).update(
+        {"eventAttendeesNumber": dbAttendeeNum + lastEventAttendeeChange!});
     firestore!
         .collection("eventAttendanceStatus")
         .doc(userData["uid"])
-        .update({eventID: lastEventBool}).then((value) {
-      lastEventBool = null;
-    });
+        .update({eventID: lastEventBool});
   });
 }
+
+Future<String> uploadFileAndGetLink(
+    String path, String uid, BuildContext context) async {
+  var storage = FirebaseStorage.instance;
+  var uploadTask = storage.ref(uid).putFile(File(path));
+  String url = await uploadTask.then((p0) {
+    return p0.storage.ref(uid).getDownloadURL();
+  });
+  return url;
+}
+
+Map<String, dynamic>? newNotice;
+
+// ColorThemes? currentTheme;

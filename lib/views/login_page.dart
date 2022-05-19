@@ -1,4 +1,3 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
@@ -98,7 +97,7 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _buildLoginDialog() {
     return AlertDialog(
-      backgroundColor: Colors.grey.shade900,
+      // backgroundColor: Colors.grey.shade900,
       actions: [
         Container(
           padding: EdgeInsets.zero,
@@ -150,7 +149,7 @@ class _LoginViewState extends State<LoginView> {
             height: screenHeight * 0.325,
             width: screenWidth,
             padding: const EdgeInsets.fromLTRB(0, 50, 0, 5),
-            decoration: BoxDecoration(color: Colors.grey.shade900),
+            // decoration: BoxDecoration(color: Colors.grey.shade900),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: children,
@@ -164,7 +163,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(backgroundColor),
+      // backgroundColor: const Color(backgroundColor),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: ListView(
@@ -182,7 +181,6 @@ class _LoginViewState extends State<LoginView> {
               "Sign in to continue!",
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.white.withOpacity(.6),
               ),
             ),
             SizedBox(height: screenHeight * .12),
@@ -196,8 +194,8 @@ class _LoginViewState extends State<LoginView> {
                 child: const Text(
                   "Forgot Password?",
                   style: TextStyle(
-                    color: Colors.white,
-                  ),
+                      // color: Colors.white,
+                      ),
                 ),
               ),
             ),
@@ -228,10 +226,10 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
               child: RichText(
-                text: const TextSpan(
+                text: TextSpan(
                   text: "I'm a new user, ",
-                  style: TextStyle(color: Colors.white),
-                  children: [
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  children: const [
                     TextSpan(
                       text: "Sign Up",
                       style: TextStyle(

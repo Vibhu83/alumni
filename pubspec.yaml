@@ -43,6 +43,8 @@ dependencies:
   flutter_launcher_icons: ^0.9.2
   firebase_storage: ^10.2.15
   image_picker: ^0.8.5
+  provider: ^6.0.2
+  shared_preferences: ^2.0.15
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +73,7 @@ flutter:
   assets: 
     - assets/profile_icon.jpg
     - assets/splash.png
+    - assets/
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

@@ -63,7 +63,7 @@ class AdminRecommendationPopUp extends StatelessWidget {
         icon: const Icon(Icons.open_in_new_outlined)));
 
     return AlertDialog(
-        backgroundColor: const Color.fromARGB(255, 25, 33, 36),
+        // backgroundColor: const Color.fromARGB(255, 25, 33, 36),
         titlePadding: EdgeInsets.zero,
         actions: [
           Container(
@@ -78,8 +78,8 @@ class AdminRecommendationPopUp extends StatelessWidget {
         title: Container(
           padding:
               const EdgeInsets.only(left: 10, right: 10, top: 20, bottom: 10),
-          decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey.shade800))),
+          // decoration: BoxDecoration(
+          //     border: Border(bottom: BorderSide(color: Colors.grey.shade800))),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -97,7 +97,7 @@ class AdminRecommendationPopUp extends StatelessWidget {
           child: SingleChildScrollView(
             child: Text(
               content,
-              style: TextStyle(color: Colors.grey.shade400),
+              // style: TextStyle(color: Colors.grey.shade400),
             ),
           ),
         ));

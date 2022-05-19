@@ -1,5 +1,5 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
-import 'package:alumni/classes/dark_picker_theme.dart';
+//import 'package:alumni/ThemeData/dark_theme.dart';
+import 'package:alumni/classes/date_picker_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
 import 'package:alumni/views/an_event_page.dart';
@@ -153,7 +153,7 @@ class _NotificationPageState extends State<NotificationPage> {
       "Show all"
     ];
     return Scaffold(
-      backgroundColor: const Color(backgroundColor),
+      // backgroundColor: const Color(backgroundColor),
       appBar: buildAppBar(
           actions: [
             Container(
@@ -282,6 +282,7 @@ class _NotificationPageState extends State<NotificationPage> {
                             postID: item["recommendedItemID"],
                             postTitle: item["recommendationTitle"],
                             authorID: item["postAuthorID"],
+                            postVotes: item["postVotes"],
                             authorName: item["authorName"],
                             postBody: item["postBody"],
                             postedDuration: printDuration(postedDuration));

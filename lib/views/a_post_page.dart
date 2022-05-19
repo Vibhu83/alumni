@@ -1,4 +1,3 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
@@ -12,6 +11,7 @@ class APost extends StatefulWidget {
   final String postID;
   final String postTitle;
   final String authorID;
+  final int postVotes;
   final String authorName;
   final String postBody;
   final String postedDuration;
@@ -20,6 +20,7 @@ class APost extends StatefulWidget {
       {required this.postID,
       required this.postTitle,
       required this.authorID,
+      required this.postVotes,
       required this.authorName,
       required this.postBody,
       required this.postedDuration,
@@ -181,7 +182,7 @@ class _APost extends State<APost> {
         });
   }
 
-  void upvote() {
+  int upvote() {
     int changeInVote = 0;
     int nextVoteOffset = 0;
     if (voteOffset == 1) {
@@ -197,12 +198,15 @@ class _APost extends State<APost> {
     setState(() {
       voteOffset = nextVoteOffset;
       votes += changeInVote;
-      lastPostChangeInVote = votes - originalVotes;
+
       lastPostBool = voteOffsetToVoteBoolMap[voteOffset];
+      lastPostNewVotes = votes;
+      print(lastPostNewVotes);
     });
+    return changeInVote;
   }
 
-  void downvote() {
+  int downvote() {
     int changeInVote = 0;
     int nextVoteOffset = 0;
     if (voteOffset == -1) {
@@ -218,9 +222,10 @@ class _APost extends State<APost> {
     setState(() {
       voteOffset = nextVoteOffset;
       votes += changeInVote;
-      lastPostChangeInVote = votes - originalVotes;
+      lastPostNewVotes = votes;
       lastPostBool = voteOffsetToVoteBoolMap[voteOffset];
     });
+    return changeInVote;
   }
 
   Scaffold _buildPage() {
@@ -243,7 +248,8 @@ class _APost extends State<APost> {
         splashRadius: 1,
         color: upvoteButtonColor,
         onPressed: () {
-          upvote();
+          int changeInVotes = upvote();
+          changeVote(widget.postID, changeInVotes);
         },
         icon: const Icon(Icons.arrow_upward_sharp));
 
@@ -251,26 +257,43 @@ class _APost extends State<APost> {
         splashRadius: 1,
         color: downvoteButtonColor,
         onPressed: () {
-          downvote();
+          int changeInVotes = downvote();
+          changeVote(widget.postID, changeInVotes);
         },
         icon: const Icon(Icons.arrow_downward_sharp));
 
     if (userData["uid"] != null) {
       postButtons = Container(
         decoration:
-            BoxDecoration(color: Colors.blueGrey.shade900.withOpacity(0.25)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            upvoteButton,
-            downvoteButton,
-            TextButton(onPressed: () {}, child: const Icon(Icons.bookmark_add)),
-          ],
+            BoxDecoration(borderRadius: BorderRadius.circular(2), boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).appBarTheme.shadowColor!.withOpacity(0.25),
+            blurStyle: BlurStyle.solid,
+            spreadRadius: 0.1,
+            blurRadius: 0.5,
+            offset: const Offset(0, -1),
+          ),
+        ]),
+        height: screenHeight * .06,
+        child: Card(
+          color: Theme.of(context).appBarTheme.backgroundColor,
+          shadowColor: Theme.of(context).appBarTheme.shadowColor,
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              upvoteButton,
+              downvoteButton,
+              TextButton(
+                  onPressed: () {}, child: const Icon(Icons.bookmark_add)),
+            ],
+          ),
         ),
       );
     }
     return Scaffold(
-      backgroundColor: const Color(postPageBackground),
+      bottomNavigationBar: postButtons,
       appBar: buildAppBar(
           leading: buildAppBarIcon(
               onPressed: () {
@@ -279,80 +302,78 @@ class _APost extends State<APost> {
               icon: Icons.close_rounded),
           actions: appBarActions),
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
+        child: Container(
+          color: Theme.of(context).cardColor,
           padding: const EdgeInsets.all(8.0),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: (MainAxisSize.max),
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      postTitle,
-                      style: GoogleFonts.lato(
-                          fontSize: 16,
-                          height: 1.3,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(
-                      height: 4,
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      style: TextButton.styleFrom(
-                          minimumSize: Size.zero,
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                      child: Text(
-                        "By:" +
-                            widget.authorName +
-                            " (" +
-                            widget.postedDuration +
-                            ")",
-                        style: GoogleFonts.lato(
-                            fontSize: 10, color: Colors.grey.shade300),
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Text(
-                      votes.toString(),
-                      style: GoogleFonts.lato(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: votesColor),
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Flexible(
-                        child: Container(
-                            margin: const EdgeInsets.only(bottom: 4),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 0, vertical: 4),
-                            decoration: BoxDecoration(
-                                color: Colors.grey.shade900.withOpacity(0.75)),
-                            width: double.maxFinite,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6.0, vertical: 4),
-                              child: Text(
-                                postBody,
-                                style: GoogleFonts.lato(
-                                    fontSize: 14, color: Colors.grey.shade50),
-                              ),
-                            ))),
-                    const SizedBox(
-                      height: 2,
-                    ),
-                    postButtons,
-                  ],
+              Text(
+                postTitle,
+                style: GoogleFonts.lato(
+                    fontSize: 16, height: 1.3, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(
+                height: screenHeight * 0.005,
+              ),
+              TextButton(
+                onPressed: () {},
+                style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                child: Text(
+                  "By:" +
+                      widget.authorName +
+                      " (" +
+                      widget.postedDuration +
+                      ")",
+                  style: GoogleFonts.lato(
+                      fontSize: 10,
+                      color: Theme.of(context)
+                          .appBarTheme
+                          .shadowColor!
+                          .withOpacity(0.8)),
                 ),
+              ),
+              SizedBox(
+                height: screenHeight * 0.01,
+              ),
+              Text(
+                votes.toString(),
+                style: GoogleFonts.lato(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: votesColor),
+              ),
+              SizedBox(
+                height: screenHeight * 0.01,
+              ),
+              Flexible(
+                  child: Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 0, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .scaffoldBackgroundColor
+                              .withOpacity(0.5)),
+                      width: double.maxFinite,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6.0, vertical: 4),
+                        child: Text(
+                          postBody,
+                          style: GoogleFonts.lato(
+                              fontSize: 14,
+                              color: Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor),
+                        ),
+                      ))),
+              const SizedBox(
+                height: 2,
               ),
             ],
           ),

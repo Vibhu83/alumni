@@ -19,7 +19,7 @@ class _ForumPageState extends State<ForumPage> {
   Future<List<Map<String, dynamic>>> getPosts() async {
     var postsRef = firestore!.collection('posts');
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
-    querySnapshot = await postsRef.get();
+    querySnapshot = await postsRef.orderBy("rating", descending: true).get();
     //lastDoc = allDocSnap[allDocSnap.length - 1];
     final List<Map<String, dynamic>> allData = (querySnapshot.docs.map((doc) {
       Map<String, dynamic> value = doc.data();

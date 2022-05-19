@@ -1,4 +1,3 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/admin_recommendation_popup.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -53,8 +52,8 @@ class _AdminRecommendationListTileState
           style: ButtonStyle(
             overlayColor: MaterialStateProperty.all(Colors.transparent),
             padding: MaterialStateProperty.all(EdgeInsets.zero),
-            backgroundColor: MaterialStateProperty.all(
-                const Color(eventCardColor).withAlpha(255)),
+            // backgroundColor: MaterialStateProperty.all(
+            //     const Color(eventCardColor).withAlpha(255))
           ),
           onPressed: () {
             showDialog(
@@ -116,7 +115,7 @@ class _AdminRecommendationListTileState
                         overflow: TextOverflow.ellipsis,
                         maxLines: 3,
                         style: TextStyle(
-                            color: Colors.grey.shade400,
+                            // color: Colors.grey.shade400,
                             fontSize: 13,
                             fontWeight: FontWeight.normal),
                       ),
@@ -127,7 +126,7 @@ class _AdminRecommendationListTileState
                         "(" + time + " ago)",
                         style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey.shade600,
+                            // color: Colors.grey.shade600,
                             fontStyle: FontStyle.italic),
                       )
                     ],

@@ -1,5 +1,6 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
-import 'package:alumni/classes/dark_picker_theme.dart';
+import 'dart:io';
+
+import 'package:alumni/classes/date_picker_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
@@ -8,9 +9,11 @@ import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/year_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 class RegisterView extends StatefulWidget {
   final Function(String? email, String? password)? onSubmitted;
@@ -22,20 +25,63 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterView extends State<RegisterView> {
-  late TextEditingController _email, _password, _confirmPassword, _id, _name;
-  String? courseValue;
-  late bool switchValue;
+  XFile? profilePic;
 
-  late String signUpAs;
-  late String buttonText;
-  String? emailError,
-      passwordError,
-      nameError,
-      idError,
-      batchYearError,
-      courseError;
+  late TextEditingController _email,
+      _password,
+      _confirmPassword,
+      _rollNo,
+      _name,
+      _fatherName,
+      _motherName,
+      _address,
+      _currentOrgName,
+      _currentDesignation,
+      _previousOrgName,
+      _previousDesignation,
+      _residenceContactNo,
+      _currentOfficeContactNo,
+      _mobileContactNo,
+      _previousOfficeContactNo,
+      _achievements,
+      _spouseName,
+      _spouseOrgName,
+      _spouseDesignation,
+      _spouseMobileContactNo,
+      _spouseOfficeContactNo;
 
-  late int? _batchYear;
+  DateTime? _inCurrentOrgSince,
+      _wereInPreviousOrgSince,
+      _spouseWorkingInOrgSince,
+      _dob;
+
+  String? _courseValue;
+
+  bool? _isIndian;
+  String? _nationality;
+
+  bool? _isNRI;
+
+  late bool _isAlumni;
+
+  late String _signUpAs;
+
+  String? _emailError,
+      _passwordError,
+      _nameError,
+      _idError,
+      _addmissionYearError,
+      _courseError,
+      _fatherNameError,
+      _motherNameError,
+      _dobError,
+      _addressError,
+      _passingYearError,
+      _nationalityError,
+      _nriError,
+      _mobileContactError;
+
+  late int? _addmissionYear, _passingYear;
   Function(String? email, String? password)? get onSubmitted =>
       widget.onSubmitted;
 
@@ -44,21 +90,61 @@ class _RegisterView extends State<RegisterView> {
 
   @override
   void initState() {
-    switchValue = false;
-    signUpAs = "User";
-    buttonText = "Sign Up";
+    profilePic = null;
+
+    _isAlumni = false;
+    _signUpAs = "User";
+
     _email = TextEditingController();
     _password = TextEditingController();
     _confirmPassword = TextEditingController();
-    _id = TextEditingController();
+    _rollNo = TextEditingController();
     _name = TextEditingController();
-    _batchYear = null;
+    _fatherName = TextEditingController();
+    _motherName = TextEditingController();
+    _address = TextEditingController();
+    _currentOrgName = TextEditingController();
+    _currentDesignation = TextEditingController();
+    _previousOrgName = TextEditingController();
+    _previousDesignation = TextEditingController();
+    _residenceContactNo = TextEditingController();
+    _currentOfficeContactNo = TextEditingController();
+    _mobileContactNo = TextEditingController();
+    _previousOfficeContactNo = TextEditingController();
+    _achievements = TextEditingController();
+    _spouseName = TextEditingController();
+    _spouseOrgName = TextEditingController();
+    _spouseDesignation = TextEditingController();
+    _spouseMobileContactNo = TextEditingController();
+    _spouseOfficeContactNo = TextEditingController();
 
-    emailError = null;
-    passwordError = null;
-    nameError = null;
-    idError = null;
-    batchYearError = null;
+    _dob = null;
+    _wereInPreviousOrgSince = null;
+    _wereInPreviousOrgSince = null;
+    _spouseWorkingInOrgSince = null;
+
+    _addmissionYear = null;
+    _passingYear = null;
+
+    _courseValue = null;
+    _isIndian = null;
+
+    _isNRI = null;
+
+    _emailError = null;
+    _passwordError = null;
+    _nameError = null;
+    _idError = null;
+    _addmissionYearError = null;
+    _courseError = null;
+    _fatherNameError = null;
+    _motherNameError = null;
+    _dobError = null;
+    _addressError = null;
+    _passingYearError = null;
+    _nationalityError = null;
+    _nriError = null;
+    _mobileContactError = null;
 
     super.initState();
   }
@@ -68,105 +154,825 @@ class _RegisterView extends State<RegisterView> {
     _email.dispose();
     _password.dispose();
     _confirmPassword.dispose();
-    _id.dispose();
+    _rollNo.dispose();
     _name.dispose();
-
+    _fatherName.dispose();
+    _motherName.dispose();
+    _address.dispose();
+    _currentOrgName.dispose();
+    _currentDesignation.dispose();
+    _previousOrgName.dispose();
+    _previousDesignation.dispose();
+    _residenceContactNo.dispose();
+    _currentOfficeContactNo.dispose();
+    _mobileContactNo.dispose();
+    _previousOfficeContactNo.dispose();
+    _achievements.dispose();
+    _spouseName.dispose();
+    _spouseOrgName.dispose();
+    _spouseDesignation.dispose();
+    _spouseMobileContactNo.dispose();
+    _spouseOfficeContactNo.dispose();
     super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> additionalDetailsWidgets = [const SizedBox()];
+    if (_isAlumni == true) {
+      additionalDetailsWidgets = getAdditionalDetailsWidget();
+    }
+    List<Widget> form = [
+      _buildPadding(0.005),
+      _buildHeading("Create Account,"),
+      _buildPadding(.01),
+      _buildSubHeading("Sign up to get started!"),
+      _buildPadding(0.025),
+      _buildProfilePicField(),
+      _buildRollNoField(),
+      _buildNameField(),
+      _buildEmailField(),
+      _buildPasswordField(),
+      _buildPasswordStrengthProgress(),
+      _buildConfirmPasswordField(),
+      _buildYearOfAdmissionField(),
+      _buildCourseDropDown(),
+      _buildAlumniToggle(),
+    ];
+    form.addAll(additionalDetailsWidgets);
+    form.addAll([
+      _buildPadding(0.015),
+      _buildSubmitButton(),
+      _buildPadding(.01),
+    ]);
+
+    return Scaffold(
+      // backgroundColor: const Color(backgroundColor),
+      bottomNavigationBar: Container(
+        // decoration: BoxDecoration(
+        //     // color: const Color(appBarColor),
+        //     // border: Border(top: BorderSide(color: Colors.grey.shade800))
+        //     ),
+        child: TextButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+              return const LoginView();
+            }));
+          },
+          child: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              text: "I'm already a member, ",
+              style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium!.color),
+              children: const [
+                TextSpan(
+                  text: "Sign In",
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Container(
+        // decoration: const BoxDecoration(color: Color(backgroundColor)),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            Flexible(child: ListView(children: form)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> getAdditionalDetailsWidget() {
+    return [
+      _buildPadding(0.02),
+      _buildHeading("Additional Details"),
+      _buildPadding(
+        .04,
+      ),
+      //
+      //
+      _buildSubHeading("Personal Details"),
+      _buildPadding(
+        .01,
+      ),
+      //
+      _buildMotherNameField(),
+      _buildFatherNameField(),
+      _buildDateOfBirthField(),
+      _buildAddressField(),
+      _buildYearOfLeavingField(),
+      _buildNationalityField(),
+      _buildNriField(),
+      _buildAchievementField(),
+      //
+      //
+      _buildPadding(.04),
+      _buildSubHeading("Spouse's Details"),
+      _buildPadding(.01),
+      //
+      _buildSpouseNameField(),
+      _buildSpouseOrganisationField(),
+      _buildSpouseDesignationField(),
+      _buildSpouseWorkingSinceField(),
+      _buildSpouseOfficeContactField(),
+      _buildSpouseMobileContactField(),
+      //
+      //
+      _buildPadding(.04),
+      _buildSubHeading("Current Organization"),
+      _buildPadding(.01),
+      //
+      _buildCurrentOrgNameField(),
+      _buildCurrentDesignationField(),
+      _buildWorkingInCurrentOrgSinceField(),
+      _buildResidenceContactField(),
+      _buildCurrentOfficeContactField(),
+      _buildCurrentMobileContactField(),
+      //
+      //
+      _buildPadding(.04),
+      _buildSubHeading("Previous Organization"),
+      _buildPadding(.01),
+      //
+      _buildPreviousOrgNameField(),
+      _buildPreviousDesignationField(),
+      _buildWereWorkingInPreviousOrgSinceField(),
+      _buildPreviousOfficeContactField()
+    ];
+  }
+
+  Widget _buildMotherNameField() {
+    return InputField(
+      controller: _motherName,
+      errorText: _motherNameError,
+      labelText: "Mother's Name*",
+    );
+  }
+
+  Widget _buildFatherNameField() {
+    return InputField(
+      controller: _fatherName,
+      errorText: _fatherNameError,
+      labelText: "Father's Name*",
+    );
+  }
+
+  Widget _buildDateOfBirthField() {
+    String fieldText = "Select a date";
+    if (_dob != null) {
+      fieldText = formatDateTime(_dob!, showTime: false);
+    }
+    return GroupBox(
+      errorText: _dobError,
+      title: "Data of Birth*",
+      // titleBackground: const Color(backgroundColor),
+      child: TextButton(
+          onPressed: () {
+            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
+                .then((value) {
+              if (value != null) {
+                setState(() {
+                  _dob = value;
+                });
+              }
+            });
+          },
+          child: Text(fieldText,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+                color: Colors.blue,
+              ))),
+    );
+  }
+
+  Widget _buildAddressField() {
+    return InputField(
+      controller: _address,
+      errorText: _addressError,
+      labelText: "Permanent/Correspondence Address*",
+      maxLines: (screenHeight * 0.01).toInt(),
+    );
+  }
+
+  Widget _buildNationalityField() {
+    Widget otherNationalityInputField = const SizedBox();
+    if (_isIndian == false) {
+      otherNationalityInputField = InputField(
+        onChanged: ((newValue) {
+          setState(() {
+            _nationality = newValue;
+          });
+        }),
+        labelText: "Other Nationality*",
+      );
+    }
+
+    return GroupBox(
+      errorText: _nationalityError,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                height: 50,
+                width: screenWidth * 0.40,
+                child: Row(children: [
+                  Radio<bool>(
+                    value: true,
+                    groupValue: _isIndian,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isIndian = newValue;
+                        _nationality = "Indian";
+                      });
+                    },
+                  ),
+                  const Text("Indian")
+                ]),
+              ),
+              SizedBox(
+                height: 50,
+                width: screenWidth * 0.40,
+                child: Row(children: [
+                  Radio<bool>(
+                    value: false,
+                    groupValue: _isIndian,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isIndian = newValue;
+                        _nationality = null;
+                      });
+                    },
+                  ),
+                  const Text("Other")
+                ]),
+              ),
+            ],
+          ),
+          otherNationalityInputField
+        ],
+      ),
+      title: "Nationality*",
+      // titleBackground: const Color(backgroundColor)
+    );
+  }
+
+  Widget _buildNriField() {
+    return GroupBox(
+      errorText: _nriError,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                height: 50,
+                width: screenWidth * 0.40,
+                child: Row(children: [
+                  Radio<bool>(
+                    value: true,
+                    groupValue: _isNRI,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isNRI = newValue;
+                      });
+                    },
+                  ),
+                  const Text("Yes")
+                ]),
+              ),
+              SizedBox(
+                height: 50,
+                width: screenWidth * 0.40,
+                child: Row(children: [
+                  Radio<bool>(
+                    value: false,
+                    groupValue: _isNRI,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _isNRI = newValue;
+                      });
+                    },
+                  ),
+                  const Text("No")
+                ]),
+              ),
+            ],
+          ),
+        ],
+      ),
+      title: "NRI*",
+      // titleBackground: const Color(backgroundColor)
+    );
+  }
+
+  Widget _buildAchievementField() {
+    return InputField(
+      controller: _achievements,
+      labelText: "Achievements & Awards",
+    );
+  }
+
+  Widget _buildSpouseNameField() {
+    return InputField(
+      controller: _spouseName,
+      labelText: "Spouse's Name",
+    );
+  }
+
+  Widget _buildSpouseOrganisationField() {
+    return InputField(
+      controller: _spouseOrgName,
+      labelText: "Name of spouse's organization",
+    );
+  }
+
+  Widget _buildSpouseDesignationField() {
+    return InputField(
+      controller: _spouseDesignation,
+      labelText: "Spouse's Designation",
+    );
+  }
+
+  Widget _buildSpouseWorkingSinceField() {
+    String fieldText = "Select a date";
+    if (_spouseWorkingInOrgSince != null) {
+      fieldText = formatDateTime(_spouseWorkingInOrgSince!, showTime: false);
+    }
+    return GroupBox(
+      child: TextButton(
+          onPressed: () {
+            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
+                .then((value) {
+              if (value != null) {
+                setState(() {
+                  _spouseWorkingInOrgSince = value;
+                });
+              }
+            });
+          },
+          child: Text(fieldText,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+                color: Colors.blue,
+              ))),
+      title: "Working since",
+      // titleBackground: const Color(backgroundColor)
+    );
+  }
+
+  Widget _buildSpouseOfficeContactField() {
+    return InputField(
+      maxLength: 10,
+      controller: _spouseOfficeContactNo,
+      labelText: "Contact No.(Office)",
+      keyboardType: TextInputType.phone,
+    );
+  }
+
+  Widget _buildSpouseMobileContactField() {
+    return InputField(
+      maxLength: 10,
+      controller: _spouseMobileContactNo,
+      labelText: "Contact No.(Mobile)",
+      keyboardType: TextInputType.phone,
+    );
+  }
+
+  Widget _buildCurrentOrgNameField() {
+    return InputField(
+      controller: _spouseOrgName,
+      labelText: "Name of the current organization",
+    );
+  }
+
+  Widget _buildCurrentDesignationField() {
+    return InputField(
+      controller: _currentDesignation,
+      labelText: "Designation",
+    );
+  }
+
+  Widget _buildWorkingInCurrentOrgSinceField() {
+    String fieldText = "Select a date";
+    if (_inCurrentOrgSince != null) {
+      fieldText = formatDateTime(_inCurrentOrgSince!, showTime: false);
+    }
+    return GroupBox(
+      child: TextButton(
+          onPressed: () {
+            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
+                .then((value) {
+              if (value != null) {
+                setState(() {
+                  _inCurrentOrgSince = value;
+                });
+              }
+            });
+          },
+          child: Text(fieldText,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+                color: Colors.blue,
+              ))),
+      title: "Working since",
+      // titleBackground: const Color(backgroundColor)
+    );
+  }
+
+  Widget _buildResidenceContactField() {
+    return InputField(
+      maxLength: 10,
+      controller: _residenceContactNo,
+      labelText: "Contact No.(Residence)",
+      keyboardType: TextInputType.phone,
+    );
+  }
+
+  Widget _buildCurrentOfficeContactField() {
+    return InputField(
+      maxLength: 10,
+      controller: _currentOfficeContactNo,
+      labelText: "Contact No.(Office)",
+      keyboardType: TextInputType.phone,
+    );
+  }
+
+  Widget _buildCurrentMobileContactField() {
+    return InputField(
+      maxLength: 10,
+      errorText: _mobileContactError,
+      controller: _mobileContactNo,
+      labelText: "Contact No.(Mobile)*",
+      keyboardType: TextInputType.phone,
+    );
+  }
+
+  Widget _buildPreviousOrgNameField() {
+    return InputField(
+      controller: _previousOrgName,
+      labelText: "Name of the previous organization",
+    );
+  }
+
+  Widget _buildPreviousDesignationField() {
+    return InputField(
+      controller: _previousDesignation,
+      labelText: "Desigation",
+    );
+  }
+
+  Widget _buildWereWorkingInPreviousOrgSinceField() {
+    String fieldText = "Select a date";
+    if (_wereInPreviousOrgSince != null) {
+      fieldText = formatDateTime(_wereInPreviousOrgSince!, showTime: false);
+    }
+    return GroupBox(
+      child: TextButton(
+          onPressed: () {
+            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
+                .then((value) {
+              if (value != null) {
+                _wereInPreviousOrgSince = value;
+              }
+            });
+          },
+          child: Text(fieldText,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+                color: Colors.blue,
+              ))),
+      title: "Were working for since",
+      // titleBackground: const Color(backgroundColor)
+    );
+  }
+
+  Widget _buildPreviousOfficeContactField() {
+    return InputField(
+      maxLength: 10,
+      controller: _previousOfficeContactNo,
+      labelText: "Contact No.(Office)",
+      keyboardType: TextInputType.phone,
+    );
+  }
+
+  SizedBox _buildPadding(double size) {
+    return SizedBox(
+      height: screenHeight * size,
+    );
+  }
+
+  Widget _buildHeading(String heading) {
+    return Text(
+      heading,
+      style: const TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  Widget _buildSubHeading(String subHeading) {
+    return Text(
+      subHeading,
+      style: TextStyle(
+        fontSize: 20,
+        // color: Colors.white.withOpacity(.8)
+      ),
+    );
   }
 
   void resetErrorText() {
     setState(() {
-      emailError = null;
-      passwordError = null;
-      batchYearError = null;
-      nameError = null;
-      idError = null;
+      _emailError = null;
+      _passwordError = null;
+      _nameError = null;
+      _idError = null;
+      _addmissionYearError = null;
+      _courseError = null;
+      _fatherNameError = null;
+      _motherNameError = null;
+      _dobError = null;
+      _addressError = null;
+      _passingYearError = null;
+      _nationalityError = null;
+      _nriError = null;
+      _mobileContactError = null;
     });
   }
 
   bool validate() {
     resetErrorText();
-    String? email, password, id, name, batchYear;
+    String? newEmailError,
+        newPasswordError,
+        newIdError,
+        newNameError,
+        newAddmissionError,
+        newCourseError;
 
     RegExp emailExp = RegExp(
         r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$");
 
     bool isValid = true;
     if (_name.text.isEmpty) {
-      name = "Please enter a name";
+      newNameError = "Invalid name";
       isValid = false;
     }
-    if (_id.text.isNotEmpty) {
-      if (int.tryParse(_id.text) == null) {
-        id = "ID must only have digits";
+    if (_rollNo.text.isNotEmpty) {
+      if (int.tryParse(_rollNo.text) == null) {
+        newIdError = "ID must only have digits";
         isValid = false;
-      } else if (_id.text.length < 6) {
-        id = "ID must be of 6 digits";
+      } else if (_rollNo.text.length < 6) {
+        newIdError = "ID must be of 6 digits";
         isValid = false;
       }
     }
 
     if (_email.text.isEmpty || !emailExp.hasMatch(_email.text)) {
-      email = "Email is invalid";
+      newEmailError = "Email is invalid";
       isValid = false;
     }
 
     if (_password.text.isEmpty || _confirmPassword.text.isEmpty) {
-      password = "Please enter a password";
+      newPasswordError = "Invalid Password";
       isValid = false;
     } else if (_password.text != _confirmPassword.text) {
-      password = "Passwords do not match";
+      newPasswordError = "Passwords do not match";
       isValid = false;
     }
+    if (_courseValue == null) {
+      newCourseError = "Invalid course";
+      isValid = false;
+    }
+    if (_addmissionYear == null) {
+      newAddmissionError = "Invalid year";
+      isValid = false;
+    }
+
+    if (_isAlumni) {
+      isValid = validateAdditionalDetails();
+    }
+
     setState(() {
-      nameError = name;
-      idError = id;
-      emailError = email;
-      passwordError = password;
-      batchYearError = batchYear;
+      _nameError = newNameError;
+      _idError = newIdError;
+      _emailError = newEmailError;
+      _passwordError = newPasswordError;
+      _addmissionYearError = newAddmissionError;
+      _courseError = newCourseError;
     });
     return isValid;
   }
 
+  bool validateAdditionalDetails() {
+    String? newFatherNameError,
+        newMotherNameError,
+        newDobError,
+        newAddressError,
+        newPassingYearError,
+        newNationalityError,
+        newNriError,
+        newMobileContactError;
+
+    bool validity = true;
+
+    if (_motherName.text.isEmpty) {
+      newMotherNameError = "Invalid Name";
+      validity = false;
+    }
+    if (_fatherName.text.isEmpty) {
+      newFatherNameError = "Invalid Name";
+      validity = false;
+    }
+    if (_dob == null) {
+      newDobError = "Invalid date";
+      validity = false;
+    }
+    if (_address.text.isEmpty) {
+      newAddressError = "Invalid address";
+      validity = false;
+    }
+    if (_passingYear == null) {
+      newPassingYearError = "Invalid year";
+      validity = false;
+    }
+    if (_nationality == null || _nationality == "") {
+      newNationalityError = "Invalid nationality";
+      validity = false;
+    }
+    if (_isNRI == null) {
+      newNriError = "Invalid selection";
+      validity = false;
+    }
+    if (_mobileContactNo.text.isEmpty) {
+      newMobileContactError = "Invalid Number";
+      validity = false;
+    } else {
+      if (isNumerical(_mobileContactNo.text) != true ||
+          _mobileContactNo.text.length < 10) {
+        validity = false;
+        newMobileContactError = "Invalid Number";
+      }
+    }
+    setState(() {
+      _fatherNameError = newFatherNameError;
+      _motherNameError = newMotherNameError;
+      _dobError = newDobError;
+      _addressError = newAddressError;
+      _passingYearError = newPassingYearError;
+      _nationalityError = newNationalityError;
+      _nriError = newNriError;
+      _mobileContactError = newMobileContactError;
+    });
+    return validity;
+  }
+
+  String? ifStringEmptyReturnNull(String str) {
+    if (str.isEmpty) {
+      return null;
+    } else {
+      return str;
+    }
+  }
+
   Future<String?> registerUserAndSaveDetails() async {
-    String id = _id.text;
-    String name = _name.text;
-    String email = _email.text;
-    String password = _password.text;
-    String batchYear = _batchYear.toString();
-    String accessLevel = "user";
-    if (switchValue == true) {
+    print(profilePic!.path);
+    final String rollNo = _rollNo.text;
+    final String name = _name.text;
+    final String email = _email.text;
+    final String password = _password.text;
+    final int addmissionYear = _addmissionYear!;
+    late final String accessLevel;
+    //
+    //
+    final String previousOrgOfficeContactNo = _previousOfficeContactNo.text;
+    if (_isAlumni == true) {
       accessLevel = "alumni";
+    } else {
+      accessLevel = "student";
     }
-    String? alumniDetails;
-    if (switchValue == false) {
-      alumniDetails = null;
-    }
-    String course;
-    if (courseValue != null) {
-      course = courseValue!;
+    final String course;
+    if (_courseValue != null) {
+      course = _courseValue!;
     } else {
       course = "";
     }
-
     try {
       await auth!
           .createUserWithEmailAndPassword(email: email, password: password)
-          .then((userRecord) {
+          .then((userRecord) async {
         var uid = userRecord.user?.uid;
         firestore!.collection("eventAttendanceStatus").doc(uid).set({});
+        String profilePicUrl = await uploadFileAndGetLink(
+            profilePic!.path, uid.toString() + "/profilePicture", context);
         firestore!.collection("userVotes").doc(uid).set({});
         firestore!.collection("users").doc(uid).set({
+          "profilePic": profilePicUrl,
           "uid": uid,
-          "id": id,
+          "rollNo": rollNo,
           "name": name,
           "email": email,
-          "batch": batchYear,
+          "admissionYear": addmissionYear,
           "course": course,
-          "alumni": switchValue,
-          "alumni-details": alumniDetails,
+          "isAnAlumni": _isAlumni,
           "accessLevel": accessLevel,
+          "noticesDismissed": ["some value"]
         }, SetOptions(merge: true)).then((value) {
+          if (_isAlumni) {
+            print("setting additional details");
+            final String motherName = _motherName.text;
+            final String fatherName = _fatherName.text;
+            final Timestamp dob = Timestamp.fromDate(_dob!);
+            final String address = _address.text;
+            final int passingYear = _passingYear!;
+            final String nationality = _nationality!;
+            final bool isNRI = _isNRI!;
+            final String achievements = _achievements.text;
+            //
+            //
+            final String spouseName = _spouseName.text;
+            final String spouseOrgName = _spouseOrgName.text;
+            final String spouseDesignation = _spouseDesignation.text;
+            late final Timestamp? spouseWorkingSince;
+
+            if (_spouseWorkingInOrgSince != null) {
+              Timestamp.fromDate(_spouseWorkingInOrgSince!);
+            } else {
+              spouseWorkingSince = null;
+            }
+            final String spouseOfficeContactNo = _spouseOfficeContactNo.text;
+            final String spouseMobileContactNo = _spouseMobileContactNo.text;
+            //
+            //
+            final String currentOrgName = _currentOrgName.text;
+            final String currentDesignation = _currentDesignation.text;
+            late final Timestamp? workingInCurrentOrgSince;
+            if (_inCurrentOrgSince != null) {
+              workingInCurrentOrgSince =
+                  Timestamp.fromDate(_inCurrentOrgSince!);
+            } else {
+              workingInCurrentOrgSince = null;
+            }
+            final String residenceContactNo = _residenceContactNo.text;
+            final String currentOfficeContactNo = _currentOfficeContactNo.text;
+            final String mobileContactNo = _mobileContactNo.text;
+            print(mobileContactNo);
+            //
+            //
+            final String previousOrgName = _previousOrgName.text;
+            final String previousDesignation = _previousDesignation.text;
+            late final Timestamp? wereInPreviousOrgSince;
+            if (_wereInPreviousOrgSince != null) {
+              wereInPreviousOrgSince =
+                  Timestamp.fromDate(_wereInPreviousOrgSince!);
+            } else {
+              wereInPreviousOrgSince = null;
+            }
+            firestore!.collection("users").doc(uid).set({
+              "motherName": motherName,
+              "fatherName": fatherName,
+              "dateOfBirth": dob,
+              "permanentAddress": address,
+              "passingYear": passingYear,
+              "nationality": nationality,
+              "isNRI": isNRI,
+              "achievements": achievements,
+              //
+              "spouseName": spouseName,
+              "spouseOrgName": spouseOrgName,
+              "spouseDesignation": spouseDesignation,
+              "spouseWorkingInOrgSince": spouseWorkingSince,
+              "spouseOfficeContactNo": spouseOfficeContactNo,
+              "spouseMobileContactNo": spouseMobileContactNo,
+              //
+              "currentOrgName": currentOrgName,
+              "currentDesignation": currentDesignation,
+              "inCurrentOrgSince": workingInCurrentOrgSince,
+              "residenceContactNo": residenceContactNo,
+              "currentOfficeContactNo": currentOfficeContactNo,
+              "mobileContactNo": mobileContactNo,
+              //
+              "previousOrgName": previousOrgName,
+              "previousDesignation": previousDesignation,
+              "wereInPreviousSince": wereInPreviousOrgSince,
+              "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
+            }, SetOptions(merge: true));
+          }
           Navigator.of(context).popUntil(ModalRoute.withName(""));
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return const MainPage();
@@ -184,7 +990,7 @@ class _RegisterView extends State<RegisterView> {
 
   Widget _buildRegisteringDialog() {
     return AlertDialog(
-      backgroundColor: Colors.grey.shade900,
+      // backgroundColor: Colors.grey.shade900,
       actions: [
         Container(
           padding: EdgeInsets.zero,
@@ -236,7 +1042,7 @@ class _RegisterView extends State<RegisterView> {
             height: screenHeight * 0.325,
             width: screenWidth,
             padding: const EdgeInsets.fromLTRB(0, 50, 0, 5),
-            decoration: BoxDecoration(color: Colors.grey.shade900),
+            // decoration: BoxDecoration(color: Colors.grey.shade900),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: children,
@@ -258,434 +1064,87 @@ class _RegisterView extends State<RegisterView> {
     }
   }
 
-  String? nationalityChosen;
-  bool? isNRI = null;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget otherNationalityInputField = const SizedBox();
-    if (nationalityChosen == "Other") {
-      otherNationalityInputField = const InputField(
-        labelText: "Other Nationality",
-      );
-    }
-
-    List<Widget> additionalDetails = [const SizedBox()];
-    if (switchValue == true) {
-      additionalDetails = [
-        SizedBox(
-          height: screenHeight * 0.02,
-        ),
-        const Text(
-          "Additional Details",
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        buildPadding(.04, context),
-        const Text(
-          "Personal Details",
-          style: TextStyle(
-            fontSize: 20,
-          ),
-        ),
-        buildPadding(.01, context),
-        const InputField(
-          labelText: "Mother's Name*",
-        ),
-        const InputField(
-          labelText: "Father's Name*",
-        ),
-        GroupBox(
-            child: TextButton(
-                onPressed: () {
-                  DatePicker.showDatePicker(context,
-                      theme: getDarkDatePickerTheme());
-                },
-                child: RichText(
-                    text: const TextSpan(
-                        text: "Select date",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
-                          color: Colors.blue,
-                        )))),
-            title: "Data of Birth*",
-            titleBackground: const Color(backgroundColor)),
-        InputField(
-          labelText: "Permanent/Correspondence Address*",
-          maxLines: (screenHeight * 0.01).toInt(),
-        ),
-        _buildYearOfLeavingField(),
-        GroupBox(
-            height: screenHeight * 0.18,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    SizedBox(
-                      height: 50,
-                      width: screenWidth * 0.40,
-                      child: Row(children: [
-                        Radio<String>(
-                          value: "Indian",
-                          groupValue: nationalityChosen,
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              nationalityChosen = newValue;
-                            });
-                          },
-                        ),
-                        const Text("Indian")
-                      ]),
-                    ),
-                    SizedBox(
-                      height: 50,
-                      width: screenWidth * 0.40,
-                      child: Row(children: [
-                        Radio<String>(
-                          value: "Other",
-                          groupValue: nationalityChosen,
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              nationalityChosen = newValue;
-                            });
-                          },
-                        ),
-                        const Text("Other")
-                      ]),
-                    ),
-                  ],
-                ),
-                otherNationalityInputField
-              ],
-            ),
-            title: "Nationality",
-            titleBackground: const Color(backgroundColor)),
-        GroupBox(
-            height: screenHeight * 0.08,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    SizedBox(
-                      height: 50,
-                      width: screenWidth * 0.40,
-                      child: Row(children: [
-                        Radio<bool>(
-                          value: true,
-                          groupValue: isNRI,
-                          onChanged: (bool? newValue) {
-                            setState(() {
-                              isNRI = newValue;
-                            });
-                          },
-                        ),
-                        const Text("Yes")
-                      ]),
-                    ),
-                    SizedBox(
-                      height: 50,
-                      width: screenWidth * 0.40,
-                      child: Row(children: [
-                        Radio<bool>(
-                          value: false,
-                          groupValue: isNRI,
-                          onChanged: (bool? newValue) {
-                            setState(() {
-                              isNRI = newValue;
-                            });
-                          },
-                        ),
-                        const Text("No")
-                      ]),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            title: "NRI*",
-            titleBackground: const Color(backgroundColor)),
-        const InputField(
-          labelText: "Achievements & Awards",
-        ),
-        buildPadding(.04, context),
-        const Text(
-          "Spouse's Details",
-          style: TextStyle(
-            fontSize: 20,
-          ),
-        ),
-        buildPadding(.01, context),
-        const InputField(
-          labelText: "Name of spouse",
-        ),
-        const InputField(
-          labelText: "Name of spouse's organization",
-        ),
-        const InputField(
-          labelText: "Designation",
-        ),
-        GroupBox(
-            child: TextButton(
-                onPressed: () {
-                  DatePicker.showDatePicker(context,
-                      theme: getDarkDatePickerTheme());
-                },
-                child: const Text("Select date")),
-            title: "Working since",
-            titleBackground: const Color(backgroundColor)),
-        const InputField(
-          labelText: "Contact No.(Office)",
-          keyboardType: TextInputType.phone,
-        ),
-        const InputField(
-          labelText: "Contact No.(Mobile)*",
-          keyboardType: TextInputType.phone,
-        ),
-        buildPadding(.04, context),
-        const Text(
-          "Current Organization",
-          style: TextStyle(
-            fontSize: 20,
-          ),
-        ),
-        buildPadding(.01, context),
-        const InputField(
-          labelText: "Name of the current organization",
-        ),
-        const InputField(
-          labelText: "Desigation",
-        ),
-        GroupBox(
-            child: TextButton(
-                onPressed: () {
-                  DatePicker.showDatePicker(context,
-                      theme: getDarkDatePickerTheme());
-                },
-                child: const Text("Select date")),
-            title: "Working since",
-            titleBackground: const Color(backgroundColor)),
-        const InputField(
-          labelText: "Contact No.(Residence)",
-          keyboardType: TextInputType.phone,
-        ),
-        const InputField(
-          labelText: "Contact No.(Office)",
-          keyboardType: TextInputType.phone,
-        ),
-        const InputField(
-          labelText: "Contact No.(Mobile)*",
-          keyboardType: TextInputType.phone,
-        ),
-        buildPadding(.04, context),
-        const Text(
-          "Previous Organization",
-          style: TextStyle(
-            fontSize: 20,
-          ),
-        ),
-        buildPadding(.01, context),
-        const InputField(
-          labelText: "Name of the previous organization",
-        ),
-        const InputField(
-          labelText: "Desigation",
-        ),
-        GroupBox(
-            child: TextButton(
-                onPressed: () {
-                  DatePicker.showDatePicker(context,
-                      theme: getDarkDatePickerTheme());
-                },
-                child: const Text("Select date")),
-            title: "Were working for since",
-            titleBackground: const Color(backgroundColor)),
-        const InputField(
-          labelText: "Contact No.(Office)",
-          keyboardType: TextInputType.phone,
-        ),
-      ];
-    }
-    List<Widget> form = [
-      buildPadding(0.005, context),
-      _buildRegisterTitle(),
-      _buildIdField(_id),
-      buildPadding(0.015, context),
-      _buildNameField(_name),
-      buildPadding(0.015, context),
-      _buildEmailField(_email),
-      buildPadding(0.015, context),
-      _buildPasswordField(_password),
-      buildPadding(0.005, context),
-      _buildPasswordStrengthProgress(_strength),
-      buildPadding(0.015, context),
-      _buildConfirmPasswordField(_confirmPassword),
-      buildPadding(0.015, context),
-      _buildYearOfAdmissionField(),
-      _buildCourseDropDown(),
-      buildPadding(0.001, context),
-      _buildSwitch(),
-      buildPadding(0.015, context),
-    ];
-    form.addAll(additionalDetails);
-    form.addAll([
-      buildPadding(0.015, context),
-      SizedBox(
-        height: screenHeight * .065,
-        width: double.maxFinite,
-        child: TextButton(
-            child: Text(
-              buttonText,
-              style: const TextStyle(fontSize: 18, color: Colors.white),
-            ),
-            style: TextButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 100, 122, 177)),
-            onPressed: submit),
-      ),
-      buildPadding(.01, context),
-    ]);
-
-    return Scaffold(
-      backgroundColor: const Color(backgroundColor),
-      bottomNavigationBar: TextButton(
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-            return const LoginView();
-          }));
-        },
-        child: RichText(
-          textAlign: TextAlign.center,
-          text: const TextSpan(
-            text: "I'm already a member, ",
-            style: TextStyle(color: Colors.white),
-            children: [
-              TextSpan(
-                text: "Sign In",
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(color: Color(backgroundColor)),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          children: [
-            Flexible(child: ListView(children: form)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  SizedBox buildPadding(double size, BuildContext context) {
-    return SizedBox(
-      height: screenHeight * size,
-    );
-  }
-
-  Column _buildRegisterTitle() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text(
-        "Create Account,",
-        style: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      buildPadding(.01, context),
-      Text(
-        "Sign up to get started!",
-        style: TextStyle(
-          fontSize: 18,
-          color: Colors.white.withOpacity(.6),
-        ),
-      ),
-      buildPadding(0.025, context),
-    ]);
-  }
-
   Widget _buildYearOfAdmissionField() {
     String text = "Select Year";
-    if (_batchYear != null) {
-      text = _batchYear.toString();
+    if (_addmissionYear != null) {
+      text = _addmissionYear.toString();
     }
     return GroupBox(
-        errorText: batchYearError,
-        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
-        child: TextButton(
-            style: TextButton.styleFrom(),
-            onPressed: () {
-              DatePicker.showPicker(context,
-                      pickerModel: CustomYearPicker(
-                        currentTime: DateTime.now(),
-                        minYear: 1990,
-                      ),
-                      theme: getDarkDatePickerTheme())
-                  .then((value) {
-                setState(() {
-                  if (value != null) {
-                    _batchYear = value.year;
-                  } else {
-                    _batchYear = null;
-                  }
-                });
+      errorText: _addmissionYearError,
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
+      child: TextButton(
+          style: TextButton.styleFrom(),
+          onPressed: () {
+            DatePicker.showPicker(context,
+                    pickerModel: CustomYearPicker(
+                      currentTime: DateTime.now(),
+                      minYear: 1990,
+                    ),
+                    theme: getDarkDatePickerTheme())
+                .then((value) {
+              setState(() {
+                if (value != null) {
+                  _addmissionYear = value.year;
+                }
               });
-            },
-            child: RichText(
-                text: TextSpan(
-                    text: text,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
-                      color: Colors.blue,
-                    )))),
-        title: "Year of Admission*",
-        titleBackground: const Color(backgroundColor));
+            });
+          },
+          child: RichText(
+              text: TextSpan(
+                  text: text,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                    color: Colors.blue,
+                  )))),
+      title: "Year of Admission*",
+      // titleBackground: const Color(backgroundColor)
+    );
   }
 
   Widget _buildYearOfLeavingField() {
     String text = "Select Year";
     return GroupBox(
-        errorText: batchYearError,
-        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
-        child: TextButton(
-            style: TextButton.styleFrom(),
-            onPressed: () {
-              DatePicker.showPicker(context,
-                  pickerModel: CustomYearPicker(
-                    currentTime: DateTime.now(),
-                    minYear: 1990,
-                  ),
-                  theme: getDarkDatePickerTheme());
-            },
-            child: RichText(
-                text: TextSpan(
-                    text: text,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
-                      color: Colors.blue,
-                    )))),
-        title: "Year of Leaving*",
-        titleBackground: const Color(backgroundColor));
+      errorText: _passingYearError,
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
+      child: TextButton(
+          style: TextButton.styleFrom(),
+          onPressed: () {
+            DatePicker.showPicker(context,
+                    pickerModel: CustomYearPicker(
+                      currentTime: DateTime.now(),
+                      minYear: 1990,
+                    ),
+                    theme: getDarkDatePickerTheme())
+                .then((value) {
+              if (value != null) {
+                setState(() {
+                  _passingYear = value.year;
+                });
+              }
+            });
+          },
+          child: RichText(
+              text: TextSpan(
+                  text: text,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                    color: Colors.blue,
+                  )))),
+      title: "Year of Leaving*",
+      // titleBackground: const Color(backgroundColor)
+    );
   }
 
-  InputField _buildEmailField(TextEditingController _email) {
+  InputField _buildEmailField() {
     return InputField(
       autoCorrect: false,
-      labelText: "Email",
+      labelText: "Email*",
       controller: _email,
-      errorText: emailError,
+      errorText: _emailError,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
       autoFocus: false,
@@ -722,27 +1181,124 @@ class _RegisterView extends State<RegisterView> {
     });
   }
 
-  InputField _buildIdField(TextEditingController _id) {
-    return InputField(
-      autoCorrect: false,
-      labelText: "ID(Optional)",
-      controller: _id,
-      maxLength: 6,
-      keyboardType: TextInputType.number,
-      errorText: idError,
+  Widget _buildProfilePicField() {
+    return GroupBox(
+      title: "Profile Picture",
+      // titleBackground: const Color(backgroundColor),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
+        child: ListTile(
+          trailing: profilePic == null
+              ? null
+              : IconButton(
+                  splashRadius: 1,
+                  iconSize: 20,
+                  onPressed: () {
+                    setState(() {
+                      profilePic = null;
+                    });
+                  },
+                  icon: const Icon(Icons.close)),
+          title: profilePic == null
+              ? IconButton(
+                  onPressed: () {
+                    ImagePicker()
+                        .pickImage(source: ImageSource.gallery)
+                        .then((value) {
+                      if (value != null) {
+                        setState(() {
+                          profilePic = value;
+                        });
+                      }
+                    });
+                  },
+                  icon: const Icon(Icons.add))
+              : _buildImage(
+                  profilePic == null
+                      ? () {}
+                      : () {
+                          ImagePicker()
+                              .pickImage(source: ImageSource.gallery)
+                              .then((value) {
+                            if (value != null) {
+                              setState(() {
+                                profilePic = value;
+                              });
+                            }
+                          });
+                        },
+                  Image.file(File(profilePic!.path))),
+          onTap: profilePic == null
+              ? () {}
+              : () {
+                  ImagePicker()
+                      .pickImage(source: ImageSource.gallery)
+                      .then((value) {
+                    if (value != null) {
+                      setState(() {
+                        profilePic = value;
+                      });
+                    }
+                  });
+                },
+        ),
+      ),
     );
   }
 
-  InputField _buildNameField(TextEditingController _name) {
+  Widget _buildImage(void Function()? onClicked, Image image) {
+    var imageProvider = image.image;
+    // return AspectRatio(
+    //   aspectRatio: 1,
+    //   child: SizedBox(
+    //     height: 64,
+    //     width: 64,
+    //     child: ClipRRect(
+    //       borderRadius: BorderRadius.circular(360),
+    //       child: Material(
+    //         color: Colors.transparent,
+    //         child: Ink.image(
+    //           image: imageProvider,
+    //           fit: BoxFit.cover,
+    //           child: InkWell(
+    //             onTap: onClicked,
+    //           ),
+    //         ),
+    //       ),
+    //     ),
+    //   ),
+    // );
+    return GestureDetector(
+      onTap: onClicked,
+      child: CircleAvatar(
+        radius: 64,
+        backgroundImage: imageProvider,
+      ),
+    );
+  }
+
+  InputField _buildRollNoField() {
+    return InputField(
+      autoCorrect: false,
+      labelText: "College Roll No.",
+      controller: _rollNo,
+      maxLength: 6,
+      keyboardType: TextInputType.number,
+      errorText: _idError,
+    );
+  }
+
+  InputField _buildNameField() {
     return InputField(
       autoCorrect: false,
       labelText: "Name*",
-      errorText: nameError,
+      errorText: _nameError,
       controller: _name,
     );
   }
 
-  InputField _buildPasswordField(TextEditingController _password) {
+  InputField _buildPasswordField() {
     return InputField(
       autoCorrect: false,
       labelText: "Password*",
@@ -753,12 +1309,10 @@ class _RegisterView extends State<RegisterView> {
     );
   }
 
-  InputField _buildConfirmPasswordField(
-      TextEditingController _confirmPassword) {
+  InputField _buildConfirmPasswordField() {
     return InputField(
-      onSubmitted: (value) => submit(),
       labelText: "Confirm Password*",
-      errorText: passwordError,
+      errorText: _passwordError,
       obscureText: true,
       textInputAction: TextInputAction.done,
       controller: _confirmPassword,
@@ -767,15 +1321,16 @@ class _RegisterView extends State<RegisterView> {
 
   Widget _buildCourseDropDown() {
     return GroupBox(
-      titleBackground: const Color(backgroundColor),
-      title: "Course",
+      errorText: _courseError,
+      // titleBackground: const Color(backgroundColor),
+      title: "Course*",
       child: ButtonTheme(
         alignedDropdown: true,
         child: DropdownButton(
             icon: null,
-            underline: null,
+            underline: const SizedBox(),
             isExpanded: true,
-            value: courseValue,
+            value: _courseValue,
             style: const TextStyle(fontSize: 14),
             items: <String>[
               "B.A.",
@@ -806,40 +1361,36 @@ class _RegisterView extends State<RegisterView> {
                 .toList(),
             onChanged: (String? newValue) {
               setState(() {
-                courseValue = newValue!;
+                _courseValue = newValue!;
               });
             }),
       ),
     );
   }
 
-  Widget _buildSwitch() {
+  Widget _buildAlumniToggle() {
     return Row(
       children: [
         SizedBox(
           width: screenWidth * 0.35,
           child: Text(
-            "Sign up as " + signUpAs,
+            "Sign up as " + _signUpAs,
             style: const TextStyle(fontSize: 16),
           ),
         ),
         Switch(
           activeColor: Colors.green,
-          value: switchValue,
+          value: _isAlumni,
           onChanged: (value) {
-            String temp1;
-            String temp2;
+            String nextSignUpAs;
             if (value == true) {
-              temp1 = "Alumni";
-              temp2 = "Next";
+              nextSignUpAs = "Alumni";
             } else {
-              temp1 = "User";
-              temp2 = "Sign Up";
+              nextSignUpAs = "User";
             }
             setState(() {
-              signUpAs = temp1;
-              buttonText = temp2;
-              switchValue = value;
+              _signUpAs = nextSignUpAs;
+              _isAlumni = value;
             });
           },
         ),
@@ -847,7 +1398,7 @@ class _RegisterView extends State<RegisterView> {
     );
   }
 
-  Column _buildPasswordStrengthProgress(double _strength) {
+  Column _buildPasswordStrengthProgress() {
     return Column(children: [
       LinearProgressIndicator(
         value: _strength,
@@ -866,12 +1417,13 @@ class _RegisterView extends State<RegisterView> {
       ),
 
       // The message about the strength of the entered password
+      _buildPadding(0.005),
       Text(
         _displayText,
         style: TextStyle(
-          fontSize: 10,
+          fontSize: 12,
           color: _strength <= 1 / 4
-              ? Colors.red
+              ? Colors.red.shade800
               : _strength == 2 / 4
                   ? Colors.orange
                   : _strength == 3 / 4
@@ -880,5 +1432,20 @@ class _RegisterView extends State<RegisterView> {
         ),
       ),
     ]);
+  }
+
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      height: screenHeight * .065,
+      width: double.maxFinite,
+      child: TextButton(
+          child: const Text(
+            "Submit",
+            style: TextStyle(fontSize: 18, color: Colors.white),
+          ),
+          style: TextButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 100, 122, 177)),
+          onPressed: submit),
+    );
   }
 }

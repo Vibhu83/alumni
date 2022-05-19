@@ -1,7 +1,5 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
-import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +36,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
         "postTitle": postTitle,
         "postVotes": postVotes,
         "postBody": postBody,
-        "postedOn": postTime
+        "postedOn": postTime,
+        "rating": 0,
       }, SetOptions(merge: true));
       return postID;
     });
@@ -76,13 +75,15 @@ class _CreatePostPageState extends State<CreatePostPage> {
         "postVotes": postVotes,
         "postBody": postBody,
         "postedOn": postTime.toDate(),
-        "authorName": authorName
+        "authorName": authorName,
+        "rating": 0
       };
       Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
         return APost(
             postID: postID,
             postTitle: postTitle,
             authorID: authorID,
+            postVotes: postVotes,
             authorName: authorName,
             postBody: postBody,
             postedDuration:
@@ -136,8 +137,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
       buttonText = "Post";
     }
     return Scaffold(
-      backgroundColor: const Color(postPageBackground),
-      resizeToAvoidBottomInset: false,
+      backgroundColor: Theme.of(context).canvasColor,
+      resizeToAvoidBottomInset: true,
       appBar: buildAppBar(
         leading: buildAppBarIcon(
           onPressed: () {
@@ -153,7 +154,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
           Container(
               margin: const EdgeInsets.symmetric(horizontal: 4),
               child: TextButton(
-                  style: TextButton.styleFrom(primary: Colors.blue.shade100),
+                  style: const ButtonStyle(),
                   onPressed: createFireStoreDoc as void Function()?,
                   child: Text(
                     buttonText,
@@ -163,7 +164,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Container(
+        child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
             child: Column(
               children: [
@@ -176,12 +177,12 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   onChanged: (value) => checkTitle(),
                   keyboardType: TextInputType.multiline,
                 ),
-                const SizedBox(
-                  height: 20,
+                SizedBox(
+                  height: screenHeight * 0.0085,
                 ),
                 InputField(
                   autoCorrect: true,
-                  maxLines: 20,
+                  maxLines: (screenHeight * 0.035).toInt(),
                   controller: _bodyController,
                   labelText: "Body(Optional)",
                   keyboardType: TextInputType.multiline,

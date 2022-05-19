@@ -1,4 +1,4 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
+// import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
 import 'package:flutter/material.dart';
@@ -45,14 +45,15 @@ class _APostCardState extends State<APostCard> {
     Duration postedDuration;
     postedDuration = widget.postedOn.difference(DateTime.now());
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: ElevatedButton(
-        onPressed: () {
+      margin: const EdgeInsets.only(right: 4, left: 4, top: 4, bottom: 5),
+      child: GestureDetector(
+        onTap: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return APost(
                 postID: widget.postID,
                 postTitle: postTitle,
                 authorID: widget.postAuthorID,
+                postVotes: widget.postVotes,
                 authorName: widget.postAuthorName,
                 postBody: postBody,
                 postedDuration:
@@ -64,100 +65,106 @@ class _APostCardState extends State<APostCard> {
                 postBody = updatedPostData["postBody"];
               });
             }
-            if (lastPostChangeInVote != null && lastPostChangeInVote != 0) {
+            if (lastPostNewVotes != null) {
               setState(() {
-                postVotes += lastPostChangeInVote!;
+                postVotes = lastPostNewVotes!;
               });
-              changeVote(widget.postID);
-            } else {
-              lastPostChangeInVote = null;
-              lastPostBool = null;
             }
+
+            lastPostNewVotes = null;
+            lastPostBool = null;
           });
         },
-        style: ButtonStyle(
-          overlayColor: MaterialStateProperty.all(Colors.transparent),
-          padding: MaterialStateProperty.all(EdgeInsets.zero),
-          backgroundColor:
-              MaterialStateProperty.all(const Color(postCardColor)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: (MainAxisSize.max),
-            children: [
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      postTitle,
-                      style: GoogleFonts.lato(
-                          fontSize: 16,
-                          height: 1.3,
-                          fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 3,
-                      softWrap: false,
-                    ),
-                    const SizedBox(
-                      height: 4,
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      style: TextButton.styleFrom(
-                          minimumSize: Size.zero,
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                      child: Text(
-                        "By:" +
-                            widget.postAuthorName +
-                            " (" +
-                            printDuration(postedDuration) +
-                            ")",
+        child: Card(
+          shadowColor:
+              Theme.of(context).appBarTheme.shadowColor!.withOpacity(0.3),
+          elevation: 1,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: (MainAxisSize.max),
+              children: [
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        postTitle,
                         style: GoogleFonts.lato(
-                            fontSize: 10, color: Colors.grey.shade300),
+                            fontSize: 16,
+                            height: 1.3,
+                            fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 3,
+                        softWrap: false,
                       ),
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Text(
-                      postVotes.toString(),
-                      style: GoogleFonts.lato(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Flexible(
-                        child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 0, vertical: 4),
-                            decoration: const BoxDecoration(
-                                color: Color.fromARGB(255, 39, 53, 57)),
-                            width: double.maxFinite,
-                            child: Padding(
+                      SizedBox(
+                        height: screenHeight * 0.005,
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        style: TextButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: EdgeInsets.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                        child: Text(
+                          "By:" +
+                              widget.postAuthorName +
+                              " (" +
+                              printDuration(postedDuration) +
+                              ")",
+                          style: GoogleFonts.lato(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context)
+                                  .appBarTheme
+                                  .shadowColor!
+                                  .withOpacity(0.8)),
+                        ),
+                      ),
+                      SizedBox(
+                        height: screenHeight * 0.01,
+                      ),
+                      Text(
+                        postVotes.toString(),
+                        style: GoogleFonts.lato(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(
+                        height: screenHeight * 0.01,
+                      ),
+                      Flexible(
+                          child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(4),
+                                color: Theme.of(context)
+                                    .scaffoldBackgroundColor
+                                    .withOpacity(0.9),
+                              ),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6.0, vertical: 4),
+                                  horizontal: 8, vertical: 8),
+                              width: double.maxFinite,
                               child: Text(
                                 postBody,
                                 maxLines: 5,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.lato(
-                                    fontSize: 14, color: Colors.grey.shade50),
+                                    fontSize: 14,
+                                    color: Theme.of(context)
+                                        .appBarTheme
+                                        .foregroundColor),
                                 softWrap: false,
-                              ),
-                            ))),
-                    const SizedBox(
-                      height: 2,
-                    ),
-                  ],
+                              ))),
+                      SizedBox(
+                        height: screenHeight * 0.002,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

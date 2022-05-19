@@ -57,6 +57,18 @@ class InputField extends StatelessWidget {
         obscureText: obscureText,
         maxLines: maxLines,
         decoration: InputDecoration(
+          labelStyle: TextStyle(
+              color: errorText == null
+                  ? Theme.of(context)
+                      .inputDecorationTheme
+                      .enabledBorder!
+                      .borderSide
+                      .color
+                  : Colors.red),
+          errorBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.red.shade800, width: 1),
+            borderRadius: BorderRadius.circular(4),
+          ),
           focusColor: Colors.blue,
           contentPadding:
               EdgeInsets.symmetric(horizontal: 10, vertical: heightPadding),
@@ -68,6 +80,7 @@ class InputField extends StatelessWidget {
           floatingLabelBehavior: FloatingLabelBehavior.always,
           floatingLabelAlignment: FloatingLabelAlignment.start,
           border: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.white),
             borderRadius: BorderRadius.circular(4),
           ),
         ),

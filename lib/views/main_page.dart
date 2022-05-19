@@ -1,12 +1,16 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
+import 'dart:io';
+
+import 'package:alumni/ThemeData/theme_model.dart';
 import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/events_page.dart';
 import 'package:alumni/views/forum_page.dart';
 import 'package:alumni/views/home_page.dart';
+import 'package:alumni/views/notification_page.dart';
 import 'package:alumni/views/people_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
+import 'package:alumni/views/profile_page.dart';
 import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
@@ -15,6 +19,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
   final int startingIndex;
@@ -26,6 +31,7 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
+  Map<String, dynamic>? newNotice;
 
   late final List<Widget> _widgetOptions = <Widget>[
     const HomePage(),
@@ -60,7 +66,7 @@ class _MainPageState extends State<MainPage> {
         _floatingActionButtons[1] =
             //Events Floating Button
             FloatingActionButton(
-          backgroundColor: const Color(floatingButtonColor),
+          // backgroundColor: currentTheme!.floatingActionButtonColor,
           onPressed: () {
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => const CreateEvent(
@@ -70,16 +76,9 @@ class _MainPageState extends State<MainPage> {
           child: const Icon(Icons.add),
         );
       }
-      _floatingActionButtons[2] =
-          //Chat Floating Button
-          FloatingActionButton(
-        backgroundColor: const Color(floatingButtonColor),
-        onPressed: () {},
-        child: const Icon(Icons.message),
-      );
       //Forum Floating Button
       _floatingActionButtons[3] = FloatingActionButton(
-        backgroundColor: const Color(floatingButtonColor),
+        // backgroundColor: currentTheme!.floatingActionButtonColor,
         onPressed: () {
           Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const CreatePostPage()));
@@ -99,7 +98,6 @@ class _MainPageState extends State<MainPage> {
       _setFloatingActionButtons();
       return true;
     });
-    print("initialised");
     return returnVal;
   }
 
@@ -117,7 +115,6 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<bool> _saveUserData() async {
-    print(firestore);
     return await firestore!
         .collection("users")
         .doc(userData["uid"])
@@ -163,7 +160,6 @@ class _MainPageState extends State<MainPage> {
         builder: ((context, AsyncSnapshot<bool?> snapshot) {
           List<Widget> children;
           if (snapshot.data == true) {
-            print("future done");
             return _buildPage();
           } else if (snapshot.hasError) {
             children = buildFutureError(snapshot);
@@ -179,8 +175,7 @@ class _MainPageState extends State<MainPage> {
         }));
   }
 
-  Scaffold _buildPage() {
-    print("page");
+  Consumer _buildPage() {
     List<Widget> pageFeatureWidgets = [];
     switch (_selectedIndex) {
       case 0:
@@ -218,55 +213,85 @@ class _MainPageState extends State<MainPage> {
     Row pageFeatures = Row(
       children: pageFeatureWidgets,
     );
-    return Scaffold(
-        floatingActionButton: _floatingActionButtons[_selectedIndex],
-        backgroundColor: const Color(backgroundColor),
-        appBar: buildAppBar(
-          appBarHeight: null,
-          actions: <Widget>[
-            Builder(builder: (context) => pageFeatures),
-            Builder(
-              builder: (context) {
-                return buildAppBarIcon(
-                    onPressed: () {
-                      if (userData["uid"] != null) {
-                        Scaffold.of(context).openEndDrawer();
-                      } else {
-                        showModalBottomSheet(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return loginModalSheet;
-                            });
-                      }
-                    },
-                    icon: Icons.person);
-              },
+    return Consumer<ThemeModel>(
+      builder: ((context, ThemeModel themeNotifier, child) => Scaffold(
+          appBar: buildAppBar(
+            title: Container(
+              width: screenWidth * 0.22,
+              height: screenHeight * 0.043,
+              alignment: Alignment.centerLeft,
+              child: Container(
+                decoration: const BoxDecoration(
+                    image: DecorationImage(
+                  fit: BoxFit.fitHeight,
+                  image: AssetImage("assets/logo.png"),
+                )),
+              ),
             ),
-          ],
-        ),
-        endDrawer:
-            userData["uid"] == null ? null : _buildProfileDrawer(context),
-        body: _widgetOptions.elementAt(_selectedIndex),
-        bottomNavigationBar: _buildBottomNavBar());
+            leading: buildAppBarIcon(
+                onPressed: () {
+                  themeNotifier.isDark
+                      ? themeNotifier.isDark = false
+                      : themeNotifier.isDark = true;
+                },
+                icon: themeNotifier.isDark
+                    ? Icons.nightlight_round_outlined
+                    : Icons.wb_sunny_rounded),
+            actions: <Widget>[
+              Builder(builder: (context) => pageFeatures),
+              Builder(
+                builder: (context) {
+                  return buildAppBarIcon(
+                      onPressed: () {
+                        if (userData["uid"] != null) {
+                          Scaffold.of(context).openEndDrawer();
+                        } else {
+                          showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return loginModalSheet;
+                              });
+                        }
+                      },
+                      icon: Icons.person);
+                },
+              ),
+            ],
+          ),
+          // backgroundColor: currentTheme!.mainScaffoldColor,
+          floatingActionButton: _floatingActionButtons[_selectedIndex],
+          endDrawer:
+              userData["uid"] == null ? null : _buildProfileDrawer(context),
+          body: _widgetOptions.elementAt(_selectedIndex),
+          bottomNavigationBar: _buildBottomNavBar())),
+    );
   }
 
   Container _buildBottomNavBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.grey.shade800)),
-          color: const Color(tabBarColor)),
+      decoration: BoxDecoration(boxShadow: [
+        // so here your custom shadow goes:
+        BoxShadow(
+          color: Theme.of(context).appBarTheme.shadowColor!.withOpacity(0.3),
+          blurStyle: BlurStyle.normal,
+          spreadRadius: 0.1,
+          blurRadius: 0.5,
+          offset: const Offset(0, -1),
+        ),
+      ], color: Theme.of(context).appBarTheme.backgroundColor),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4.0),
         child: BottomNavigationBar(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           //elevation: 0.0,
           items: _buildNavBarTabs(),
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.white70,
-          unselectedItemColor: Colors.white24,
-          backgroundColor: Color.fromARGB(90, 56, 56, 56),
+          selectedItemColor: Theme.of(context).appBarTheme.foregroundColor,
+          unselectedItemColor:
+              Theme.of(context).appBarTheme.foregroundColor!.withOpacity(0.7),
         ),
       ),
     );
@@ -307,7 +332,7 @@ class _MainPageState extends State<MainPage> {
         borderRadius: const BorderRadius.only(
             topRight: Radius.circular(4), bottomRight: Radius.circular(4)),
         child: Drawer(
-          backgroundColor: const Color(drawerColor),
+          // backgroundColor: const Color(drawerColor),
           child: Column(
             children: [
               Expanded(
@@ -366,7 +391,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildProfileDrawer(BuildContext context) {
-    double topPad = screenHeight * 0.082;
+    double topPad = screenHeight * 0.085;
     double bottomPad = screenHeight * 0.01;
     return Container(
       padding: EdgeInsets.fromLTRB(0, topPad, 0, bottomPad),
@@ -374,7 +399,7 @@ class _MainPageState extends State<MainPage> {
         borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(4), bottomLeft: Radius.circular(4)),
         child: Drawer(
-          backgroundColor: const Color(drawerColor),
+          backgroundColor: Theme.of(context).cardColor,
           child: Column(
             children: [
               Expanded(
@@ -390,8 +415,16 @@ class _MainPageState extends State<MainPage> {
                           icon: const Icon(Icons.person)),
                       Padding(
                           padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                          child: _buildDrawListTile("My Profile", () {})),
-                      _buildDrawListTile("Notifications", () {}),
+                          child: _buildDrawListTile("My Profile", () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: ((context) =>
+                                    ProfilePage(uid: userData["uid"]))));
+                          })),
+                      _buildDrawListTile("Notifications", () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: ((context) =>
+                                NotificationPage(uid: userData["uid"]))));
+                      }),
                       _buildDrawListTile("Saved Posts", () {}),
                       _buildDrawListTile("Inbox", () {}),
                     ]),
@@ -399,29 +432,40 @@ class _MainPageState extends State<MainPage> {
                 ),
               ),
               Container(
-                height: 54,
+                height: screenHeight * .0831,
                 width: double.maxFinite,
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade900,
+                    color: Theme.of(context)
+                        .scaffoldBackgroundColor
+                        .withOpacity(0.9),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black.withOpacity(1),
-                          spreadRadius: 4,
-                          blurRadius: 4,
-                          offset: const Offset(0, 7))
+                        color: Theme.of(context)
+                            .appBarTheme
+                            .shadowColor!
+                            .withOpacity(0.3),
+                        blurStyle: BlurStyle.normal,
+                        spreadRadius: 0.1,
+                        blurRadius: 0.5,
+                        offset: const Offset(0, -0.25),
+                      ),
                     ],
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(4.0))),
-                child: ListTile(
-                  leading: const Icon(Icons.settings),
-                  title: const Text("Settings"),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.logout_rounded),
-                    onPressed: () {
-                      logoutUser();
-                    },
+                child: Center(
+                  child: ListTile(
+                    iconColor: Theme.of(context).appBarTheme.foregroundColor,
+                    textColor: Theme.of(context).appBarTheme.foregroundColor,
+                    leading: const Icon(Icons.settings),
+                    title: const Text("Settings"),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.logout_rounded),
+                      onPressed: () {
+                        logoutUser();
+                      },
+                    ),
+                    onTap: () {},
                   ),
-                  onTap: () {},
                 ),
               )
             ],
@@ -435,7 +479,12 @@ class _MainPageState extends State<MainPage> {
     return Container(
       decoration: BoxDecoration(
           border: Border(
-              bottom: BorderSide(width: 1, color: Colors.grey.shade700))),
+              bottom: BorderSide(
+                  width: 1,
+                  color: Theme.of(context)
+                      .appBarTheme
+                      .shadowColor!
+                      .withOpacity(0.4)))),
       child: ListTile(
         style: ListTileStyle.drawer,
         title: Text(title),
@@ -514,5 +563,61 @@ class _MainPageState extends State<MainPage> {
             fallbackHeight: 600,
           )
         ]));
+  }
+}
+
+class CustomSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final double expandedHeight;
+  final ThemeModel themeNotifier;
+  final Widget pageFeatures;
+  final Widget loginModalSheet;
+
+  const CustomSliverAppBarDelegate(
+      {required this.expandedHeight,
+      required this.themeNotifier,
+      required this.pageFeatures,
+      required this.loginModalSheet});
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Stack(
+      fit: StackFit.expand,
+      overflow: Overflow.visible,
+      children: [
+        _buildAppBar(shrinkOffset, context),
+        _buildBackground(shrinkOffset),
+      ],
+    );
+  }
+
+  double disappear(double shrinkOffset) => 1 - shrinkOffset / expandedHeight;
+
+  Widget _buildBackground(double shrinkOffset) {
+    return Opacity(
+      opacity: disappear(shrinkOffset),
+      child: Image.asset(
+        "assets/banner.jpg",
+        fit: BoxFit.fitWidth,
+      ),
+    );
+  }
+
+  double appear(double shrinkOffset) => shrinkOffset / expandedHeight;
+
+  Widget _buildAppBar(double shrinkOffset, BuildContext context) {
+    print(shrinkOffset);
+    return Container();
+  }
+
+  @override
+  double get maxExtent => expandedHeight;
+
+  @override
+  double get minExtent => screenHeight * 0.09;
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+    return true;
   }
 }

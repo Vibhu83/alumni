@@ -1,8 +1,5 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
-import 'package:alumni/widgets/ProfilePictureWidget.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -14,33 +11,23 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late bool isTheProfileOfCurrentUser;
+  Map<String, dynamic> data = {};
 
   @override
   void initState() {
+    print(widget.uid);
     super.initState();
   }
 
-  Future<Map<String, dynamic>> getUserDetails() async {
-    isTheProfileOfCurrentUser = false;
+  Future<bool> getUserDetails() async {
     if (userData["uid"] == widget.uid) {
-      isTheProfileOfCurrentUser = true;
-      return userData;
-    }
-    if (isTheProfileOfCurrentUser == false) {
-      var temp = await FirebaseFirestore.instanceFor(app: app!)
-          .collection("users")
-          .doc(widget.uid)
-          .get();
-      Map<String, dynamic> userData = temp.data()!;
-      return userData;
+      data = userData;
+      return true;
     } else {
-      var temp = await FirebaseFirestore.instanceFor(app: app!)
-          .collection("users")
-          .doc(widget.uid)
-          .get();
-      Map<String, dynamic> userDataFromDB = temp.data()!;
-      return userDataFromDB;
+      var temp = await firestore!.collection("users").doc(widget.uid).get();
+      Map<String, dynamic> userDataFromFirebase = temp.data()!;
+      data = userDataFromFirebase;
+      return true;
     }
   }
 
@@ -48,10 +35,10 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: getUserDetails(),
-      builder: (context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
+      builder: (context, AsyncSnapshot<bool> snapshot) {
         List<Widget> children;
         if (snapshot.hasData) {
-          Map<String, dynamic> userData = snapshot.data!;
+          print(data);
           List<Widget> appBarActions = [];
           Widget delUserButton = IconButton(
               splashRadius: 16,
@@ -71,7 +58,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 Icons.edit_rounded,
                 size: 20,
               ));
-          if (isTheProfileOfCurrentUser == true) {
+          if (userData["uid"] == widget.uid) {
             appBarActions.add(editUserButton);
             appBarActions.add(delUserButton);
           } else if (userData["accessLevel"] == "admin") {
@@ -79,7 +66,7 @@ class _ProfilePageState extends State<ProfilePage> {
           }
 
           return Scaffold(
-            backgroundColor: const Color(backgroundColor),
+            // backgroundColor: const Color(backgroundColor),
             appBar: buildAppBar(
               actions: appBarActions,
               leading: IconButton(
@@ -99,17 +86,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 physics: const BouncingScrollPhysics(),
                 children: [
                   SizedBox(height: screenHeight * 0.02),
-                  ProfilePicture(
-                    isEdit: false,
-                    imagePath: userData["photo"],
-                    onClicked: () {},
+                  CircleAvatar(
+                    radius: 64,
+                    backgroundImage: NetworkImage(data["profilePic"]),
                   ),
                   SizedBox(height: screenHeight * 0.027),
-                  buildName(userData["name"], userData["accessLevel"]),
+                  buildName(),
                   SizedBox(height: screenHeight * 0.027),
-                  buildEmploymentDetails(userData["accessLevel"]),
-                  buildContactDetails(userData["email"], userData["phone"]),
-                  buildCollegeDetails(userData["batch"], userData["course"]),
+                  buildEmploymentDetails(),
+                  buildContactDetails(),
+                  buildCollegeDetails(),
                   buildAbout(),
                 ],
               ),
@@ -146,15 +132,15 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget buildEmploymentDetails(String type) {
-    if (type != "Alumni") {
+  Widget buildEmploymentDetails() {
+    if (data["isAnAlumni"] != true) {
       return Container();
     } else {
       return Container();
     }
   }
 
-  Widget buildContactDetails(String email, Map phoneDetails) {
+  Widget buildContactDetails() {
     List<Widget> details = [];
     details.add(
       Column(
@@ -170,34 +156,33 @@ class _ProfilePageState extends State<ProfilePage> {
             height: screenHeight * .005,
           ),
           Text(
-            email,
-            style: const TextStyle(color: Colors.grey),
+            data["email"],
+            // style: const TextStyle(color: Colors.grey),
           )
         ],
       ),
     );
-    if (phoneDetails["public?"] == true) {
-      details.add(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Phone',
-              style: TextStyle(
-                fontSize: 20,
-              ),
+    details.add(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Phone',
+            style: TextStyle(
+              fontSize: 20,
             ),
-            SizedBox(
-              height: screenHeight * .005,
-            ),
-            Text(
-              phoneDetails["number"],
-              style: const TextStyle(color: Colors.grey),
-            )
-          ],
-        ),
-      );
-    }
+          ),
+          SizedBox(
+            height: screenHeight * .005,
+          ),
+          Text(
+            data["mobileContactNo"],
+            // style: const TextStyle(color: Colors.grey),
+          )
+        ],
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -223,14 +208,14 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget buildCollegeDetails(String batchYear, String course) {
+  Widget buildCollegeDetails() {
     List<Widget> details = [];
     details.add(
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Batch of',
+            'Year of Admission',
             style: TextStyle(
               fontSize: 20,
             ),
@@ -239,8 +224,8 @@ class _ProfilePageState extends State<ProfilePage> {
             height: screenHeight * .005,
           ),
           Text(
-            batchYear.toString(),
-            style: const TextStyle(color: Colors.grey),
+            data["admissionYear"].toString(),
+            // style: const TextStyle(color: Colors.grey),
           )
         ],
       ),
@@ -259,8 +244,8 @@ class _ProfilePageState extends State<ProfilePage> {
             height: screenHeight * .005,
           ),
           Text(
-            course,
-            style: const TextStyle(color: Colors.grey),
+            data["course"],
+            // style: const TextStyle(color: Colors.grey),
           )
         ],
       ),
@@ -290,20 +275,22 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget buildName(String name, String userType) {
+  Widget buildName() {
+    String userType = data["accessLevel"];
     String accessLevel =
         userType.substring(0, 1).toUpperCase() + userType.substring(1);
     return Column(
       children: [
         Text(
-          name,
+          data["name"],
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
         SizedBox(height: screenHeight * 0.005),
         Text(
           accessLevel,
-          style:
-              const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+          style: const TextStyle(
+              // color: Colors.grey,
+              fontStyle: FontStyle.italic),
         )
       ],
     );

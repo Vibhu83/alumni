@@ -1,4 +1,4 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
+// import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -58,19 +58,20 @@ class _AnEventCardState extends State<AnEventCard> {
                 maxLines: 2,
                 softWrap: false,
               ),
-              const SizedBox(
-                height: 2,
+              SizedBox(
+                height: screenHeight * 0.0025,
               ),
               Text(
                 "By: " + eventHolder,
-                style:
-                    GoogleFonts.lato(fontSize: 11, color: Colors.grey.shade300),
+                style: GoogleFonts.lato(
+                  fontSize: 11,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 softWrap: false,
               ),
-              const SizedBox(
-                height: 6,
+              SizedBox(
+                height: screenHeight * 0.0075,
               ),
               Row(
                 children: [
@@ -82,12 +83,16 @@ class _AnEventCardState extends State<AnEventCard> {
                   Text(
                     " Attendees",
                     style: GoogleFonts.lato(
-                        fontSize: 14, color: Colors.grey.shade400),
+                        fontSize: 14,
+                        color: Theme.of(context)
+                            .appBarTheme
+                            .shadowColor!
+                            .withOpacity(0.9)),
                   )
                 ],
               ),
-              const SizedBox(
-                height: 4,
+              SizedBox(
+                height: screenHeight * 0.005,
               ),
               Row(mainAxisAlignment: MainAxisAlignment.start, children: [
                 const Icon(
@@ -122,9 +127,9 @@ class _AnEventCardState extends State<AnEventCard> {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: ElevatedButton(
-        onPressed: () {
+      margin: const EdgeInsets.only(right: 4, left: 4, top: 4, bottom: 5),
+      child: GestureDetector(
+        onTap: () {
           Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
             return AnEventPage(
                 eventID: widget.eventID,
@@ -140,32 +145,32 @@ class _AnEventCardState extends State<AnEventCard> {
               setState(() {
                 eventAttendees += lastEventAttendeeChange!;
               });
-              changeAttendeeNumber(widget.eventID);
+              lastEventAttendeeChange = null;
+              lastEventBool = null;
             }
           });
         },
-        style: ButtonStyle(
-          overlayColor: MaterialStateProperty.all(Colors.transparent),
-          padding: MaterialStateProperty.all(EdgeInsets.zero),
-          backgroundColor:
-              MaterialStateProperty.all(const Color(eventCardColor)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: (MainAxisSize.min),
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                children: firstRowChildren,
-              ),
-              const SizedBox(
-                height: 8,
-              ),
-            ],
+        child: Card(
+          shadowColor:
+              Theme.of(context).appBarTheme.shadowColor!.withOpacity(0.3),
+          elevation: 1,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: (MainAxisSize.min),
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.max,
+                  children: firstRowChildren,
+                ),
+                SizedBox(
+                  height: screenHeight * 0.01,
+                )
+              ],
+            ),
           ),
         ),
       ),

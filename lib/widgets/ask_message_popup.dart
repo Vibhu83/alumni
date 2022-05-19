@@ -51,7 +51,7 @@ class AskMessagePopUp extends StatelessWidget {
   Widget build(BuildContext context) {
     TextEditingController _messageController =
         TextEditingController(text: content);
-    return buildAlertDialog(
+    return CustomAlertDialog(
         height: 425,
         actions: [
           TextButton(

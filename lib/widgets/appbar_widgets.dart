@@ -1,27 +1,32 @@
-import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:flutter/material.dart';
 
 PreferredSize buildAppBar(
     {double? appBarHeight,
+    double? leadingWidth,
+    Color? background,
+    Color? shadowColor,
     Widget? leading,
     List<Widget>? actions,
     Widget? title}) {
   appBarHeight ??= screenHeight * 0.045;
   return PreferredSize(
     preferredSize: Size.fromHeight(appBarHeight),
-    child: Container(
-      decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey.shade800))),
-      child: AppBar(
-          title: title,
-          shadowColor: Colors.transparent,
-          backgroundColor: const Color(appBarColor),
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(8))),
-          leading: leading,
-          actions: actions),
-    ),
+    child: AppBar(
+        titleSpacing: null,
+        centerTitle: true,
+        leadingWidth: leadingWidth,
+        flexibleSpace: SizedBox(
+          height: appBarHeight,
+        ),
+        shadowColor: shadowColor,
+        // foregroundColor: currentTheme!.appBarIconColor,
+        backgroundColor: background,
+        title: title,
+        // shadowColor: currentTheme!.appBarBorderColor,
+        elevation: 1,
+        leading: leading,
+        actions: actions),
   );
 }
 
