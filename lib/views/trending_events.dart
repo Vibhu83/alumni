@@ -44,28 +44,33 @@ class TrendingEventsPage extends StatelessWidget {
               late List<Widget> children;
               if (snapshot.hasData) {
                 List<Map<String, dynamic>> eventData = snapshot.data!;
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: eventData.length + 1,
-                  itemBuilder: (BuildContext context, int index) {
-                    if (index == eventData.length) {
-                      return TextButton(
-                          onPressed: () {}, child: Text("See more"));
-                    }
-                    return AnEventCard(
-                      eventTitleImage: eventData[index]["eventTitleImage"],
-                      eventID: eventData[index]["eventID"],
-                      eventTitle: eventData[index]["eventTitle"],
-                      eventAttendeesNumber: eventData[index]
-                          ["eventAttendeesNumber"],
-                      eventHolder: eventData[index]["eventHolder"],
-                      eventStartTime: eventData[index]["eventStartTime"],
-                      eventDuration: eventData[index]["eventDuration"],
-                      eventLink: eventData[index]["eventLink"],
-                      readOnly: userData["id"] != null ? false : true,
-                    );
-                  },
-                );
+                return eventData.isEmpty
+                    ? Center(
+                        child: Text("No events found"),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: eventData.length + 1,
+                        itemBuilder: (BuildContext context, int index) {
+                          if (index == eventData.length) {
+                            return TextButton(
+                                onPressed: () {}, child: Text("See more"));
+                          }
+                          return AnEventCard(
+                            eventTitleImage: eventData[index]
+                                ["eventTitleImage"],
+                            eventID: eventData[index]["eventID"],
+                            eventTitle: eventData[index]["eventTitle"],
+                            eventAttendeesNumber: eventData[index]
+                                ["eventAttendeesNumber"],
+                            eventHolder: eventData[index]["eventHolder"],
+                            eventStartTime: eventData[index]["eventStartTime"],
+                            eventDuration: eventData[index]["eventDuration"],
+                            eventLink: eventData[index]["eventLink"],
+                            readOnly: userData["id"] != null ? false : true,
+                          );
+                        },
+                      );
               } else if (snapshot.hasError) {
                 children = buildFutureError(snapshot);
               } else {

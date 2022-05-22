@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
 
 bool noticesSeen = false;
+bool emailPopUpShown = false;
 
 FirebaseApp? app;
 FirebaseAuth? auth;

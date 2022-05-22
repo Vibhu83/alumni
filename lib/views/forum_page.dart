@@ -39,39 +39,43 @@ class ForumPage extends StatelessWidget {
           List<Widget> children;
           if (snapshot.hasData) {
             var postsData = snapshot.data!;
-            return ListView.builder(
-              shrinkWrap: true,
-              itemCount: postsData.length,
-              itemBuilder: (BuildContext context, int index) {
-                String postID = postsData[index]["postID"];
-                String postTitle = postsData[index]["postTitle"];
-                String postAuthorID = postsData[index]["postAuthorID"];
-                String postAuthorName = postsData[index]["authorName"];
-                int postVotes = postsData[index]["postVotes"];
-                String postBody = postsData[index]["postBody"];
-                DateTime postedOn = postsData[index]["postedOn"];
-                List<String>? images;
-                if (postsData[index]["images"] != null) {
-                  images = [];
-                  postsData[index]["images"].forEach((value) {
-                    images!.add(value.toString());
-                  });
-                }
-                String? link = postsData[index]["postLink"];
+            return postsData.isEmpty
+                ? const Center(
+                    child: Text("No posts found"),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: postsData.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      String postID = postsData[index]["postID"];
+                      String postTitle = postsData[index]["postTitle"];
+                      String postAuthorID = postsData[index]["postAuthorID"];
+                      String postAuthorName = postsData[index]["authorName"];
+                      int postVotes = postsData[index]["postVotes"];
+                      String postBody = postsData[index]["postBody"];
+                      DateTime postedOn = postsData[index]["postedOn"];
+                      List<String>? images;
+                      if (postsData[index]["images"] != null) {
+                        images = [];
+                        postsData[index]["images"].forEach((value) {
+                          images!.add(value.toString());
+                        });
+                      }
+                      String? link = postsData[index]["postLink"];
 
-                return APostCard(
-                  postID: postID,
-                  postTitle: postTitle,
-                  postAuthorID: postAuthorID,
-                  postAuthorName: postAuthorName,
-                  postVotes: postVotes,
-                  postBody: postBody,
-                  postedOn: postedOn,
-                  imagesUrls: images,
-                  postLink: link,
-                );
-              },
-            );
+                      return APostCard(
+                        postID: postID,
+                        postTitle: postTitle,
+                        postAuthorID: postAuthorID,
+                        postAuthorName: postAuthorName,
+                        postVotes: postVotes,
+                        postBody: postBody,
+                        postedOn: postedOn,
+                        imagesUrls: images,
+                        postLink: link,
+                      );
+                    },
+                  );
           } else if (snapshot.hasError) {
             children = buildFutureError(snapshot);
           } else {

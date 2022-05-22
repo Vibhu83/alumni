@@ -1,12 +1,14 @@
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/edit_profile.dart';
+import 'package:alumni/views/posts_by_id.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
-import 'package:alumni/widgets/ask_message_popup.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:flutter_initicon/flutter_initicon.dart';
 
 class ProfilePage extends StatefulWidget {
   final String uid;
@@ -49,13 +51,30 @@ class _ProfilePageState extends State<ProfilePage>
           List<Widget> appBarActions = [];
           Widget delUserButton = buildAppBarIcon(
               onPressed: () {
-                print("deleting profile");
+                firestore!.collection("users").doc(data["uid"]).delete();
+                firestore!
+                    .collection("eventAttendanceStatus")
+                    .doc(data["uid"])
+                    .delete();
+                firestore!.collection("userVotes").doc(data["uid"]).delete();
+                firestore!.collection("topAlumni").doc(data["uid"]).delete();
+                firestore!
+                    .collection("chatRooms")
+                    .where("userId", arrayContains: data["uid"])
+                    .get()
+                    .then((value) {
+                  value.docs.forEach((e) {
+                    firestore!.collection("chatRooms").doc(e.id).delete();
+                  });
+                });
+                Navigator.of(context).pop();
               },
               icon: Icons.delete_rounded);
 
           Widget editUserButton = buildAppBarIcon(
             onPressed: () {
-              print("editing profile");
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: ((context) => const EditProfilePage())));
             },
             icon: Icons.edit_rounded,
           );
@@ -125,30 +144,19 @@ class _ProfilePageState extends State<ProfilePage>
             ]);
           }
           bottomBarWidgets.addAll([
-            Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text(" See Posts"),
-                  style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32)),
-                      primary: Colors.red,
-                      fixedSize: Size(screenWidth * 0.45, screenHeight * 0.05)),
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text("See Events"),
-                  style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32)),
-                      primary: Colors.green.shade700,
-                      fixedSize: Size(screenWidth * 0.45, screenHeight * 0.05)),
-                )
-              ],
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: ((context) {
+                  return PostsByIDPage(uid: data["uid"]);
+                })));
+              },
+              child: const Text(" See Posts"),
+              style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32)),
+                  primary: Colors.red,
+                  fixedSize: Size(screenWidth * 0.95, screenHeight * 0.05)),
             ),
           ]);
           Widget bottomBar = Container(
@@ -239,10 +247,15 @@ class _ProfilePageState extends State<ProfilePage>
     userDetails = [
       Align(
         alignment: Alignment.centerLeft,
-        child: CircleAvatar(
-          radius: 48,
-          backgroundImage: NetworkImage(data["profilePic"]),
-        ),
+        child: data["profilePic"] != null
+            ? CircleAvatar(
+                radius: 48,
+                backgroundImage: NetworkImage(data["profilePic"]),
+              )
+            : Initicon(
+                size: 96,
+                text: data["name"],
+              ),
       ),
       SizedBox(
         height: screenHeight * 0.0125,

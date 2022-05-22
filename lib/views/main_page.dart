@@ -15,6 +15,7 @@ import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
+import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -75,11 +76,40 @@ class _MainPageState extends State<MainPage> {
 
   Future<bool> _setUserLoginStatus() async {
     User? currentUser = auth!.currentUser;
+
     chat!.firebaseUser = currentUser;
     if (currentUser != null) {
-      userData["uid"] = currentUser.uid;
-      await _saveUserData(userData["uid"]);
-      return true;
+      if (currentUser.emailVerified) {
+        userData["uid"] = currentUser.uid;
+        await _saveUserData(userData["uid"]);
+        return true;
+      } else {
+        await auth!.signOut();
+        userData["uid"] = null;
+        if (emailPopUpShown != true) {
+          WidgetsBinding.instance!.addPostFrameCallback((_) {
+            emailPopUpShown = true;
+            showDialog(
+                context: context,
+                builder: (context) {
+                  return CustomAlertDialog(
+                      height: screenHeight * 0.05,
+                      actions: [
+                        TextButton(
+                            onPressed: () {
+                              currentUser.sendEmailVerification();
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text("Send email verification"))
+                      ],
+                      title: const Text("Email not verified"),
+                      content: const Text(
+                          "To access all features, please verify your email and login again"));
+                });
+          });
+        }
+        return false;
+      }
     } else {
       userData["uid"] = null;
       return false;

@@ -4,8 +4,10 @@ import 'package:alumni/classes/date_picker_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
+import 'package:alumni/widgets/change_password_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
+import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:alumni/widgets/year_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,21 +17,19 @@ import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 
-class RegisterView extends StatefulWidget {
-  final Function(String? email, String? password)? onSubmitted;
-
-  const RegisterView({this.onSubmitted, Key? key}) : super(key: key);
+class EditProfilePage extends StatefulWidget {
+  const EditProfilePage({Key? key}) : super(key: key);
 
   @override
-  _RegisterView createState() => _RegisterView();
+  State<EditProfilePage> createState() => _EditProfilePageState();
 }
 
-class _RegisterView extends State<RegisterView> {
-  XFile? profilePic;
+class _EditProfilePageState extends State<EditProfilePage> {
+  String? profilePicPath;
+  Image? profilePic;
+  bool _passwordChanged = false;
 
   late TextEditingController _email,
-      _password,
-      _confirmPassword,
       _rollNo,
       _name,
       _fatherName,
@@ -67,7 +67,6 @@ class _RegisterView extends State<RegisterView> {
   late String _signUpAs;
 
   String? _emailError,
-      _passwordError,
       _nameError,
       _idError,
       _addmissionYearError,
@@ -82,57 +81,73 @@ class _RegisterView extends State<RegisterView> {
       _mobileContactError;
 
   late int? _addmissionYear, _passingYear;
-  Function(String? email, String? password)? get onSubmitted =>
-      widget.onSubmitted;
+
+  late bool _isAnAdmin;
 
   double _strength = 0;
   String _displayText = "";
 
   @override
   void initState() {
-    profilePic = null;
+    profilePicPath = userData["profilePic"];
+    print(profilePicPath);
+    if (profilePicPath != null) {
+      profilePic = Image.network(profilePicPath!);
+    }
+    _isAnAdmin = false;
+    _isAlumni = userData["isAnAlumni"];
+    if (userData["accessLevel"] == "alumni") {
+      _signUpAs = "Alumni";
+    } else if (userData["accessLevel"] == "student") {
+      _signUpAs = "User";
+    } else {
+      _signUpAs = "User";
+      _isAnAdmin = true;
+    }
 
-    _isAlumni = false;
-    _signUpAs = "User";
+    _email = TextEditingController(text: userData["email"]);
+    _rollNo = TextEditingController(text: userData["rollNo"]);
+    _name = TextEditingController(text: userData["name"]);
+    _fatherName = TextEditingController(text: userData["fatherName"]);
+    _motherName = TextEditingController(text: userData["motherName"]);
+    _address = TextEditingController(text: userData["permanentAddress"]);
+    _currentOrgName = TextEditingController(text: userData["currenOrgName"]);
+    _currentDesignation =
+        TextEditingController(text: userData["currentDesignation"]);
+    _previousOrgName = TextEditingController(text: userData["previousOrgName"]);
+    _previousDesignation =
+        TextEditingController(text: userData["previousDesignation"]);
+    _residenceContactNo =
+        TextEditingController(text: userData["residenceContactNo"]);
+    _currentOfficeContactNo =
+        TextEditingController(text: userData["residenceContactNo"]);
+    _mobileContactNo = TextEditingController(text: userData["mobileContactNo"]);
+    _previousOfficeContactNo =
+        TextEditingController(text: userData["previousOrgOfficeContactNo"]);
+    _achievements = TextEditingController(text: userData["achievements"]);
+    _spouseName = TextEditingController(text: userData["spouseName"]);
+    _spouseOrgName = TextEditingController(text: userData["spouseOrgName"]);
+    _spouseDesignation =
+        TextEditingController(text: userData["spouseDesignation"]);
+    _spouseMobileContactNo =
+        TextEditingController(text: userData["spouseMobileContactNo"]);
+    _spouseOfficeContactNo =
+        TextEditingController(text: userData["spouseOfficeContactNo"]);
 
-    _email = TextEditingController();
-    _password = TextEditingController();
-    _confirmPassword = TextEditingController();
-    _rollNo = TextEditingController();
-    _name = TextEditingController();
-    _fatherName = TextEditingController();
-    _motherName = TextEditingController();
-    _address = TextEditingController();
-    _currentOrgName = TextEditingController();
-    _currentDesignation = TextEditingController();
-    _previousOrgName = TextEditingController();
-    _previousDesignation = TextEditingController();
-    _residenceContactNo = TextEditingController();
-    _currentOfficeContactNo = TextEditingController();
-    _mobileContactNo = TextEditingController();
-    _previousOfficeContactNo = TextEditingController();
-    _achievements = TextEditingController();
-    _spouseName = TextEditingController();
-    _spouseOrgName = TextEditingController();
-    _spouseDesignation = TextEditingController();
-    _spouseMobileContactNo = TextEditingController();
-    _spouseOfficeContactNo = TextEditingController();
+    _dob = userData["dateOfBirth"];
+    _wereInPreviousOrgSince = userData["wereInPreviousSince"];
+    _spouseWorkingInOrgSince = userData["spouseWorkingInOrgSince"];
 
-    _dob = null;
-    _wereInPreviousOrgSince = null;
-    _wereInPreviousOrgSince = null;
-    _spouseWorkingInOrgSince = null;
+    _addmissionYear = userData["admissionYear"];
+    _passingYear = userData["passingYear"];
 
-    _addmissionYear = null;
-    _passingYear = null;
+    _courseValue = userData["course"];
+    _isIndian = userData["nationality"] == "Indian" ? true : null;
+    _nationality = userData["nationality"];
 
-    _courseValue = null;
-    _isIndian = null;
-
-    _isNRI = null;
+    _isNRI = userData["isNRI"];
 
     _emailError = null;
-    _passwordError = null;
     _nameError = null;
     _idError = null;
     _addmissionYearError = null;
@@ -152,8 +167,6 @@ class _RegisterView extends State<RegisterView> {
   @override
   void dispose() {
     _email.dispose();
-    _password.dispose();
-    _confirmPassword.dispose();
     _rollNo.dispose();
     _name.dispose();
     _fatherName.dispose();
@@ -184,65 +197,33 @@ class _RegisterView extends State<RegisterView> {
     }
     List<Widget> form = [
       _buildPadding(0.005),
-      _buildHeading("Create Account,"),
-      _buildPadding(.01),
-      _buildSubHeading("Sign up to get started!"),
-      _buildPadding(0.025),
       _buildProfilePicField(),
       _buildRollNoField(),
       _buildNameField(),
-      _buildEmailField(),
       _buildPasswordField(),
-      _buildPasswordStrengthProgress(),
-      _buildConfirmPasswordField(),
+      // _buildPasswordStrengthProgress(),
+      // _buildConfirmPasswordField(),
       _buildYearOfAdmissionField(),
       _buildCourseDropDown(),
       _buildAlumniToggle(),
     ];
     form.addAll(additionalDetailsWidgets);
-    form.addAll([
-      _buildPadding(0.015),
-      _buildSubmitButton(),
-      _buildPadding(.01),
-    ]);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).canvasColor,
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-            color:
-                Theme.of(context).appBarTheme.backgroundColor!.withOpacity(0.3),
-            border: Border(
-                top: BorderSide(
-                    color: Theme.of(context)
-                        .appBarTheme
-                        .shadowColor!
-                        .withOpacity(0.25)))),
-        child: TextButton(
-          onPressed: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-              return const LoginView();
-            }));
-          },
-          child: RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              text: "I'm already a member, ",
-              style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium!.color),
-              children: const [
-                TextSpan(
-                  text: "Sign In",
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+          decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .appBarTheme
+                  .backgroundColor!
+                  .withOpacity(0.3),
+              border: Border(
+                  top: BorderSide(
+                      color: Theme.of(context)
+                          .appBarTheme
+                          .shadowColor!
+                          .withOpacity(0.25)))),
+          child: _buildSubmitButton()),
+      backgroundColor: Theme.of(context).canvasColor,
       body: Container(
         // decoration: const BoxDecoration(color: Color(backgroundColor)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -711,7 +692,6 @@ class _RegisterView extends State<RegisterView> {
   void resetErrorText() {
     setState(() {
       _emailError = null;
-      _passwordError = null;
       _nameError = null;
       _idError = null;
       _addmissionYearError = null;
@@ -730,7 +710,7 @@ class _RegisterView extends State<RegisterView> {
   bool validate() {
     resetErrorText();
     String? newEmailError,
-        newPasswordError,
+        // newPasswordError,
         newIdError,
         newNameError,
         newAddmissionError,
@@ -759,13 +739,13 @@ class _RegisterView extends State<RegisterView> {
       isValid = false;
     }
 
-    if (_password.text.isEmpty || _confirmPassword.text.isEmpty) {
-      newPasswordError = "Invalid Password";
-      isValid = false;
-    } else if (_password.text != _confirmPassword.text) {
-      newPasswordError = "Passwords do not match";
-      isValid = false;
-    }
+    // if (_password.text.isEmpty || _confirmPassword.text.isEmpty) {
+    //   newPasswordError = "Invalid Password";
+    //   isValid = false;
+    // } else if (_password.text != _confirmPassword.text) {
+    //   newPasswordError = "Passwords do not match";
+    //   isValid = false;
+    // }
     if (_courseValue == null) {
       newCourseError = "Invalid course";
       isValid = false;
@@ -783,7 +763,7 @@ class _RegisterView extends State<RegisterView> {
       _nameError = newNameError;
       _idError = newIdError;
       _emailError = newEmailError;
-      _passwordError = newPasswordError;
+      // _passwordError = newPasswordError;
       _addmissionYearError = newAddmissionError;
       _courseError = newCourseError;
     });
@@ -862,13 +842,10 @@ class _RegisterView extends State<RegisterView> {
   }
 
   Future<String?> registerUserAndSaveDetails() async {
-    print(profilePic!.path);
     final String rollNo = _rollNo.text;
     final String name = _name.text;
-    final String email = _email.text;
-    final String password = _password.text;
     final int addmissionYear = _addmissionYear!;
-    late final String accessLevel;
+    late String accessLevel;
     List<String> firstLastName = name.split(" ");
     //
     //
@@ -878,6 +855,9 @@ class _RegisterView extends State<RegisterView> {
     } else {
       accessLevel = "student";
     }
+    if (_isAnAdmin == true) {
+      accessLevel = "admin";
+    }
     final String course;
     if (_courseValue != null) {
       course = _courseValue!;
@@ -885,126 +865,113 @@ class _RegisterView extends State<RegisterView> {
       course = "";
     }
     try {
-      var user = await auth!
-          .createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      )
-          .then((userRecord) async {
-        var uid = userRecord.user!.uid;
-        firestore!.collection("eventAttendanceStatus").doc(uid).set({});
-        String? profilePicUrl = await uploadFileAndGetLink(
-            profilePic!.path, uid.toString() + "/profilePicture", context);
-        chat!.createUserInFirestore(types.User(
-            id: uid,
-            firstName: firstLastName[0],
-            lastName: firstLastName[1],
-            imageUrl: profilePicUrl));
-        firestore!.collection("userVotes").doc(uid).set({});
-        firestore!.collection("users").doc(uid).set({
-          "profilePic": profilePicUrl,
-          "uid": uid,
-          "rollNo": rollNo,
-          "name": name,
-          "firstName": firstLastName[0],
-          "lastName": firstLastName[1],
-          "email": email,
-          "admissionYear": addmissionYear,
-          "course": course,
-          "isAnAlumni": _isAlumni,
-          "accessLevel": accessLevel,
-          "noticesDismissed": [""],
-          "verified": null,
-        }, SetOptions(merge: true)).then((value) {
-          if (_isAlumni) {
-            final String motherName = _motherName.text;
-            final String fatherName = _fatherName.text;
-            final Timestamp dob = Timestamp.fromDate(_dob!);
-            final String address = _address.text;
-            final int passingYear = _passingYear!;
-            final String nationality = _nationality!;
-            final bool isNRI = _isNRI!;
-            final String achievements = _achievements.text;
-            //
-            //
-            final String spouseName = _spouseName.text;
-            final String spouseOrgName = _spouseOrgName.text;
-            final String spouseDesignation = _spouseDesignation.text;
-            late final Timestamp? spouseWorkingSince;
+      String uid = userData["uid"].toString();
+      String? profilePicUrl;
+      if (profilePicPath!.substring(0, 5) == "/data") {
+        print("uploading");
+        profilePicUrl = await uploadFileAndGetLink(
+            profilePicPath!, uid.toString() + "/profilePicture", context);
+      }
+      firestore!.collection("users").doc(uid).update({
+        "profilePic": profilePicUrl ?? userData["profilePic"],
+        "uid": uid,
+        "rollNo": rollNo,
+        "name": name,
+        "firstName": firstLastName[0],
+        "lastName": firstLastName[1],
+        "admissionYear": addmissionYear,
+        "course": course,
+        "isAnAlumni": _isAlumni,
+        "accessLevel": accessLevel,
+      }).then((value) {
+        if (_isAlumni) {
+          final String motherName = _motherName.text;
+          final String fatherName = _fatherName.text;
+          final Timestamp dob = Timestamp.fromDate(_dob!);
+          final String address = _address.text;
+          final int passingYear = _passingYear!;
+          final String nationality = _nationality!;
+          final bool isNRI = _isNRI!;
+          final String achievements = _achievements.text;
+          //
+          //
+          final String spouseName = _spouseName.text;
+          final String spouseOrgName = _spouseOrgName.text;
+          final String spouseDesignation = _spouseDesignation.text;
+          late final Timestamp? spouseWorkingSince;
 
-            if (_spouseWorkingInOrgSince != null) {
-              Timestamp.fromDate(_spouseWorkingInOrgSince!);
-            } else {
-              spouseWorkingSince = null;
-            }
-            final String spouseOfficeContactNo = _spouseOfficeContactNo.text;
-            final String spouseMobileContactNo = _spouseMobileContactNo.text;
-            //
-            //
-            final String currentOrgName = _currentOrgName.text;
-            final String currentDesignation = _currentDesignation.text;
-            late final Timestamp? workingInCurrentOrgSince;
-            if (_inCurrentOrgSince != null) {
-              workingInCurrentOrgSince =
-                  Timestamp.fromDate(_inCurrentOrgSince!);
-            } else {
-              workingInCurrentOrgSince = null;
-            }
-            final String residenceContactNo = _residenceContactNo.text;
-            final String currentOfficeContactNo = _currentOfficeContactNo.text;
-            final String mobileContactNo = _mobileContactNo.text;
-            print(mobileContactNo);
-            //
-            //
-            final String previousOrgName = _previousOrgName.text;
-            final String previousDesignation = _previousDesignation.text;
-            late final Timestamp? wereInPreviousOrgSince;
-            if (_wereInPreviousOrgSince != null) {
-              wereInPreviousOrgSince =
-                  Timestamp.fromDate(_wereInPreviousOrgSince!);
-            } else {
-              wereInPreviousOrgSince = null;
-            }
-            firestore!.collection("users").doc(uid).set({
-              "motherName": motherName,
-              "fatherName": fatherName,
-              "dateOfBirth": dob,
-              "permanentAddress": address,
-              "passingYear": passingYear,
-              "nationality": nationality,
-              "isNRI": isNRI,
-              "achievements": achievements,
-              //
-              "spouseName": spouseName,
-              "spouseOrgName": spouseOrgName,
-              "spouseDesignation": spouseDesignation,
-              "spouseWorkingInOrgSince": spouseWorkingSince,
-              "spouseOfficeContactNo": spouseOfficeContactNo,
-              "spouseMobileContactNo": spouseMobileContactNo,
-              //
-              "currentOrgName": currentOrgName,
-              "currentDesignation": currentDesignation,
-              "inCurrentOrgSince": workingInCurrentOrgSince,
-              "residenceContactNo": residenceContactNo,
-              "currentOfficeContactNo": currentOfficeContactNo,
-              "mobileContactNo": mobileContactNo,
-              //
-              "previousOrgName": previousOrgName,
-              "previousDesignation": previousDesignation,
-              "wereInPreviousSince": wereInPreviousOrgSince,
-              "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
-            }, SetOptions(merge: true));
+          if (_spouseWorkingInOrgSince != null) {
+            Timestamp.fromDate(_spouseWorkingInOrgSince!);
+          } else {
+            spouseWorkingSince = null;
           }
-          Navigator.of(context).popUntil(ModalRoute.withName(""));
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-            return const MainPage();
-          }));
-          // Navigator.push(context, MaterialPageRoute(builder: (context) {
-          //   return const MainPage();
-          // }));
-        });
+          final String spouseOfficeContactNo = _spouseOfficeContactNo.text;
+          final String spouseMobileContactNo = _spouseMobileContactNo.text;
+          //
+          //
+          final String currentOrgName = _currentOrgName.text;
+          final String currentDesignation = _currentDesignation.text;
+          late final Timestamp? workingInCurrentOrgSince;
+          if (_inCurrentOrgSince != null) {
+            workingInCurrentOrgSince = Timestamp.fromDate(_inCurrentOrgSince!);
+          } else {
+            workingInCurrentOrgSince = null;
+          }
+          final String residenceContactNo = _residenceContactNo.text;
+          final String currentOfficeContactNo = _currentOfficeContactNo.text;
+          final String mobileContactNo = _mobileContactNo.text;
+          print(mobileContactNo);
+          //
+          //
+          final String previousOrgName = _previousOrgName.text;
+          final String previousDesignation = _previousDesignation.text;
+          late final Timestamp? wereInPreviousOrgSince;
+          if (_wereInPreviousOrgSince != null) {
+            wereInPreviousOrgSince =
+                Timestamp.fromDate(_wereInPreviousOrgSince!);
+          } else {
+            wereInPreviousOrgSince = null;
+          }
+          firestore!.collection("users").doc(uid).set({
+            "motherName": motherName,
+            "fatherName": fatherName,
+            "dateOfBirth": dob,
+            "permanentAddress": address,
+            "passingYear": passingYear,
+            "nationality": nationality,
+            "isNRI": isNRI,
+            "achievements": achievements,
+            //
+            "spouseName": spouseName,
+            "spouseOrgName": spouseOrgName,
+            "spouseDesignation": spouseDesignation,
+            "spouseWorkingInOrgSince": spouseWorkingSince,
+            "spouseOfficeContactNo": spouseOfficeContactNo,
+            "spouseMobileContactNo": spouseMobileContactNo,
+            //
+            "currentOrgName": currentOrgName,
+            "currentDesignation": currentDesignation,
+            "inCurrentOrgSince": workingInCurrentOrgSince,
+            "residenceContactNo": residenceContactNo,
+            "currentOfficeContactNo": currentOfficeContactNo,
+            "mobileContactNo": mobileContactNo,
+            //
+            "previousOrgName": previousOrgName,
+            "previousDesignation": previousDesignation,
+            "wereInPreviousSince": wereInPreviousOrgSince,
+            "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
+          });
+        }
+        Navigator.of(context).popUntil(ModalRoute.withName(""));
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+          return const MainPage();
+        }));
+        // Navigator.push(context, MaterialPageRoute(builder: (context) {
+        //   return const MainPage();
+        // }));
       });
-      return "Registered";
+      print("updated");
+      return "Updated";
     } on FirebaseAuthException catch (e) {
       return e.message;
     }
@@ -1026,7 +993,7 @@ class _RegisterView extends State<RegisterView> {
         builder: ((context, AsyncSnapshot<String?> snapshot) {
           List<Widget> children;
           if (snapshot.hasData) {
-            if (snapshot.data == "Registered") {
+            if (snapshot.data == "Updated") {
               children = <Widget>[
                 Icon(
                   Icons.check_circle_outline,
@@ -1036,7 +1003,7 @@ class _RegisterView extends State<RegisterView> {
                 const Padding(
                   padding: EdgeInsets.only(top: 16),
                   child: Text(
-                    "User Logged In",
+                    "Updated",
                     style: TextStyle(color: Colors.green),
                   ),
                 )
@@ -1058,7 +1025,7 @@ class _RegisterView extends State<RegisterView> {
               ];
             }
           } else {
-            children = buildFutureLoading(snapshot, text: "Registering");
+            children = buildFutureLoading(snapshot, text: "Updating");
           }
           return Container(
             height: screenHeight * 0.325,
@@ -1076,7 +1043,7 @@ class _RegisterView extends State<RegisterView> {
   }
 
   void submit() {
-    _checkPassword(_password.text);
+    // _checkPassword(_password.text);
     if (validate()) {
       showDialog(
           context: context,
@@ -1206,6 +1173,7 @@ class _RegisterView extends State<RegisterView> {
   }
 
   Widget _buildProfilePicField() {
+    print(profilePic == null);
     return GroupBox(
       titleBackground: Theme.of(context).canvasColor,
       title: "Profile Picture",
@@ -1221,6 +1189,7 @@ class _RegisterView extends State<RegisterView> {
                   iconSize: 20,
                   onPressed: () {
                     setState(() {
+                      profilePicPath = null;
                       profilePic = null;
                     });
                   },
@@ -1233,7 +1202,8 @@ class _RegisterView extends State<RegisterView> {
                         .then((value) {
                       if (value != null) {
                         setState(() {
-                          profilePic = value;
+                          profilePicPath = value.path;
+                          profilePic = Image.file(File(value.path));
                         });
                       }
                     });
@@ -1248,12 +1218,13 @@ class _RegisterView extends State<RegisterView> {
                               .then((value) {
                             if (value != null) {
                               setState(() {
-                                profilePic = value;
+                                profilePicPath = value.path;
+                                profilePic = Image.file(File(value.path));
                               });
                             }
                           });
                         },
-                  Image.file(File(profilePic!.path))),
+                  profilePic!),
           onTap: profilePic == null
               ? () {}
               : () {
@@ -1262,7 +1233,8 @@ class _RegisterView extends State<RegisterView> {
                       .then((value) {
                     if (value != null) {
                       setState(() {
-                        profilePic = value;
+                        profilePicPath = value.path;
+                        profilePic = Image.file(File(value.path));
                       });
                     }
                   });
@@ -1323,25 +1295,28 @@ class _RegisterView extends State<RegisterView> {
     );
   }
 
-  InputField _buildPasswordField() {
-    return InputField(
-      autoCorrect: false,
-      labelText: "Password*",
-      obscureText: true,
-      controller: _password,
-      onChanged: (value) => _checkPassword(value),
-      textInputAction: TextInputAction.next,
-    );
-  }
-
-  InputField _buildConfirmPasswordField() {
-    return InputField(
-      labelText: "Confirm Password*",
-      errorText: _passwordError,
-      obscureText: true,
-      textInputAction: TextInputAction.done,
-      controller: _confirmPassword,
-    );
+  Widget _buildPasswordField() {
+    return _passwordChanged == false
+        ? ElevatedButton(
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return const ChangePasswordPopUp();
+                  }).then((value) {
+                if (value == true) {
+                  setState(() {
+                    _passwordChanged = true;
+                  });
+                } else {
+                  setState(() {
+                    _passwordChanged = false;
+                  });
+                }
+              });
+            },
+            child: const Text("Change Password"))
+        : SizedBox();
   }
 
   Widget _buildCourseDropDown() {
@@ -1422,42 +1397,6 @@ class _RegisterView extends State<RegisterView> {
         ),
       ],
     );
-  }
-
-  Column _buildPasswordStrengthProgress() {
-    return Column(children: [
-      LinearProgressIndicator(
-        value: _strength,
-        backgroundColor: Colors.grey[300],
-        color: _strength <= 1 / 4
-            ? Colors.red
-            : _strength == 2 / 4
-                ? Colors.orange
-                : _strength == 3 / 4
-                    ? Colors.yellow
-                    : Colors.green,
-        minHeight: 5,
-      ),
-      const SizedBox(
-        height: 1,
-      ),
-
-      // The message about the strength of the entered password
-      _buildPadding(0.005),
-      Text(
-        _displayText,
-        style: TextStyle(
-          fontSize: 12,
-          color: _strength <= 1 / 4
-              ? Colors.red.shade800
-              : _strength == 2 / 4
-                  ? Colors.orange
-                  : _strength == 3 / 4
-                      ? Colors.yellow
-                      : Colors.green,
-        ),
-      ),
-    ]);
   }
 
   Widget _buildSubmitButton() {

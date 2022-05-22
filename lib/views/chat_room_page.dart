@@ -26,6 +26,10 @@ class _ChatRoomsState extends State<ChatRooms> {
               itemCount: rooms!.length,
               itemBuilder: ((context, index) {
                 var room = rooms[index];
+                if (room.users[0].firstName == null ||
+                    room.users[1].firstName == null) {
+                  return const SizedBox();
+                }
                 return Card(
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),

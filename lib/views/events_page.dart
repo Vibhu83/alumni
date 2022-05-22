@@ -35,23 +35,28 @@ class EventsPage extends StatelessWidget {
               late List<Widget> children;
               if (snapshot.hasData) {
                 List<Map<String, dynamic>> eventData = snapshot.data!;
-                return ListView.builder(
-                  itemCount: eventData.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return AnEventCard(
-                      eventTitleImage: eventData[index]["eventTitleImage"],
-                      eventID: eventData[index]["eventID"],
-                      eventTitle: eventData[index]["eventTitle"],
-                      eventAttendeesNumber: eventData[index]
-                          ["eventAttendeesNumber"],
-                      eventHolder: eventData[index]["eventHolder"],
-                      eventStartTime: eventData[index]["eventStartTime"],
-                      eventDuration: eventData[index]["eventDuration"],
-                      eventLink: eventData[index]["eventLink"],
-                      readOnly: userData["id"] != null ? false : true,
-                    );
-                  },
-                );
+                return eventData.isEmpty
+                    ? const Center(
+                        child: Text("No events found"),
+                      )
+                    : ListView.builder(
+                        itemCount: eventData.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return AnEventCard(
+                            eventTitleImage: eventData[index]
+                                ["eventTitleImage"],
+                            eventID: eventData[index]["eventID"],
+                            eventTitle: eventData[index]["eventTitle"],
+                            eventAttendeesNumber: eventData[index]
+                                ["eventAttendeesNumber"],
+                            eventHolder: eventData[index]["eventHolder"],
+                            eventStartTime: eventData[index]["eventStartTime"],
+                            eventDuration: eventData[index]["eventDuration"],
+                            eventLink: eventData[index]["eventLink"],
+                            readOnly: userData["id"] != null ? false : true,
+                          );
+                        },
+                      );
               } else if (snapshot.hasError) {
                 children = buildFutureError(snapshot);
               } else {

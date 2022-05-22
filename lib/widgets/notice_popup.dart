@@ -16,9 +16,11 @@ class _NoticesState extends State<Notices> {
   bool shouldReturnEmpty = false;
   late List<Map<String, dynamic>> sortedNotices;
   late int currentIndex;
+  late PageController _pageController;
 
   @override
   void initState() {
+    _pageController = PageController();
     currentIndex = 0;
     super.initState();
   }
@@ -27,6 +29,7 @@ class _NoticesState extends State<Notices> {
     var notices = await firestore!
         .collection("notices")
         .where("noticeID", whereNotIn: userData["noticesDismissed"])
+        .limit(3)
         // .where("noticePostOn",
         //     isGreaterThanOrEqualTo: Timestamp.fromMillisecondsSinceEpoch(
         //         DateTime.now().millisecondsSinceEpoch -
@@ -146,7 +149,7 @@ class _NoticesState extends State<Notices> {
                 contentPadding: EdgeInsets.zero,
                 actionsPadding: EdgeInsets.zero,
                 scrollable: true,
-                backgroundColor: Color.fromARGB(255, 0, 123, 194),
+                backgroundColor: Color.fromARGB(255, 0, 73, 116),
                 title: Container(
                   decoration: const BoxDecoration(
                       border: Border(bottom: BorderSide(color: Colors.grey))),
@@ -166,6 +169,7 @@ class _NoticesState extends State<Notices> {
                   height: screenHeight * 0.5,
                   width: screenWidth * 0.8,
                   child: PageView.builder(
+                      controller: _pageController,
                       onPageChanged: (value) {
                         setState(() {
                           currentIndex = value;
@@ -191,19 +195,17 @@ class _NoticesState extends State<Notices> {
                       onPressed: currentIndex == sortedNotices.length - 1
                           ? () {
                               dismissNotices();
-                              setState(() {
-                                Navigator.of(context).pop();
-                              });
+                              Navigator.of(context).pop();
                             }
-                          : null,
+                          : () {
+                              _pageController.jumpToPage(currentIndex + 1);
+                            },
                       child: Text(
-                        "Dismiss",
+                        currentIndex == sortedNotices.length - 1
+                            ? "Dismiss"
+                            : "Next",
                         style: TextStyle(
-                            color: currentIndex == sortedNotices.length - 1
-                                ? Theme.of(context)
-                                    .floatingActionButtonTheme
-                                    .backgroundColor
-                                : Colors.transparent,
+                            color: Colors.brown.shade900,
                             fontSize: 16,
                             fontWeight: FontWeight.bold),
                       ),

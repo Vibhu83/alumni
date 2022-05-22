@@ -70,10 +70,23 @@ class _LoginViewState extends State<LoginView> {
     await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform);
     try {
-      FirebaseAuth auth = FirebaseAuth.instance;
-      await auth
+      await auth!
           .signInWithEmailAndPassword(email: email, password: password)
-          .then((value) {
+          .then((value) async {
+        var temp = await firestore!
+            .collection("users")
+            .doc(value.user!.uid)
+            .get()
+            .then((value) {
+          if (value.data() == null) {
+            return false;
+          } else {
+            return true;
+          }
+        });
+        if (temp == false) {
+          return "User deleted";
+        }
         Navigator.of(context).popUntil(ModalRoute.withName(""));
         Navigator.of(context).push(MaterialPageRoute(builder: (context) {
           return const MainPage();
