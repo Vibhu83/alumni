@@ -67,6 +67,9 @@ class _ProfilePageState extends State<ProfilePage>
                     firestore!.collection("chatRooms").doc(e.id).delete();
                   });
                 });
+                if (data["uid"] == userData["uid"]) {
+                  auth!.signOut();
+                }
                 Navigator.of(context).pop();
               },
               icon: Icons.delete_rounded);
@@ -90,12 +93,13 @@ class _ProfilePageState extends State<ProfilePage>
                         title: const Text("About this alumni"),
                         actions: [
                           TextButton(
-                              onPressed: () {
-                                firestore!
+                              onPressed: () async {
+                                await firestore!
                                     .collection("topAlumni")
                                     .doc(data["uid"])
                                     .set(
                                         {"uid": data["uid"], "message": about});
+                                Navigator.of(context).pop();
                               },
                               child: const Text("Submit"))
                         ],
@@ -241,7 +245,7 @@ class _ProfilePageState extends State<ProfilePage>
     }
 
     if (data["nationality"] != null && data["nationality"] != "") {
-      nationality = "In " + data["nationality"];
+      nationality = data["nationality"];
     }
     List<Widget> userDetails;
     userDetails = [

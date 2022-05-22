@@ -30,7 +30,6 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedTab = 0;
-  int _selectedHomeTab = 0;
 
   final List<Widget> _tabsViews = <Widget>[
     const HomePage(
@@ -84,7 +83,6 @@ class _MainPageState extends State<MainPage> {
         await _saveUserData(userData["uid"]);
         return true;
       } else {
-        await auth!.signOut();
         userData["uid"] = null;
         if (emailPopUpShown != true) {
           WidgetsBinding.instance!.addPostFrameCallback((_) {
@@ -96,8 +94,9 @@ class _MainPageState extends State<MainPage> {
                       height: screenHeight * 0.05,
                       actions: [
                         TextButton(
-                            onPressed: () {
-                              currentUser.sendEmailVerification();
+                            onPressed: () async {
+                              await currentUser.sendEmailVerification();
+                              await auth!.signOut();
                               Navigator.of(context).pop();
                             },
                             child: const Text("Send email verification"))

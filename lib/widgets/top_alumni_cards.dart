@@ -182,9 +182,12 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                                   fontWeight: FontWeight.bold),
                                             ),
                                             SizedBox(
-                                              height: screenHeight * 0.03,
+                                              height: screenHeight * 0.005,
                                             ),
                                             descriptionWidget,
+                                            SizedBox(
+                                              height: screenHeight * 0.01,
+                                            ),
                                             Padding(
                                               padding:
                                                   const EdgeInsets.symmetric(
@@ -243,6 +246,9 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                                       : const SizedBox()
                                                 ],
                                               ),
+                                            ),
+                                            SizedBox(
+                                              height: screenHeight * 0.01,
                                             ),
                                             Container(
                                               padding: const EdgeInsets.only(

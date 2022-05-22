@@ -892,15 +892,19 @@ class _RegisterView extends State<RegisterView> {
       )
           .then((userRecord) async {
         var uid = userRecord.user!.uid;
-        firestore!.collection("eventAttendanceStatus").doc(uid).set({});
-        String? profilePicUrl = await uploadFileAndGetLink(
-            profilePic!.path, uid.toString() + "/profilePicture", context);
+        String? profilePicUrl;
+        if (profilePic != null) {
+          print(profilePic!.path);
+          profilePicUrl = await uploadFileAndGetLink(
+              profilePic!.path, uid.toString() + "/profilePicture", context);
+        }
         chat!.createUserInFirestore(types.User(
             id: uid,
             firstName: firstLastName[0],
             lastName: firstLastName[1],
             imageUrl: profilePicUrl));
         firestore!.collection("userVotes").doc(uid).set({});
+        firestore!.collection("eventAttendanceStatus").doc(uid).set({});
         firestore!.collection("users").doc(uid).set({
           "profilePic": profilePicUrl,
           "uid": uid,
@@ -995,6 +999,7 @@ class _RegisterView extends State<RegisterView> {
               "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
             }, SetOptions(merge: true));
           }
+          emailPopUpShown = false;
           Navigator.of(context).popUntil(ModalRoute.withName(""));
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return const MainPage();
@@ -1128,6 +1133,9 @@ class _RegisterView extends State<RegisterView> {
 
   Widget _buildYearOfLeavingField() {
     String text = "Select Year";
+    if (_passingYear != null) {
+      text = _passingYear.toString();
+    }
     return GroupBox(
       titleBackground: Theme.of(context).canvasColor,
       errorText: _passingYearError,

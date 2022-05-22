@@ -87,6 +87,7 @@ class _LoginViewState extends State<LoginView> {
         if (temp == false) {
           return "User deleted";
         }
+        emailPopUpShown = false;
         Navigator.of(context).popUntil(ModalRoute.withName(""));
         Navigator.of(context).push(MaterialPageRoute(builder: (context) {
           return const MainPage();

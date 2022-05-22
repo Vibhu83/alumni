@@ -134,9 +134,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _spouseOfficeContactNo =
         TextEditingController(text: userData["spouseOfficeContactNo"]);
 
-    _dob = userData["dateOfBirth"];
-    _wereInPreviousOrgSince = userData["wereInPreviousSince"];
-    _spouseWorkingInOrgSince = userData["spouseWorkingInOrgSince"];
+    if (userData["dateOfBirth"] == null) {
+      _dob = null;
+    } else {
+      _dob = userData["dateOfBirth"].toDate();
+    }
+
+    if (userData["inCurrentOrgSince"] == null) {
+      _inCurrentOrgSince = null;
+    } else {
+      _inCurrentOrgSince = userData["inCurrentOrgSince"].toDate();
+    }
+    if (userData["wereInPreviousSince"] == null) {
+      _wereInPreviousOrgSince = null;
+    } else {
+      _wereInPreviousOrgSince = userData["wereInPreviousSince"].toDate();
+    }
+    if (userData["spouseWorkingInOrgSince"] == null) {
+      _spouseWorkingInOrgSince = null;
+    } else {
+      _spouseWorkingInOrgSince = userData["spouseWorkingInOrgSince"].toDate();
+    }
 
     _addmissionYear = userData["admissionYear"];
     _passingYear = userData["passingYear"];
@@ -932,7 +950,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           } else {
             wereInPreviousOrgSince = null;
           }
-          firestore!.collection("users").doc(uid).set({
+          firestore!.collection("users").doc(uid).update({
             "motherName": motherName,
             "fatherName": fatherName,
             "dateOfBirth": dob,

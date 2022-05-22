@@ -477,7 +477,9 @@ class _AnEventPageState extends State<AnEventPage> {
       Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Text(description)]),
+          children: [
+            Align(alignment: Alignment.centerLeft, child: Text(description))
+          ]),
       ListView.builder(
           shrinkWrap: true,
           itemCount: people.length,
