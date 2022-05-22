@@ -45,6 +45,13 @@ dependencies:
   image_picker: ^0.8.5
   provider: ^6.0.2
   shared_preferences: ^2.0.15
+  flutter_chat_ui: ^1.5.8
+  file_picker: ^4.5.1
+  mime: ^1.0.2
+  uuid: ^3.0.6
+  open_file: ^3.2.1
+  flutter_firebase_chat_core: ^1.5.4
+  flutter_initicon: ^2.0.0
 
 dev_dependencies:
   flutter_test:
@@ -61,7 +68,7 @@ dev_dependencies:
 
 flutter_icons:
   android: true
-  image_path: "assets/splash.png"
+  image_path: "assets/mainLogo.png"
 
 flutter_native_splash:
   color: "#111111"
@@ -72,7 +79,7 @@ flutter_native_splash:
 flutter:
   assets: 
     - assets/profile_icon.jpg
-    - assets/splash.png
+    - assets/mainLogo.png
     - assets/
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

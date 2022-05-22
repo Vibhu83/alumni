@@ -47,14 +47,13 @@ class _AdminRecommendationListTileState
     if (returnEmpty != true) {
       return Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(2)),
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
         child: ElevatedButton(
           style: ButtonStyle(
-            overlayColor: MaterialStateProperty.all(Colors.transparent),
-            padding: MaterialStateProperty.all(EdgeInsets.zero),
-            // backgroundColor: MaterialStateProperty.all(
-            //     const Color(eventCardColor).withAlpha(255))
-          ),
+              overlayColor: MaterialStateProperty.all(Colors.transparent),
+              padding: MaterialStateProperty.all(EdgeInsets.zero),
+              backgroundColor:
+                  MaterialStateProperty.all(Theme.of(context).cardColor)),
           onPressed: () {
             showDialog(
                 context: context,
@@ -79,7 +78,7 @@ class _AdminRecommendationListTileState
             });
           },
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: (MainAxisSize.max),

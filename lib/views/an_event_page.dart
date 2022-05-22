@@ -1,10 +1,14 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/main_page.dart';
+import 'package:alumni/views/profile_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
 import 'package:alumni/widgets/full_screen_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
+import 'package:alumni/widgets/group_box.dart';
+import 'package:alumni/widgets/input_field.dart';
+import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 class AnEventPage extends StatefulWidget {
   final String eventID;
   final Image? eventTitleImage;
+  final String? eventTitleImagePath;
   final String eventTitle;
   final int eventAttendeesNumber;
   final String eventHolder;
@@ -21,6 +26,7 @@ class AnEventPage extends StatefulWidget {
   const AnEventPage(
       {required this.eventID,
       this.eventTitleImage,
+      this.eventTitleImagePath,
       required this.eventTitle,
       required this.eventHolder,
       required this.eventAttendeesNumber,
@@ -39,9 +45,19 @@ class _AnEventPageState extends State<AnEventPage> {
   late int attendeeOffset;
   late bool isInitialBuild;
   late int attendees;
+  late List<Map<String, dynamic>> people;
+  late String description;
+  late List<Image> gallery;
+  late List<String> galleryUrls;
+  late int _selectedTab;
 
   @override
   void initState() {
+    _selectedTab = 0;
+    galleryUrls = [];
+    people = [];
+    gallery = [];
+    description = "";
     attendees = widget.eventAttendeesNumber;
     isInitialBuild = true;
     attendeeOffset = 0;
@@ -52,44 +68,51 @@ class _AnEventPageState extends State<AnEventPage> {
     super.initState();
   }
 
-  Future<Map<String, dynamic>> getEventDetails() async {
+  Future<bool> getEventDetails() async {
     await getEventAttendanceStatus();
-    dynamic variable = null;
-    Map<String, dynamic> eventDetails = {
-      "eventDescription": """Loren ipsum
-      
-      and son""",
-      "peopleInEvent": [
-        {
-          "uid": variable,
-          "name": "Guest1",
-          "description": "Some position at some organisation",
-          "email": "someEmail@example.com",
-          "phone": "1234567890"
-        },
-        {"uid": "nhiTh5NYDaU64CsY5KDzgiU6DhD3"}
-      ],
-      "gallery": [
-        "https://firebasestorage.googleapis.com/v0/b/alumni-npgc-flutter.appspot.com/o/gallery_images%2Fn6.jfif?alt=media&token=45c5a103-33b8-4830-84ab-d758e9833558",
-        "https://firebasestorage.googleapis.com/v0/b/alumni-npgc-flutter.appspot.com/o/gallery_images%2Fn9.jfif?alt=media&token=41b9f759-9cd0-409d-8e4a-343ef698a897",
-        "https://firebasestorage.googleapis.com/v0/b/alumni-npgc-flutter.appspot.com/o/gallery_images%2Fn6.jfif?alt=media&token=45c5a103-33b8-4830-84ab-d758e9833558",
-        "https://firebasestorage.googleapis.com/v0/b/alumni-npgc-flutter.appspot.com/o/gallery_images%2Fn6.jfif?alt=media&token=45c5a103-33b8-4830-84ab-d758e9833558"
-      ]
-    };
-    List<Map<String, dynamic>> idHolder = [];
-    for (int i = 0; i < eventDetails["peopleInEvent"].length; i++) {
-      if (eventDetails["peopleInEvent"][i]["uid"] != null) {
-        idHolder
-            .add({"index": i, "uid": eventDetails["peopleInEvent"][i]["uid"]});
+    await firestore!
+        .collection("events")
+        .doc(widget.eventID)
+        .get()
+        .then((value) {
+      if (value.data() != null) {
+        if (value.data()!["peopleInEvent"] != null &&
+            value.data()!["peopleInEvent"].isNotEmpty) {
+          people.clear();
+          value.data()!["peopleInEvent"].forEach((value) {
+            people.add(value);
+          });
+        }
+        if (value.data()!["gallery"] != null &&
+            value.data()!["gallery"].isNotEmpty) {
+          galleryUrls.clear();
+          value.data()!["gallery"].forEach((value) {
+            if (value.toString() != "") {
+              galleryUrls.add(value.toString());
+            }
+          });
+        }
+        if (value.data()!["eventDescription"] != null) {
+          description = value.data()!["eventDescription"];
+        }
+      }
+    });
+
+    List<Map<String, dynamic>> idList = [];
+    for (int i = 0; i < people.length; i++) {
+      if (people[i]["uid"] != null) {
+        idList.add({"index": i, "uid": people[i]["uid"]});
       }
     }
-    List<Map<String, dynamic>> idDetails = await getPeopleDetailsByID(idHolder);
-    for (Map<String, dynamic> map in idDetails) {
-      int index = map.remove("index");
-      eventDetails["peopleInEvent"][index] = map;
+    List<Map<String, dynamic>> idDetails = await getPeopleDetailsByID(idList);
+    for (int i = 0; i < idDetails.length; i++) {
+      int index = idDetails[i].remove("index");
+      people[index] = idDetails[i];
     }
-    eventDetails["gallery"] = getImagesFromLinks(eventDetails["gallery"]);
-    return eventDetails;
+
+    gallery = getImagesFromLinks(galleryUrls);
+
+    return true;
   }
 
   List<Image> getImagesFromLinks(List<String> links) {
@@ -102,6 +125,9 @@ class _AnEventPageState extends State<AnEventPage> {
 
   Future<List<Map<String, dynamic>>> getPeopleDetailsByID(
       List<Map<String, dynamic>> idHolder) async {
+    if (idHolder.isEmpty) {
+      return [];
+    }
     List<String> ids = idHolder.map((e) {
       String temp = e["uid"];
       return temp;
@@ -115,12 +141,13 @@ class _AnEventPageState extends State<AnEventPage> {
       return value.docs.map((e) {
         count++;
         Map<String, dynamic> value = e.data();
-        String? phone;
-        if (value["mobileContactNo"] == true) {
+        dynamic phone;
+        if (value["mobileContactNo"] != null &&
+            value["mobileContactNo"] != "") {
           phone = value["mobileContactNo"];
         }
         String? position;
-        if (value["designation"] != null ||
+        if (value["currentDesignation"] != null &&
             value["currentOrganisation"] != null) {
           position =
               value["designation"] + "at " + value["currentOrganisation"];
@@ -149,7 +176,6 @@ class _AnEventPageState extends State<AnEventPage> {
         return value.data()![widget.eventID];
       });
       isBeingAttended ??= false;
-      print("user is attending event?" + isBeingAttended.toString());
       clickFlags["attending"] = isBeingAttended;
       return true;
     } else {
@@ -213,12 +239,16 @@ class _AnEventPageState extends State<AnEventPage> {
               return CreateEvent(
                 eventUpdationFlag: true,
                 eventId: widget.eventID,
-                eventDescription: null,
+                eventDescription: description,
                 eventDuration: widget.eventDuration.inHours,
                 eventHolder: widget.eventHolder,
                 eventLink: widget.eventLink,
                 eventStartTime: widget.eventStartTime,
                 eventTitle: widget.eventTitle,
+                eventTitleImage: widget.eventTitleImage,
+                gallery: galleryUrls,
+                peopleInEvent: people,
+                eventTitleImagePath: widget.eventTitleImagePath,
               );
             }));
           },
@@ -238,11 +268,12 @@ class _AnEventPageState extends State<AnEventPage> {
   Widget build(BuildContext context) {
     return FutureBuilder(
         future: getEventDetails(),
-        builder: (context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
+        builder: (context, AsyncSnapshot<bool> snapshot) {
           List<Widget> children = [];
           if (snapshot.hasData) {
-            return _buildPage(snapshot.data!);
+            return _buildPage();
           } else if (snapshot.hasError) {
+            print(snapshot.error);
             children = buildFutureError(snapshot);
           } else {
             children = buildFutureLoading(snapshot);
@@ -251,7 +282,7 @@ class _AnEventPageState extends State<AnEventPage> {
         });
   }
 
-  Scaffold _buildPage(Map<String, dynamic> details) {
+  Scaffold _buildPage() {
     //setting various eventAction button's icon and color
     double appBarHeight = screenHeight * 0.045;
     Color bookMarkIconColor = Theme.of(context).appBarTheme.foregroundColor!;
@@ -283,11 +314,11 @@ class _AnEventPageState extends State<AnEventPage> {
                 style: GoogleFonts.lato(
                     fontSize: 18, height: 1.3, fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
-                maxLines: 2,
+                maxLines: 255,
                 softWrap: false,
               ),
-              const SizedBox(
-                height: 2,
+              SizedBox(
+                height: screenHeight * 0.01,
               ),
               Text(
                 "By: " + widget.eventHolder,
@@ -295,7 +326,7 @@ class _AnEventPageState extends State<AnEventPage> {
                   fontSize: 11,
                   // color: Colors.grey.shade300
                 ),
-                maxLines: 2,
+                maxLines: 255,
                 overflow: TextOverflow.ellipsis,
                 softWrap: false,
               ),
@@ -349,12 +380,26 @@ class _AnEventPageState extends State<AnEventPage> {
         ),
       ),
     ];
-
+    Widget bannerWidget;
+    double bannerAreaHeight;
     if (widget.eventTitleImage != null) {
-      firstRowChildren.add(const Placeholder(
-        fallbackHeight: 110,
-        fallbackWidth: 125,
-      ));
+      bannerAreaHeight = screenHeight * 0.2;
+      bannerWidget = GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
+            return FullScreenImageViewer(
+                child: [widget.eventTitleImage!], dark: true);
+          })));
+        },
+        child: Container(
+          decoration: BoxDecoration(
+              image: DecorationImage(
+                  image: widget.eventTitleImage!.image, fit: BoxFit.fitHeight)),
+        ),
+      );
+    } else {
+      bannerAreaHeight = 0;
+      bannerWidget = const SizedBox();
     }
     List<Widget> iconButtons = [
       IconButton(
@@ -382,48 +427,128 @@ class _AnEventPageState extends State<AnEventPage> {
             bookMarkIcon,
             color: bookMarkIconColor,
           )),
-      IconButton(
-          onPressed: () {
-            if (widget.eventLink != null) {
-              launchUrl(Uri.parse(widget.eventLink!));
-            }
-          },
-          icon: const Icon(Icons.open_in_new))
     ];
-    Widget eventOptions = Container(
-        padding: EdgeInsets.zero,
-        decoration: BoxDecoration(
-            color: Colors.transparent,
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context)
-                    .appBarTheme
-                    .shadowColor!
-                    .withOpacity(0.25),
-                blurStyle: BlurStyle.solid,
-                spreadRadius: 0.1,
-                blurRadius: 0.5,
-                offset: const Offset(0, -1),
-              ),
-            ],
-            borderRadius: BorderRadius.circular(2)),
-        height: screenHeight * .06,
-        child: Card(
-            color: Theme.of(context).appBarTheme.backgroundColor,
-            shadowColor: Theme.of(context).appBarTheme.shadowColor,
-            elevation: 2,
-            margin: const EdgeInsets.only(bottom: 1),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: iconButtons,
-            )));
+    if (widget.eventLink != null &&
+        Uri.tryParse(widget.eventLink!)!.hasAbsolutePath) {
+      IconButton openLinkButton = IconButton(
+          onPressed: () {
+            launchUrl(Uri.parse(widget.eventLink!));
+          },
+          icon: const Icon(Icons.open_in_new));
+      iconButtons.add(openLinkButton);
+    }
+    Widget eventOptions = iconButtons.isNotEmpty
+        ? Container(
+            padding: EdgeInsets.zero,
+            decoration: BoxDecoration(
+                color: Colors.transparent,
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context)
+                        .appBarTheme
+                        .shadowColor!
+                        .withOpacity(0.25),
+                    blurStyle: BlurStyle.solid,
+                    spreadRadius: 0.1,
+                    blurRadius: 0.5,
+                    offset: const Offset(0, -1),
+                  ),
+                ],
+                borderRadius: BorderRadius.circular(2)),
+            height: screenHeight * .06,
+            child: Card(
+                color: Theme.of(context).appBarTheme.backgroundColor,
+                shadowColor: Theme.of(context).appBarTheme.shadowColor,
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 1),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: iconButtons,
+                )))
+        : const SizedBox();
     if (userData["uid"] == null) {
       eventOptions = const SizedBox(
         height: 0,
       );
     }
     List<Widget> appBarActions = _setActionButtons();
-    List<Map<String, dynamic>> people = details["peopleInEvent"];
+
+    final List<Widget> tabViews = [
+      Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [Text(description)]),
+      ListView.builder(
+          shrinkWrap: true,
+          itemCount: people.length,
+          itemBuilder: ((context, index) {
+            String subTitle = "";
+            if (people[index]["description"] == null) {
+              subTitle = "";
+            } else {
+              subTitle = people[index]["description"];
+            }
+            if (people[index]["name"] != null) {
+              return Container(
+                margin:
+                    const EdgeInsets.only(left: 4, right: 4, top: 4, bottom: 8),
+                decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(4)),
+                child: ListTile(
+                  onTap: () {
+                    if (people[index]["uid"] != null) {
+                      Navigator.of(context)
+                          .push(MaterialPageRoute(builder: ((context) {
+                        return ProfilePage(uid: people[index]["uid"]);
+                      })));
+                    } else {
+                      showDialog(
+                          context: context,
+                          builder: (context) {
+                            return PersonInEventPopUp(
+                              name: people[index]["name"],
+                              email: people[index]["email"],
+                              description: people[index]["description"],
+                              number: people[index]["number"],
+                            );
+                          });
+                    }
+                  },
+                  title: Text(people[index]["name"]),
+                  subtitle: Text(subTitle),
+                ),
+              );
+            } else {
+              return const SizedBox();
+            }
+          })),
+      GridView.builder(
+          shrinkWrap: true,
+          itemCount: gallery.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3, crossAxisSpacing: 5, mainAxisSpacing: 5),
+          itemBuilder: (context, index) {
+            final Image image = gallery[index];
+            return GestureDetector(
+              onTap: () {
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: ((context) {
+                  return FullScreenImageViewer(child: gallery, dark: true);
+                })));
+              },
+              child: Container(
+                  decoration: BoxDecoration(
+                // color: const Color(postCardColor),
+                image: DecorationImage(
+                  fit: BoxFit.cover,
+                  image: image.image,
+                ),
+              )),
+            );
+          })
+    ];
+
     return Scaffold(
       bottomNavigationBar: eventOptions,
       resizeToAvoidBottomInset: false,
@@ -436,140 +561,168 @@ class _AnEventPageState extends State<AnEventPage> {
                 Navigator.of(context).pop();
               },
               icon: Icons.close)),
-      body: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Material(
-              color: Theme.of(context).cardColor,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
-                child: Row(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            stretchTriggerOffset: 1,
+            onStretchTrigger: () async {
+              setState(() {});
+            },
+            toolbarHeight: 0,
+            backgroundColor: Colors.transparent,
+            actions: const [SizedBox()],
+            expandedHeight: bannerAreaHeight,
+            flexibleSpace: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: FlexibleSpaceBar(background: bannerWidget),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  mainAxisSize: MainAxisSize.max,
-                  children: firstRowChildren,
+                  children: [
+                    Material(
+                      color: Theme.of(context).cardColor,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisSize: MainAxisSize.max,
+                          children: firstRowChildren,
+                        ),
+                      ),
+                    ),
+                    DefaultTabController(
+                        length: 3,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 1),
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Theme.of(context)
+                                          .appBarTheme
+                                          .shadowColor!
+                                          .withOpacity(0.15),
+                                      blurStyle: BlurStyle.solid,
+                                      spreadRadius: 0.1,
+                                      blurRadius: 0.5,
+                                      offset: const Offset(0, -1),
+                                    ),
+                                  ]),
+                              child: Card(
+                                shadowColor:
+                                    Theme.of(context).appBarTheme.shadowColor,
+                                elevation: 0.2,
+                                margin: EdgeInsets.zero,
+                                color: Theme.of(context)
+                                    .appBarTheme
+                                    .backgroundColor,
+                                child: TabBar(
+                                    onTap: (newSelectedTab) {
+                                      setState(() {
+                                        _selectedTab = newSelectedTab;
+                                      });
+                                    },
+                                    indicatorColor: Theme.of(context)
+                                        .floatingActionButtonTheme
+                                        .backgroundColor,
+                                    unselectedLabelColor: Theme.of(context)
+                                        .appBarTheme
+                                        .shadowColor!
+                                        .withOpacity(0.6),
+                                    labelColor: Theme.of(context)
+                                        .appBarTheme
+                                        .shadowColor,
+                                    tabs: const [
+                                      Tab(
+                                        text: "Description",
+                                      ),
+                                      Tab(
+                                        text: "People",
+                                      ),
+                                      Tab(
+                                        text: "Gallery",
+                                      )
+                                    ]),
+                              ),
+                            ),
+                            Container(
+                                padding:
+                                    const EdgeInsets.fromLTRB(14, 10, 14, 2),
+                                color: Theme.of(context).canvasColor,
+                                child: tabViews[_selectedTab])
+                          ],
+                        )),
+                  ],
                 ),
               ),
             ),
-            Flexible(
-              child: DefaultTabController(
-                  length: 3,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 1),
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(context)
-                                    .appBarTheme
-                                    .shadowColor!
-                                    .withOpacity(0.15),
-                                blurStyle: BlurStyle.solid,
-                                spreadRadius: 0.1,
-                                blurRadius: 0.5,
-                                offset: const Offset(0, -1),
-                              ),
-                            ]),
-                        child: Card(
-                          shadowColor:
-                              Theme.of(context).appBarTheme.shadowColor,
-                          elevation: 0.2,
-                          margin: EdgeInsets.zero,
-                          color: Theme.of(context).appBarTheme.backgroundColor,
-                          child: TabBar(
-                              indicatorColor: Theme.of(context)
-                                  .floatingActionButtonTheme
-                                  .backgroundColor,
-                              unselectedLabelColor: Theme.of(context)
-                                  .appBarTheme
-                                  .shadowColor!
-                                  .withOpacity(0.6),
-                              labelColor:
-                                  Theme.of(context).appBarTheme.shadowColor,
-                              tabs: const [
-                                Tab(
-                                  text: "Description",
-                                ),
-                                Tab(
-                                  text: "People",
-                                ),
-                                Tab(
-                                  text: "Gallery",
-                                )
-                              ]),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
-                        color: Theme.of(context).canvasColor,
-                        height: userData["uid"] != null
-                            ? screenHeight * .65
-                            : screenHeight * 0.71,
-                        child: TabBarView(children: [
-                          SingleChildScrollView(
-                            child: Text(details["eventDescription"]),
-                          ),
-                          ListView.builder(
-                              itemCount: people.length,
-                              itemBuilder: ((context, index) {
-                                String subTitle = "";
-                                if (people[index]["description"] == null) {
-                                  subTitle = "";
-                                } else {
-                                  subTitle = people[index]["description"];
-                                }
-                                return Container(
-                                  margin: const EdgeInsets.only(
-                                      left: 4, right: 4, top: 4, bottom: 8),
-                                  decoration: BoxDecoration(
-                                      color: Theme.of(context).cardColor,
-                                      borderRadius: BorderRadius.circular(4)),
-                                  child: ListTile(
-                                    title: Text(people[index]["name"]),
-                                    subtitle: Text(subTitle),
-                                  ),
-                                );
-                              })),
-                          GridView.builder(
-                              itemCount: details["gallery"].length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      crossAxisSpacing: 5,
-                                      mainAxisSpacing: 5),
-                              itemBuilder: (context, index) {
-                                final Image image = details["gallery"][index];
-                                return GestureDetector(
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                        MaterialPageRoute(builder: ((context) {
-                                      return FullScreenImageViewer(
-                                          child: details["gallery"],
-                                          dark: true);
-                                    })));
-                                  },
-                                  child: Container(
-                                      decoration: BoxDecoration(
-                                    // color: const Color(postCardColor),
-                                    image: DecorationImage(
-                                      fit: BoxFit.cover,
-                                      image: image.image,
-                                    ),
-                                  )),
-                                );
-                              })
-                        ]),
-                      )
-                    ],
-                  )),
-            ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PersonInEventPopUp extends StatelessWidget {
+  final String name;
+  final String? description;
+  final String? number;
+  final String email;
+  const PersonInEventPopUp(
+      {required this.name,
+      this.description,
+      this.number,
+      required this.email,
+      Key? key})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomAlertDialog(
+      title: null,
+      height: screenHeight * 0.48,
+      actions: [
+        TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("Dismiss"))
+      ],
+      content: Column(
+        children: [
+          GroupBox(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              child: Text(name),
+              title: "Name",
+              titleBackground: Theme.of(context).canvasColor),
+          GroupBox(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              child: Text(description == null ? "-" : description!),
+              title: "Description",
+              titleBackground: Theme.of(context).canvasColor),
+          GroupBox(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              child: Text(number == null ? "-" : number!),
+              title: "Number",
+              titleBackground: Theme.of(context).canvasColor),
+          GroupBox(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              child: Text(email),
+              title: "Email",
+              titleBackground: Theme.of(context).canvasColor),
+        ],
       ),
     );
   }

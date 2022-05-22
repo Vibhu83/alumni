@@ -1,18 +1,17 @@
-import 'dart:async';
-
 import 'package:alumni/globals.dart';
-import 'package:alumni/widgets/post_card.dart';
 import 'package:alumni/widgets/future_widgets.dart';
+import 'package:alumni/widgets/post_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class ForumPage extends StatelessWidget {
-  const ForumPage({Key? key}) : super(key: key);
+class TrendingPostsPage extends StatelessWidget {
+  const TrendingPostsPage({Key? key}) : super(key: key);
 
   Future<List<Map<String, dynamic>>> getPosts() async {
     var postsRef = firestore!.collection('posts');
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
-    querySnapshot = await postsRef.orderBy("rating", descending: true).get();
+    querySnapshot =
+        await postsRef.orderBy("rating", descending: true).limit(10).get();
     //lastDoc = allDocSnap[allDocSnap.length - 1];
     final List<Map<String, dynamic>> allData = (querySnapshot.docs.map((doc) {
       Map<String, dynamic> value = doc.data();
@@ -41,8 +40,11 @@ class ForumPage extends StatelessWidget {
             var postsData = snapshot.data!;
             return ListView.builder(
               shrinkWrap: true,
-              itemCount: postsData.length,
+              itemCount: postsData.length + 1,
               itemBuilder: (BuildContext context, int index) {
+                if (index == postsData.length) {
+                  return TextButton(onPressed: () {}, child: Text("See more"));
+                }
                 String postID = postsData[index]["postID"];
                 String postTitle = postsData[index]["postTitle"];
                 String postAuthorID = postsData[index]["postAuthorID"];

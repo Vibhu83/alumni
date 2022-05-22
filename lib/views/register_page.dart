@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 
 class RegisterView extends StatefulWidget {
   final Function(String? email, String? password)? onSubmitted;
@@ -207,12 +208,17 @@ class _RegisterView extends State<RegisterView> {
     ]);
 
     return Scaffold(
-      // backgroundColor: const Color(backgroundColor),
+      backgroundColor: Theme.of(context).canvasColor,
       bottomNavigationBar: Container(
-        // decoration: BoxDecoration(
-        //     // color: const Color(appBarColor),
-        //     // border: Border(top: BorderSide(color: Colors.grey.shade800))
-        //     ),
+        decoration: BoxDecoration(
+            color:
+                Theme.of(context).appBarTheme.backgroundColor!.withOpacity(0.3),
+            border: Border(
+                top: BorderSide(
+                    color: Theme.of(context)
+                        .appBarTheme
+                        .shadowColor!
+                        .withOpacity(0.25)))),
         child: TextButton(
           onPressed: () {
             Navigator.of(context).push(MaterialPageRoute(builder: (context) {
@@ -331,6 +337,7 @@ class _RegisterView extends State<RegisterView> {
       fieldText = formatDateTime(_dob!, showTime: false);
     }
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       errorText: _dobError,
       title: "Data of Birth*",
       // titleBackground: const Color(backgroundColor),
@@ -378,6 +385,7 @@ class _RegisterView extends State<RegisterView> {
     }
 
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       errorText: _nationalityError,
       child: Column(
         children: [
@@ -429,6 +437,7 @@ class _RegisterView extends State<RegisterView> {
 
   Widget _buildNriField() {
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       errorText: _nriError,
       child: Column(
         children: [
@@ -509,6 +518,7 @@ class _RegisterView extends State<RegisterView> {
       fieldText = formatDateTime(_spouseWorkingInOrgSince!, showTime: false);
     }
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
             DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
@@ -570,6 +580,7 @@ class _RegisterView extends State<RegisterView> {
       fieldText = formatDateTime(_inCurrentOrgSince!, showTime: false);
     }
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
             DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
@@ -641,6 +652,7 @@ class _RegisterView extends State<RegisterView> {
       fieldText = formatDateTime(_wereInPreviousOrgSince!, showTime: false);
     }
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
             DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
@@ -680,10 +692,10 @@ class _RegisterView extends State<RegisterView> {
   Widget _buildHeading(String heading) {
     return Text(
       heading,
-      style: const TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-      ),
+      style: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).appBarTheme.foregroundColor),
     );
   }
 
@@ -691,9 +703,9 @@ class _RegisterView extends State<RegisterView> {
     return Text(
       subHeading,
       style: TextStyle(
-        fontSize: 20,
-        // color: Colors.white.withOpacity(.8)
-      ),
+          fontSize: 20,
+          color:
+              Theme.of(context).appBarTheme.foregroundColor!.withOpacity(0.8)),
     );
   }
 
@@ -858,6 +870,7 @@ class _RegisterView extends State<RegisterView> {
     final String password = _password.text;
     final int addmissionYear = _addmissionYear!;
     late final String accessLevel;
+    List<String> firstLastName = name.split(" ");
     //
     //
     final String previousOrgOfficeContactNo = _previousOfficeContactNo.text;
@@ -874,27 +887,36 @@ class _RegisterView extends State<RegisterView> {
     }
     try {
       await auth!
-          .createUserWithEmailAndPassword(email: email, password: password)
+          .createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      )
           .then((userRecord) async {
-        var uid = userRecord.user?.uid;
+        var uid = userRecord.user!.uid;
         firestore!.collection("eventAttendanceStatus").doc(uid).set({});
         String profilePicUrl = await uploadFileAndGetLink(
             profilePic!.path, uid.toString() + "/profilePicture", context);
+        chat!.createUserInFirestore(types.User(
+            id: uid,
+            firstName: firstLastName[0],
+            lastName: firstLastName[1],
+            imageUrl: profilePicUrl));
         firestore!.collection("userVotes").doc(uid).set({});
         firestore!.collection("users").doc(uid).set({
           "profilePic": profilePicUrl,
           "uid": uid,
           "rollNo": rollNo,
           "name": name,
+          "firstName": firstLastName[0],
+          "lastName": firstLastName[1],
           "email": email,
           "admissionYear": addmissionYear,
           "course": course,
           "isAnAlumni": _isAlumni,
           "accessLevel": accessLevel,
-          "noticesDismissed": ["some value"]
+          "noticesDismissed": [""]
         }, SetOptions(merge: true)).then((value) {
           if (_isAlumni) {
-            print("setting additional details");
             final String motherName = _motherName.text;
             final String fatherName = _fatherName.text;
             final Timestamp dob = Timestamp.fromDate(_dob!);
@@ -1070,6 +1092,7 @@ class _RegisterView extends State<RegisterView> {
       text = _addmissionYear.toString();
     }
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       errorText: _addmissionYearError,
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
       child: TextButton(
@@ -1106,6 +1129,7 @@ class _RegisterView extends State<RegisterView> {
   Widget _buildYearOfLeavingField() {
     String text = "Select Year";
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       errorText: _passingYearError,
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
       child: TextButton(
@@ -1183,6 +1207,7 @@ class _RegisterView extends State<RegisterView> {
 
   Widget _buildProfilePicField() {
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       title: "Profile Picture",
       // titleBackground: const Color(backgroundColor),
       child: Container(
@@ -1321,6 +1346,7 @@ class _RegisterView extends State<RegisterView> {
 
   Widget _buildCourseDropDown() {
     return GroupBox(
+      titleBackground: Theme.of(context).canvasColor,
       errorText: _courseError,
       // titleBackground: const Color(backgroundColor),
       title: "Course*",

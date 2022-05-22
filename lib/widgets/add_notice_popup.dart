@@ -35,7 +35,7 @@ class AddNoticePopUp extends StatelessWidget {
   Widget build(BuildContext context) {
     TextEditingController _message = TextEditingController(text: message);
     return CustomAlertDialog(
-        height: 500,
+        height: screenHeight * 0.65,
         actions: [
           TextButton(
               onPressed: () async {
@@ -46,7 +46,8 @@ class AddNoticePopUp extends StatelessWidget {
               },
               child: const Text("Submit"))
         ],
-        title: const Text("Add notice to the home page"),
+        title:
+            Text(id == null ? "Add notice to the home page" : "Update notice"),
         content: InputField(
           autoCorrect: true,
           maxLines: 24,

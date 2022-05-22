@@ -3,16 +3,48 @@ library globals;
 import 'dart:io';
 import 'dart:math';
 
+import 'package:alumni/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
+
+bool noticesSeen = false;
 
 FirebaseApp? app;
 FirebaseAuth? auth;
 FirebaseFirestore? firestore;
+FirebaseStorage? storage;
+FirebaseChatCore? chat;
+
+Future<FirebaseApp> _initialiseFireBaseApp() async {
+  if (Firebase.apps.isEmpty) {
+    var temp = await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform)
+        .then((value) {
+      return value;
+    });
+    return temp;
+  } else {
+    return Firebase.apps[Firebase.apps.length - 1];
+  }
+}
+
+Future<bool> initialiseFlutterFire() async {
+  bool? returnVal = false;
+  returnVal = await _initialiseFireBaseApp().then((app) async {
+    auth = FirebaseAuth.instance;
+    firestore = FirebaseFirestore.instance;
+    storage = FirebaseStorage.instance;
+    chat = FirebaseChatCore.instance;
+    chat!.setConfig(FirebaseChatCoreConfig(app.name, "chatRooms", "users"));
+    return true;
+  });
+  return returnVal;
+}
 
 Map<String, dynamic> userData = {};
 
@@ -120,8 +152,8 @@ String formatDateTime(DateTime dateTime, {bool showTime = true}) {
 
   String hour = dateTime.hour.toString();
   String minute = dateTime.minute.toString();
-  if (minute == "0") {
-    minute = "00";
+  if (dateTime.minute < 10) {
+    minute = "0" + minute;
   }
   if (showTime == true) {
     returnString += " at " + hour + ":" + minute;
@@ -131,11 +163,14 @@ String formatDateTime(DateTime dateTime, {bool showTime = true}) {
 
 Future<String> getAuthorNameByID(String authorID) async {
   String authorName = "";
-  authorName = await firestore!
-      .collection("users")
-      .doc(authorID)
-      .get()
-      .then((value) => value.data()!["name"]);
+  authorName =
+      await firestore!.collection("users").doc(authorID).get().then((value) {
+    if (value.data() != null) {
+      return value.data()!["name"];
+    } else {
+      return "[deleted user]";
+    }
+  });
   return authorName;
 }
 

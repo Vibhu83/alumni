@@ -1,5 +1,6 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
+import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:flutter/material.dart';
 
 class AdminRecommendationPopUp extends StatelessWidget {
@@ -62,22 +63,17 @@ class AdminRecommendationPopUp extends StatelessWidget {
         onPressed: onPressed,
         icon: const Icon(Icons.open_in_new_outlined)));
 
-    return AlertDialog(
-        // backgroundColor: const Color.fromARGB(255, 25, 33, 36),
+    return CustomAlertDialog(
         titlePadding: EdgeInsets.zero,
         actions: [
-          Container(
-            decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey.shade800))),
-            child: Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: recommendationItemActions),
-          )
+          Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: recommendationItemActions),
         ],
-        title: Container(
+        title: Padding(
           padding:
-              const EdgeInsets.only(left: 10, right: 10, top: 20, bottom: 10),
+              const EdgeInsets.only(left: 10, right: 10, top: 0, bottom: 10),
           // decoration: BoxDecoration(
           //     border: Border(bottom: BorderSide(color: Colors.grey.shade800))),
           child: Column(
@@ -92,7 +88,7 @@ class AdminRecommendationPopUp extends StatelessWidget {
           ),
         ),
         content: SizedBox(
-          height: 400,
+          height: screenHeight * 0.4,
           width: double.maxFinite,
           child: SingleChildScrollView(
             child: Text(

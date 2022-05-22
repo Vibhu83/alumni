@@ -1,12 +1,12 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class Notices extends StatefulWidget {
-  final List<Map<String, dynamic>>? notices;
-  const Notices({required this.notices, Key? key}) : super(key: key);
+  const Notices({Key? key}) : super(key: key);
 
   @override
   State<Notices> createState() => _NoticesState();
@@ -20,140 +20,202 @@ class _NoticesState extends State<Notices> {
   @override
   void initState() {
     currentIndex = 0;
-    sortedNotices = widget.notices!;
-    sortedNotices.sort((a, b) {
-      Timestamp aPostedOn = a["noticePostedOn"];
-      Timestamp bPostedOn = b["noticePostedOn"];
-      return bPostedOn.compareTo(aPostedOn);
-    });
     super.initState();
+  }
+
+  Future<bool> checkForNotices() async {
+    var notices = await firestore!
+        .collection("notices")
+        .where("noticeID", whereNotIn: userData["noticesDismissed"])
+        // .where("noticePostOn",
+        //     isGreaterThanOrEqualTo: Timestamp.fromMillisecondsSinceEpoch(
+        //         DateTime.now().millisecondsSinceEpoch -
+        //             const Duration(days: 14).inMilliseconds))
+        .get()
+        .then((value) {
+      return value.docs.map((e) {
+        return e.data();
+      }).toList();
+    });
+    if (notices.isNotEmpty) {
+      sortedNotices = notices;
+      sortedNotices.sort((a, b) {
+        Timestamp aPostedOn = a["noticePostedOn"];
+        Timestamp bPostedOn = b["noticePostedOn"];
+        return bPostedOn.compareTo(aPostedOn);
+      });
+      return true;
+    } else {
+      Navigator.of(context).pop();
+      return false;
+    }
+  }
+
+  void dismissNotices() async {
+    if (userData["uid"] != null) {
+      for (Map map in sortedNotices) {
+        userData["noticesDismissed"].add(map["noticeID"]);
+      }
+      print(sortedNotices);
+      print(userData["noticesDismissed"]);
+      firestore!
+          .collection("users")
+          .doc(userData["uid"])
+          .update({"noticesDismissed": userData["noticesDismissed"]});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (newNotice != null) {
-      if (newNotice!["new?"] == true) {
-        newNotice!.remove("new?");
-        setState(() {
-          sortedNotices.insert(0, newNotice!);
-        });
-        newNotice = null;
-      }
-    }
-    List<Widget> header = [
-      const Text(
-        "Notices",
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-    ];
-    if (userData["accessLevel"] == "admin") {
-      header.add(Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            buildAppBarIcon(
-                onPressed: () {
-                  showDialog(
-                      context: context,
-                      builder: (context) {
-                        return AddNoticePopUp(
-                          id: sortedNotices[currentIndex]["noticeID"],
-                          message: sortedNotices[currentIndex]["noticeMessage"],
-                        );
-                      }).then((value) {
-                    if (newNotice != null) {
-                      if (newNotice!["new?"] == false) {
-                        setState(() {
-                          sortedNotices[currentIndex]["noticeMessage"] =
-                              newNotice!["noticeMessage"];
-                        });
-                        newNotice = null;
-                      }
-                    }
-                  });
-                },
-                icon: Icons.edit,
-                padding: EdgeInsets.zero),
-            buildAppBarIcon(
-                onPressed: () {
-                  firestore!
-                      .collection("notices")
-                      .doc(sortedNotices[currentIndex]["noticeID"])
-                      .delete();
-                  setState(() {
-                    sortedNotices.removeAt(currentIndex);
-                  });
-                },
-                icon: Icons.delete,
-                padding: EdgeInsets.zero)
-          ]));
-    }
-    if (shouldReturnEmpty == true) {
-      return const SizedBox();
-    }
-
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: const Color.fromARGB(120, 0, 162, 255)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey))),
-            width: double.maxFinite,
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 4,
-            ),
-            child: Row(
-              children: header,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            alignment: Alignment.center,
-            height: 300,
-            child: PageView.builder(
-                onPageChanged: (value) {
-                  setState(() {
-                    currentIndex = value;
-                  });
-                },
-                itemCount: sortedNotices.length,
-                itemBuilder: ((context, index) {
-                  return SingleChildScrollView(
-                      child: Text(sortedNotices[index]["noticeMessage"]));
-                })),
-          ),
-          Container(
-            width: double.maxFinite,
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-            decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey))),
-            alignment: Alignment.center,
-            child: TextButton(
-              onPressed: () {
+    return FutureBuilder(
+        future: checkForNotices(),
+        builder: (context, AsyncSnapshot<bool> snapshot) {
+          List<Widget> children;
+          if (snapshot.data == true) {
+            if (newNotice != null) {
+              if (newNotice!["new?"] == true) {
+                newNotice!.remove("new?");
                 setState(() {
-                  shouldReturnEmpty = true;
+                  sortedNotices.insert(0, newNotice!);
                 });
-              },
-              child: const Text(
-                "Dismiss",
-                style: TextStyle(
-                    color: Color.fromARGB(255, 141, 0, 0),
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                newNotice = null;
+              }
+            }
+            List<Widget> header = [
+              Text(
+                "Notices (" +
+                    (currentIndex + 1).toString() +
+                    "/" +
+                    sortedNotices.length.toString() +
+                    ")",
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-            ),
-          )
-        ],
-      ),
-    );
+            ];
+            if (userData["accessLevel"] == "admin") {
+              header.add(Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    buildAppBarIcon(
+                        onPressed: () {
+                          showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AddNoticePopUp(
+                                  id: sortedNotices[currentIndex]["noticeID"],
+                                  message: sortedNotices[currentIndex]
+                                      ["noticeMessage"],
+                                );
+                              }).then((value) {
+                            if (newNotice != null) {
+                              if (newNotice!["new?"] == false) {
+                                setState(() {
+                                  sortedNotices[currentIndex]["noticeMessage"] =
+                                      newNotice!["noticeMessage"];
+                                });
+                                newNotice = null;
+                              }
+                            }
+                          });
+                        },
+                        icon: Icons.edit,
+                        padding: EdgeInsets.zero),
+                    buildAppBarIcon(
+                        onPressed: () {
+                          firestore!
+                              .collection("notices")
+                              .doc(sortedNotices[currentIndex]["noticeID"])
+                              .delete();
+                          setState(() {
+                            sortedNotices.removeAt(currentIndex);
+                          });
+                        },
+                        icon: Icons.delete,
+                        padding: EdgeInsets.zero)
+                  ]));
+            }
+            if (shouldReturnEmpty == true) {
+              Navigator.of(context).pop();
+              return const SizedBox();
+            }
+
+            return AlertDialog(
+                titlePadding: EdgeInsets.zero,
+                contentPadding: EdgeInsets.zero,
+                actionsPadding: EdgeInsets.zero,
+                scrollable: true,
+                backgroundColor: Color.fromARGB(255, 0, 123, 194),
+                title: Container(
+                  decoration: const BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Colors.grey))),
+                  width: double.maxFinite,
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  child: Row(
+                    children: header,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+                ),
+                content: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  alignment: Alignment.center,
+                  height: screenHeight * 0.5,
+                  width: screenWidth * 0.8,
+                  child: PageView.builder(
+                      onPageChanged: (value) {
+                        setState(() {
+                          currentIndex = value;
+                        });
+                      },
+                      itemCount: sortedNotices.length,
+                      itemBuilder: ((context, index) {
+                        return SingleChildScrollView(
+                            child: Text(sortedNotices[index]["noticeMessage"]));
+                      })),
+                ),
+                actions: [
+                  Container(
+                    width: double.maxFinite,
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                    decoration: const BoxDecoration(
+                        border: Border(top: BorderSide(color: Colors.grey))),
+                    alignment: Alignment.center,
+                    child: TextButton(
+                      onPressed: currentIndex == sortedNotices.length - 1
+                          ? () {
+                              dismissNotices();
+                              setState(() {
+                                Navigator.of(context).pop();
+                              });
+                            }
+                          : null,
+                      child: Text(
+                        "Dismiss",
+                        style: TextStyle(
+                            color: currentIndex == sortedNotices.length - 1
+                                ? Theme.of(context)
+                                    .floatingActionButtonTheme
+                                    .backgroundColor
+                                : Colors.transparent,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  )
+                ]);
+          } else if (snapshot.hasError) {
+            children = buildFutureError(snapshot);
+          } else {
+            children = buildFutureLoading(snapshot);
+          }
+          return buildFuture(children: children);
+        });
   }
 }

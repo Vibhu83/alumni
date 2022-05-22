@@ -4,7 +4,9 @@ import 'package:alumni/widgets/future_widgets.dart';
 import 'package:flutter/material.dart';
 
 class PeoplePage extends StatefulWidget {
-  const PeoplePage({Key? key}) : super(key: key);
+  final bool isInSelectionMode;
+  const PeoplePage({this.isInSelectionMode = false, Key? key})
+      : super(key: key);
 
   @override
   State<PeoplePage> createState() => _PeoplePageState();
@@ -24,6 +26,12 @@ class _PeoplePageState extends State<PeoplePage> {
     showAdmins = true;
     showAlumni = true;
     showStudents = true;
+    if (widget.isInSelectionMode) {
+      currentChoiceValue = 6;
+      showAdmins = true;
+      showAlumni = true;
+      showStudents = false;
+    }
     super.initState();
   }
 
@@ -152,7 +160,8 @@ class _PeoplePageState extends State<PeoplePage> {
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 2, horizontal: 12),
-                      child: _buildUserCard(allUserData[index]),
+                      child: _buildUserCard(
+                          allUserData[index], widget.isInSelectionMode),
                     );
                   }
                 }));
@@ -193,7 +202,6 @@ class _PeoplePageState extends State<PeoplePage> {
               setState(() {
                 showStudents = nextValue;
                 currentChoiceValue += changeInChoiceValue;
-                print(currentChoiceValue);
               });
             },
             child: Text(
@@ -232,7 +240,6 @@ class _PeoplePageState extends State<PeoplePage> {
               setState(() {
                 showAlumni = nextValue;
                 currentChoiceValue += changeInChoiceValue;
-                print(currentChoiceValue);
               });
             },
             child: Text(
@@ -272,7 +279,6 @@ class _PeoplePageState extends State<PeoplePage> {
               setState(() {
                 showAdmins = nextValue;
                 currentChoiceValue += changeInChoiceValue;
-                print(currentChoiceValue);
               });
             },
             child: Text(
@@ -320,7 +326,8 @@ class _PeoplePageState extends State<PeoplePage> {
     );
   }
 
-  Widget _buildUserCard(Map<String, dynamic> user) {
+  Widget _buildUserCard(Map<String, dynamic> user, bool isInSelectionMode) {
+    print(user);
     String subTitle = user["accessLevel"];
     subTitle = subTitle.substring(0, 1).toUpperCase() + subTitle.substring(1);
     String? currentDesignation = user["currentDesignation"];
@@ -335,15 +342,31 @@ class _PeoplePageState extends State<PeoplePage> {
       shadowColor: Theme.of(context).appBarTheme.shadowColor!.withOpacity(0.5),
       elevation: 1,
       child: ListTile(
-        onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => ProfilePage(uid: user["uid"])));
-        },
+        onTap: isInSelectionMode
+            ? () {
+                String name = user["name"];
+                String uid = user["uid"];
+                String? description;
+                if (user["currentDesignation"] != null &&
+                    user["currentDesignation"] != "" &&
+                    user["currentOrgName"] != null &&
+                    user["currentOrgName"] != "") {
+                  description = user["currentDesignation"] +
+                      " at " +
+                      user["currentOrgName"];
+                }
+                Navigator.of(context).pop(
+                    {"uid": uid, "name": name, "description": description});
+              }
+            : () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => ProfilePage(uid: user["uid"])));
+              },
         minLeadingWidth: 56,
         contentPadding: const EdgeInsets.symmetric(vertical: 4),
         leading: CircleAvatar(
           radius: 56,
-          backgroundImage: NetworkImage(user["profilePic"]),
+          backgroundImage: NetworkImage(user["imageUrl"]),
         ),
         title: Text(
           user["name"],

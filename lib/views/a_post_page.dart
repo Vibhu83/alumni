@@ -3,9 +3,11 @@ import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
+import 'package:alumni/widgets/full_screen_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class APost extends StatefulWidget {
   final String postID;
@@ -16,6 +18,9 @@ class APost extends StatefulWidget {
   final String postBody;
   final String postedDuration;
   final bool? reaction;
+  final List<Image>? images;
+  final List<String>? imagesUrls;
+  final String? postLink;
   const APost(
       {required this.postID,
       required this.postTitle,
@@ -24,6 +29,9 @@ class APost extends StatefulWidget {
       required this.authorName,
       required this.postBody,
       required this.postedDuration,
+      this.images,
+      this.imagesUrls,
+      this.postLink,
       this.reaction,
       Key? key})
       : super(key: key);
@@ -87,12 +95,17 @@ class _APost extends State<APost> {
         postID: widget.postID,
         postTitle: postTitle,
         postBody: postBody,
+        imageUrls: postImagesUrl,
+        images: postImages,
+        postLink: widget.postLink,
       );
     })).then((value) {
       if (updatedPostID == widget.postID) {
         setState(() {
           postTitle = updatedPostData["postTitle"];
           postBody = updatedPostData["postBody"];
+          postImages = updatedPostData["images"];
+          postImagesUrl = updatedPostData["imageUrls"];
         });
       }
     });
@@ -145,14 +158,17 @@ class _APost extends State<APost> {
       appBarActions.add(editButton);
       appBarActions.add(deleteButton);
     } else if (userData["accessLevel"] == "admin") {
-      appBarActions.add(deleteButton);
       appBarActions.add(shareButton);
+      appBarActions.add(deleteButton);
     }
     return appBarActions;
   }
 
   late String postTitle;
   late String postBody;
+  late List<Image>? postImages;
+  late List<String>? postImagesUrl;
+  late String? postLink;
 
   @override
   void initState() {
@@ -162,6 +178,9 @@ class _APost extends State<APost> {
     voteOffset = 0;
     postBody = widget.postBody;
     postTitle = widget.postTitle;
+    postImages = widget.images;
+    postImagesUrl = widget.imagesUrls;
+    postLink = widget.postLink;
     super.initState();
   }
 
@@ -261,124 +280,180 @@ class _APost extends State<APost> {
           changeVote(widget.postID, changeInVotes);
         },
         icon: const Icon(Icons.arrow_downward_sharp));
-
+    List<Widget> bottomNavButtons = [];
     if (userData["uid"] != null) {
-      postButtons = Container(
-        decoration:
-            BoxDecoration(borderRadius: BorderRadius.circular(2), boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).appBarTheme.shadowColor!.withOpacity(0.25),
-            blurStyle: BlurStyle.solid,
-            spreadRadius: 0.1,
-            blurRadius: 0.5,
-            offset: const Offset(0, -1),
-          ),
-        ]),
-        height: screenHeight * .06,
-        child: Card(
-          color: Theme.of(context).appBarTheme.backgroundColor,
-          shadowColor: Theme.of(context).appBarTheme.shadowColor,
-          elevation: 2,
-          margin: const EdgeInsets.only(bottom: 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              upvoteButton,
-              downvoteButton,
-              TextButton(
-                  onPressed: () {}, child: const Icon(Icons.bookmark_add)),
-            ],
-          ),
+      bottomNavButtons.addAll([
+        upvoteButton,
+        downvoteButton,
+        TextButton(onPressed: () {}, child: const Icon(Icons.bookmark_add)),
+      ]);
+    }
+    if (postLink != null && Uri.tryParse(postLink!)!.hasAbsolutePath) {
+      IconButton openLinkButton = IconButton(
+          onPressed: () {
+            launchUrl(Uri.parse(postLink!));
+          },
+          icon: const Icon(Icons.open_in_new));
+      bottomNavButtons.add(openLinkButton);
+    }
+    postButtons = bottomNavButtons.isNotEmpty
+        ? Container(
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context)
+                        .appBarTheme
+                        .shadowColor!
+                        .withOpacity(0.25),
+                    blurStyle: BlurStyle.solid,
+                    spreadRadius: 0.1,
+                    blurRadius: 0.5,
+                    offset: const Offset(0, -1),
+                  ),
+                ]),
+            height: screenHeight * .06,
+            child: Card(
+              color: Theme.of(context).appBarTheme.backgroundColor,
+              shadowColor: Theme.of(context).appBarTheme.shadowColor,
+              elevation: 2,
+              margin: const EdgeInsets.only(bottom: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: bottomNavButtons,
+              ),
+            ),
+          )
+        : SizedBox();
+
+    Widget bannerWidget;
+    double bannerAreaHeight;
+    if (postImages != null && postImages!.isNotEmpty) {
+      bannerAreaHeight = screenHeight * 0.2;
+      bannerWidget = GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
+            return FullScreenImageViewer(child: postImages!, dark: true);
+          })));
+        },
+        child: Container(
+          decoration: BoxDecoration(
+              image: DecorationImage(
+                  image: postImages![0].image, fit: BoxFit.fitHeight)),
         ),
       );
+    } else {
+      bannerAreaHeight = 0;
+      bannerWidget = const SizedBox();
     }
     return Scaffold(
-      bottomNavigationBar: postButtons,
-      appBar: buildAppBar(
-          leading: buildAppBarIcon(
-              onPressed: () {
-                Navigator.of(context).pop();
+        backgroundColor: Theme.of(context).cardColor,
+        bottomNavigationBar: postButtons,
+        appBar: buildAppBar(
+            leading: buildAppBarIcon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: Icons.close_rounded),
+            actions: appBarActions),
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              stretchTriggerOffset: 1,
+              onStretchTrigger: () async {
+                setState(() {});
               },
-              icon: Icons.close_rounded),
-          actions: appBarActions),
-      body: SingleChildScrollView(
-        child: Container(
-          color: Theme.of(context).cardColor,
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                postTitle,
-                style: GoogleFonts.lato(
-                    fontSize: 16, height: 1.3, fontWeight: FontWeight.bold),
+              toolbarHeight: 0,
+              backgroundColor: Colors.transparent,
+              actions: const [SizedBox()],
+              expandedHeight: bannerAreaHeight,
+              flexibleSpace: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: FlexibleSpaceBar(background: bannerWidget),
               ),
-              SizedBox(
-                height: screenHeight * 0.005,
-              ),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                    minimumSize: Size.zero,
-                    padding: EdgeInsets.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                child: Text(
-                  "By:" +
-                      widget.authorName +
-                      " (" +
-                      widget.postedDuration +
-                      ")",
-                  style: GoogleFonts.lato(
-                      fontSize: 10,
-                      color: Theme.of(context)
-                          .appBarTheme
-                          .shadowColor!
-                          .withOpacity(0.8)),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      postTitle,
+                      style: GoogleFonts.lato(
+                          fontSize: 16,
+                          height: 1.3,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(
+                      height: screenHeight * 0.005,
+                    ),
+                    TextButton(
+                      onPressed: () {},
+                      style: TextButton.styleFrom(
+                          minimumSize: Size.zero,
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                      child: Text(
+                        "By:" +
+                            widget.authorName +
+                            " (" +
+                            widget.postedDuration +
+                            ")",
+                        style: GoogleFonts.lato(
+                            fontSize: 10,
+                            color: Theme.of(context)
+                                .appBarTheme
+                                .shadowColor!
+                                .withOpacity(0.8)),
+                      ),
+                    ),
+                    SizedBox(
+                      height: screenHeight * 0.01,
+                    ),
+                    Text(
+                      votes.toString(),
+                      style: GoogleFonts.lato(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: votesColor),
+                    ),
+                    SizedBox(
+                      height: screenHeight * 0.01,
+                    ),
+                    Flexible(
+                        child: widget.postBody.isNotEmpty
+                            ? Container(
+                                margin: const EdgeInsets.only(bottom: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 2, vertical: 4),
+                                decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .scaffoldBackgroundColor
+                                        .withOpacity(0.8)),
+                                width: double.maxFinite,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6.0, vertical: 4),
+                                  child: Text(
+                                    postBody,
+                                    style: GoogleFonts.lato(
+                                        fontSize: 14,
+                                        color: Theme.of(context)
+                                            .appBarTheme
+                                            .foregroundColor),
+                                  ),
+                                ))
+                            : const SizedBox()),
+                    const SizedBox(
+                      height: 2,
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(
-                height: screenHeight * 0.01,
-              ),
-              Text(
-                votes.toString(),
-                style: GoogleFonts.lato(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: votesColor),
-              ),
-              SizedBox(
-                height: screenHeight * 0.01,
-              ),
-              Flexible(
-                  child: Container(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 0, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .scaffoldBackgroundColor
-                              .withOpacity(0.5)),
-                      width: double.maxFinite,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6.0, vertical: 4),
-                        child: Text(
-                          postBody,
-                          style: GoogleFonts.lato(
-                              fontSize: 14,
-                              color: Theme.of(context)
-                                  .appBarTheme
-                                  .foregroundColor),
-                        ),
-                      ))),
-              const SizedBox(
-                height: 2,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+            )
+          ],
+        ));
   }
 }

@@ -4,13 +4,14 @@ import 'package:alumni/widgets/future_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class EventsPage extends StatelessWidget {
-  const EventsPage({Key? key}) : super(key: key);
+class TrendingEventsPage extends StatelessWidget {
+  const TrendingEventsPage({Key? key}) : super(key: key);
 
   Future<List<Map<String, dynamic>>> getPosts() async {
     var eventData = firestore!.collection('events');
     var querySnapshot = await eventData
         .where("eventStartTime", isGreaterThanOrEqualTo: Timestamp.now())
+        .limit(10)
         .get();
     //lastDoc = allDocSnap[allDocSnap.length - 1];
     final List<Map<String, dynamic>> allData = (querySnapshot.docs.map((doc) {
@@ -21,6 +22,14 @@ class EventsPage extends StatelessWidget {
       data["eventDuration"] = Duration(hours: data["eventDuration"]);
       return data;
     }).toList());
+
+    if (allData.isNotEmpty) {
+      allData.sort((a, b) {
+        Timestamp aPostedOn = a["eventAttendeesNumber"];
+        Timestamp bPostedOn = b["eventAttendeesNumber"];
+        return bPostedOn.compareTo(aPostedOn);
+      });
+    }
     return allData;
   }
 
@@ -36,8 +45,13 @@ class EventsPage extends StatelessWidget {
               if (snapshot.hasData) {
                 List<Map<String, dynamic>> eventData = snapshot.data!;
                 return ListView.builder(
-                  itemCount: eventData.length,
+                  shrinkWrap: true,
+                  itemCount: eventData.length + 1,
                   itemBuilder: (BuildContext context, int index) {
+                    if (index == eventData.length) {
+                      return TextButton(
+                          onPressed: () {}, child: Text("See more"));
+                    }
                     return AnEventCard(
                       eventTitleImage: eventData[index]["eventTitleImage"],
                       eventID: eventData[index]["eventID"],

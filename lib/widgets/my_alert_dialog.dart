@@ -1,23 +1,28 @@
+import 'package:alumni/globals.dart';
 import 'package:flutter/material.dart';
 
 class CustomAlertDialog extends StatelessWidget {
   final List<Widget>? actions;
   final Widget? title;
   final Widget? content;
-  final double height;
+  final double? height;
+  final EdgeInsets titlePadding;
   const CustomAlertDialog(
       {required this.actions,
       required this.title,
       required this.content,
-      this.height = 400,
+      this.titlePadding = EdgeInsets.zero,
+      this.height,
       Key? key})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    double height;
+    this.height == null ? height = screenHeight * 0.5 : height = this.height!;
     return AlertDialog(
         backgroundColor: Theme.of(context).canvasColor,
-        titlePadding: EdgeInsets.zero,
+        titlePadding: titlePadding,
         actions: actions != null
             ? [
                 Container(

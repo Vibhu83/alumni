@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:alumni/ThemeData/theme_model.dart';
-import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/chat_room_page.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/events_page.dart';
 import 'package:alumni/views/forum_page.dart';
@@ -15,9 +15,7 @@ import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -30,25 +28,78 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  int _selectedIndex = 0;
-  Map<String, dynamic>? newNotice;
+  int _selectedTab = 0;
+  int _selectedHomeTab = 0;
 
-  late final List<Widget> _widgetOptions = <Widget>[
-    const HomePage(),
+  final List<Widget> _tabsViews = <Widget>[
+    const HomePage(
+      selectedTab: 0,
+    ),
     const EventsPage(),
     const PeoplePage(),
-    const ForumPage()
+    const ForumPage(),
+    const ChatRooms()
+  ];
+
+  final List<BottomNavigationBarItem> _tabs = const [
+    BottomNavigationBarItem(
+      icon: Icon(Icons.home_outlined),
+      activeIcon: Icon(Icons.home_sharp),
+      label: 'Home',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.event_outlined),
+      activeIcon: Icon(Icons.event_sharp),
+      label: 'Events',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.people_alt_outlined),
+      activeIcon: Icon(Icons.people_alt_sharp),
+      label: 'People',
+    ),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.forum_outlined),
+        activeIcon: Icon(Icons.forum_sharp),
+        label: 'Forum'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.chat_bubble_outline_rounded),
+        activeIcon: Icon(Icons.chat_sharp),
+        label: 'Chats')
   ];
 
   void _onItemTapped(int index) {
     setState(() {
-      _selectedIndex = index;
+      _selectedTab = index;
+    });
+  }
+
+  Future<bool> _setUserLoginStatus() async {
+    User? currentUser = auth!.currentUser;
+    chat!.firebaseUser = currentUser;
+    if (currentUser != null) {
+      userData["uid"] = currentUser.uid;
+      await _saveUserData(userData["uid"]);
+      return true;
+    } else {
+      userData["uid"] = null;
+      return false;
+    }
+  }
+
+  Future<bool> _saveUserData(String uid) async {
+    return await firestore!.collection("users").doc(uid).get().then((value) {
+      var temp = value.data();
+      if (temp != null) {
+        temp["uid"] = userData["uid"];
+        userData = temp;
+      }
+      return true;
     });
   }
 
   late List<Widget?> _floatingActionButtons;
 
-  late final Widget loginModalSheet;
+  late final Widget _signInPopUp;
 
   void _setFloatingActionButtons() {
     _floatingActionButtons = [
@@ -59,6 +110,7 @@ class _MainPageState extends State<MainPage> {
       //Chat Floating Button
       null,
       //Forum Floating Button
+      null,
       null
     ];
     if (userData["uid"] != null) {
@@ -88,66 +140,16 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  Future<bool?> initialiseApp() async {
-    bool? returnVal = false;
-    returnVal = await initialiseFireBaseApp().then((app) async {
-      auth = FirebaseAuth.instance;
-      firestore = FirebaseFirestore.instance;
-      _setUserLoginStatus();
-      await _saveUserData();
-      _setFloatingActionButtons();
-      return true;
-    });
-    return returnVal;
-  }
-
-  Future<FirebaseApp> initialiseFireBaseApp() async {
-    if (Firebase.apps.isEmpty) {
-      var temp = await Firebase.initializeApp(
-              options: DefaultFirebaseOptions.currentPlatform)
-          .then((value) {
-        return value;
-      });
-      return temp;
-    } else {
-      return Firebase.apps[Firebase.apps.length - 1];
-    }
-  }
-
-  Future<bool> _saveUserData() async {
-    return await firestore!
-        .collection("users")
-        .doc(userData["uid"])
-        .get()
-        .then((value) {
-      var temp = value.data();
-      if (temp != null) {
-        temp["uid"] = userData["uid"];
-        userData = temp;
-      }
-      return true;
-    });
-  }
-
-  void _setUserLoginStatus() {
-    User? currentUser = auth!.currentUser;
-    if (currentUser != null) {
-      userData["uid"] = currentUser.uid;
-    } else {
-      userData["uid"] = null;
-    }
-  }
-
   @override
   void initState() {
-    loginModalSheet = const LoginRegisterPopUp();
-    _selectedIndex = widget.startingIndex;
+    _signInPopUp = const LoginRegisterPopUp();
+    _selectedTab = widget.startingIndex;
     super.initState();
   }
 
   @override
   void dispose() {
-    _widgetOptions.clear();
+    _tabsViews.clear();
     _floatingActionButtons.clear();
     super.dispose();
   }
@@ -155,11 +157,12 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     setScreenDimensions(context);
+
     return FutureBuilder(
-        future: initialiseApp(),
+        future: _setUserLoginStatus(),
         builder: ((context, AsyncSnapshot<bool?> snapshot) {
           List<Widget> children;
-          if (snapshot.data == true) {
+          if (snapshot.hasData) {
             return _buildPage();
           } else if (snapshot.hasError) {
             children = buildFutureError(snapshot);
@@ -175,9 +178,9 @@ class _MainPageState extends State<MainPage> {
         }));
   }
 
-  Consumer _buildPage() {
-    List<Widget> pageFeatureWidgets = [];
-    switch (_selectedIndex) {
+  List<Widget> _setAppBarIconsForSelectedTabs() {
+    List<Widget> appBarIcons = [];
+    switch (_selectedTab) {
       case 0:
         var addNoticeButton = buildAppBarIcon(
             onPressed: () {
@@ -189,7 +192,7 @@ class _MainPageState extends State<MainPage> {
             },
             icon: Icons.notification_add_sharp);
         if (userData["accessLevel"] == "admin") {
-          pageFeatureWidgets.add(addNoticeButton);
+          appBarIcons.add(addNoticeButton);
         }
         break;
       case 1:
@@ -199,7 +202,7 @@ class _MainPageState extends State<MainPage> {
             },
             icon: Icons.history);
 
-        pageFeatureWidgets.add(pastEventButton);
+        appBarIcons.add(pastEventButton);
         break;
       case 2:
         var searchForumButton = buildAppBarIcon(
@@ -207,15 +210,64 @@ class _MainPageState extends State<MainPage> {
               print("Searching forum");
             },
             icon: Icons.search_rounded);
-        pageFeatureWidgets.add(searchForumButton);
+        appBarIcons.add(searchForumButton);
         break;
     }
+    return appBarIcons;
+  }
+
+  Consumer _buildPage() {
+    _setFloatingActionButtons();
+
     Row pageFeatures = Row(
-      children: pageFeatureWidgets,
+      children: _setAppBarIconsForSelectedTabs(),
     );
     return Consumer<ThemeModel>(
       builder: ((context, ThemeModel themeNotifier, child) => Scaffold(
           appBar: buildAppBar(
+            appBarHeight: _selectedTab == 0 ? screenHeight * 0.117 : null,
+            bottom: _selectedTab == 0
+                ? PreferredSize(
+                    preferredSize: Size.fromHeight(screenHeight * 0.1),
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          border: Border(
+                              top: BorderSide(
+                                  color: Theme.of(context)
+                                      .appBarTheme
+                                      .shadowColor!
+                                      .withOpacity(0.3)))),
+                      child: DefaultTabController(
+                          length: 3,
+                          child: TabBar(
+                            labelColor:
+                                Theme.of(context).appBarTheme.foregroundColor,
+                            onTap: (value) {
+                              setState(() {
+                                _tabsViews[0] = HomePage(
+                                  selectedTab: value,
+                                );
+                              });
+                            },
+                            labelPadding: EdgeInsets.zero,
+                            padding: EdgeInsets.zero,
+                            tabs: const [
+                              Tab(
+                                text: "Trending Posts",
+                              ),
+                              Tab(
+                                text: "Upcoming Events",
+                              ),
+                              Tab(
+                                text: "Top Alums",
+                              ),
+                            ],
+                          )),
+                    ),
+                  )
+                : const PreferredSize(
+                    preferredSize: Size.zero, child: SizedBox()),
             title: Container(
               width: screenWidth * 0.22,
               height: screenHeight * 0.043,
@@ -249,7 +301,7 @@ class _MainPageState extends State<MainPage> {
                           showDialog(
                               context: context,
                               builder: (BuildContext context) {
-                                return loginModalSheet;
+                                return _signInPopUp;
                               });
                         }
                       },
@@ -258,11 +310,37 @@ class _MainPageState extends State<MainPage> {
               ),
             ],
           ),
-          // backgroundColor: currentTheme!.mainScaffoldColor,
-          floatingActionButton: _floatingActionButtons[_selectedIndex],
-          endDrawer:
-              userData["uid"] == null ? null : _buildProfileDrawer(context),
-          body: _widgetOptions.elementAt(_selectedIndex),
+          floatingActionButton: _floatingActionButtons[_selectedTab],
+          endDrawer: _buildProfileDrawer(context),
+          body: NestedScrollView(
+              body: _tabsViews.elementAt(_selectedTab),
+              headerSliverBuilder: ((context, innerBoxIsScrolled) {
+                print(innerBoxIsScrolled);
+                return [
+                  SliverAppBar(
+                    stretchTriggerOffset: 1,
+                    onStretchTrigger: () async {
+                      setState(() {});
+                    },
+                    toolbarHeight: 1,
+                    backgroundColor: Colors.transparent,
+                    actions: const [SizedBox()],
+                    expandedHeight: _selectedTab == 0 ? screenHeight * 0.19 : 0,
+                    flexibleSpace: _selectedTab == 0
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 4),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: FlexibleSpaceBar(
+                                background: Image.asset("assets/banner.jpg"),
+                              ),
+                            ),
+                          )
+                        : null,
+                  )
+                ];
+              })),
           bottomNavigationBar: _buildBottomNavBar())),
     );
   }
@@ -284,9 +362,9 @@ class _MainPageState extends State<MainPage> {
         borderRadius: BorderRadius.circular(4.0),
         child: BottomNavigationBar(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          //elevation: 0.0,
-          items: _buildNavBarTabs(),
-          currentIndex: _selectedIndex,
+          elevation: 1,
+          items: _tabs,
+          currentIndex: _selectedTab,
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: Theme.of(context).appBarTheme.foregroundColor,
@@ -321,65 +399,65 @@ class _MainPageState extends State<MainPage> {
     ];
   }
 
-  Container _buildMenuDrawer(BuildContext context) {
-    //Make some logic to change the trailing icon var depending on the themeMode
-    double topPad = screenHeight * 0.082;
-    double bottomPad = screenHeight * 0.01;
-    Icon trailingIcon = const Icon(Icons.nightlight);
-    return Container(
-      padding: EdgeInsets.fromLTRB(0, topPad, 0, bottomPad),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-            topRight: Radius.circular(4), bottomRight: Radius.circular(4)),
-        child: Drawer(
-          // backgroundColor: const Color(drawerColor),
-          child: Column(
-            children: [
-              Expanded(
-                child: Container(
-                  alignment: Alignment.center,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Column(children: [
-                    Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                        child: _buildDrawListTile("Alumni List", () {})),
-                    _buildDrawListTile("Your Calendar", () {}),
-                    _buildDrawListTile("About", () {}),
-                    _buildDrawListTile("Contact Us", () {})
-                  ]),
-                ),
-              ),
-              Container(
-                height: 54,
-                width: double.maxFinite,
-                decoration: BoxDecoration(
-                    color: Colors.grey.shade900,
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(1),
-                          spreadRadius: 4,
-                          blurRadius: 4,
-                          offset: const Offset(0, 7))
-                    ],
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(4.0))),
-                child: ListTile(
-                  leading: const Icon(Icons.settings),
-                  title: const Text("Settings"),
-                  trailing: IconButton(
-                    icon: trailingIcon,
-                    onPressed: () {},
-                  ),
-                  onTap: () {},
-                ),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Container _buildMenuDrawer(BuildContext context) {
+  //   //Make some logic to change the trailing icon var depending on the themeMode
+  //   double topPad = screenHeight * 0.082;
+  //   double bottomPad = screenHeight * 0.01;
+  //   Icon trailingIcon = const Icon(Icons.nightlight);
+  //   return Container(
+  //     padding: EdgeInsets.fromLTRB(0, topPad, 0, bottomPad),
+  //     child: ClipRRect(
+  //       borderRadius: const BorderRadius.only(
+  //           topRight: Radius.circular(4), bottomRight: Radius.circular(4)),
+  //       child: Drawer(
+  //         // backgroundColor: const Color(drawerColor),
+  //         child: Column(
+  //           children: [
+  //             Expanded(
+  //               child: Container(
+  //                 alignment: Alignment.center,
+  //                 padding:
+  //                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  //                 child: Column(children: [
+  //                   Padding(
+  //                       padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+  //                       child: _buildDrawListTile("Alumni List", () {})),
+  //                   _buildDrawListTile("Your Calendar", () {}),
+  //                   _buildDrawListTile("About", () {}),
+  //                   _buildDrawListTile("Contact Us", () {})
+  //                 ]),
+  //               ),
+  //             ),
+  //             Container(
+  //               height: 54,
+  //               width: double.maxFinite,
+  //               decoration: BoxDecoration(
+  //                   color: Colors.grey.shade900,
+  //                   boxShadow: [
+  //                     BoxShadow(
+  //                         color: Colors.black.withOpacity(1),
+  //                         spreadRadius: 4,
+  //                         blurRadius: 4,
+  //                         offset: const Offset(0, 7))
+  //                   ],
+  //                   borderRadius:
+  //                       const BorderRadius.vertical(top: Radius.circular(4.0))),
+  //               child: ListTile(
+  //                 leading: const Icon(Icons.settings),
+  //                 title: const Text("Settings"),
+  //                 trailing: IconButton(
+  //                   icon: trailingIcon,
+  //                   onPressed: () {},
+  //                 ),
+  //                 onTap: () {},
+  //               ),
+  //             )
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   void logoutUser() async {
     await FirebaseAuth.instance.signOut();
@@ -390,7 +468,10 @@ class _MainPageState extends State<MainPage> {
     }));
   }
 
-  Widget _buildProfileDrawer(BuildContext context) {
+  Widget? _buildProfileDrawer(BuildContext context) {
+    if (userData["uid"] == null) {
+      return null;
+    }
     double topPad = screenHeight * 0.085;
     double bottomPad = screenHeight * 0.01;
     return Container(
@@ -493,131 +574,131 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Container _buildTopAlum() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
-      // decoration: BoxDecoration(
-      //     border: Border.all(color: Colors.blue),
-      //     borderRadius: BorderRadius.circular(2.5)),
-      child: Column(children: [
-        const Center(
-            child: Text(
-          "Alumni Of The Month",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        )),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.person),
-                iconSize: 120,
-              ),
-              Column(
-                children: [
-                  const Text(
-                    "Chosen Alumni Name",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  const Text("Chosen Alumni Desciption here",
-                      style:
-                          TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text("Show Profile"),
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text("Show Post"),
-                      )
-                    ],
-                  )
-                ],
-              )
-            ],
-          ),
-        )
-      ]),
-    );
-  }
+  // Container _buildTopAlum() {
+  //   return Container(
+  //     padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
+  //     // decoration: BoxDecoration(
+  //     //     border: Border.all(color: Colors.blue),
+  //     //     borderRadius: BorderRadius.circular(2.5)),
+  //     child: Column(children: [
+  //       const Center(
+  //           child: Text(
+  //         "Alumni Of The Month",
+  //         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+  //       )),
+  //       Container(
+  //         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
+  //         child: Row(
+  //           children: [
+  //             IconButton(
+  //               onPressed: () {},
+  //               icon: const Icon(Icons.person),
+  //               iconSize: 120,
+  //             ),
+  //             Column(
+  //               children: [
+  //                 const Text(
+  //                   "Chosen Alumni Name",
+  //                   style: TextStyle(fontSize: 16),
+  //                 ),
+  //                 const Text("Chosen Alumni Desciption here",
+  //                     style:
+  //                         TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
+  //                 Row(
+  //                   children: [
+  //                     TextButton(
+  //                       onPressed: () {},
+  //                       child: const Text("Show Profile"),
+  //                     ),
+  //                     TextButton(
+  //                       onPressed: () {},
+  //                       child: const Text("Show Post"),
+  //                     )
+  //                   ],
+  //                 )
+  //               ],
+  //             )
+  //           ],
+  //         ),
+  //       )
+  //     ]),
+  //   );
+  // }
 
-  Container _buildTopEvents() {
-    return Container(
-        padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
-        margin: const EdgeInsets.fromLTRB(4, 15, 4, 2),
-        child: Column(children: const [
-          Align(
-            alignment: Alignment.topLeft,
-            child: Text(
-              "Top Events",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          SizedBox(
-            height: 20,
-          ),
-          Placeholder(
-            fallbackHeight: 600,
-          )
-        ]));
-  }
+  // Container _buildTopEvents() {
+  //   return Container(
+  //       padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
+  //       margin: const EdgeInsets.fromLTRB(4, 15, 4, 2),
+  //       child: Column(children: const [
+  //         Align(
+  //           alignment: Alignment.topLeft,
+  //           child: Text(
+  //             "Top Events",
+  //             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+  //           ),
+  //         ),
+  //         SizedBox(
+  //           height: 20,
+  //         ),
+  //         Placeholder(
+  //           fallbackHeight: 600,
+  //         )
+  //       ]));
+  // }
 }
 
-class CustomSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  final double expandedHeight;
-  final ThemeModel themeNotifier;
-  final Widget pageFeatures;
-  final Widget loginModalSheet;
+// class CustomSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+//   final double expandedHeight;
+//   final ThemeModel themeNotifier;
+//   final Widget pageFeatures;
+//   final Widget _signInPopUp;
 
-  const CustomSliverAppBarDelegate(
-      {required this.expandedHeight,
-      required this.themeNotifier,
-      required this.pageFeatures,
-      required this.loginModalSheet});
+//   const CustomSliverAppBarDelegate(
+//       {required this.expandedHeight,
+//       required this.themeNotifier,
+//       required this.pageFeatures,
+//       required this._signInPopUp});
 
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Stack(
-      fit: StackFit.expand,
-      overflow: Overflow.visible,
-      children: [
-        _buildAppBar(shrinkOffset, context),
-        _buildBackground(shrinkOffset),
-      ],
-    );
-  }
+//   @override
+//   Widget build(
+//       BuildContext context, double shrinkOffset, bool overlapsContent) {
+//     return Stack(
+//       fit: StackFit.expand,
+//       overflow: Overflow.visible,
+//       children: [
+//         _buildAppBar(shrinkOffset, context),
+//         _buildBackground(shrinkOffset),
+//       ],
+//     );
+//   }
 
-  double disappear(double shrinkOffset) => 1 - shrinkOffset / expandedHeight;
+//   double disappear(double shrinkOffset) => 1 - shrinkOffset / expandedHeight;
 
-  Widget _buildBackground(double shrinkOffset) {
-    return Opacity(
-      opacity: disappear(shrinkOffset),
-      child: Image.asset(
-        "assets/banner.jpg",
-        fit: BoxFit.fitWidth,
-      ),
-    );
-  }
+//   Widget _buildBackground(double shrinkOffset) {
+//     return Opacity(
+//       opacity: disappear(shrinkOffset),
+//       child: Image.asset(
+//         "assets/banner.jpg",
+//         fit: BoxFit.fitWidth,
+//       ),
+//     );
+//   }
 
-  double appear(double shrinkOffset) => shrinkOffset / expandedHeight;
+//   double appear(double shrinkOffset) => shrinkOffset / expandedHeight;
 
-  Widget _buildAppBar(double shrinkOffset, BuildContext context) {
-    print(shrinkOffset);
-    return Container();
-  }
+//   Widget _buildAppBar(double shrinkOffset, BuildContext context) {
+//     print(shrinkOffset);
+//     return Container();
+//   }
 
-  @override
-  double get maxExtent => expandedHeight;
+//   @override
+//   double get maxExtent => expandedHeight;
 
-  @override
-  double get minExtent => screenHeight * 0.09;
+//   @override
+//   double get minExtent => screenHeight * 0.09;
 
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return true;
-  }
-}
+//   @override
+//   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+//     return true;
+//   }
+// }

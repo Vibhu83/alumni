@@ -8,11 +8,13 @@ PreferredSize buildAppBar(
     Color? shadowColor,
     Widget? leading,
     List<Widget>? actions,
+    PreferredSize? bottom,
     Widget? title}) {
-  appBarHeight ??= screenHeight * 0.045;
+  appBarHeight ??= screenHeight * 0.055;
   return PreferredSize(
     preferredSize: Size.fromHeight(appBarHeight),
     child: AppBar(
+        bottom: bottom,
         titleSpacing: null,
         centerTitle: true,
         leadingWidth: leadingWidth,

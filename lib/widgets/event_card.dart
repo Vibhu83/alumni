@@ -7,7 +7,7 @@ import '../views/an_event_page.dart';
 
 class AnEventCard extends StatefulWidget {
   final String eventID;
-  final Image? eventTitleImage;
+  final String? eventTitleImage;
   final String eventTitle;
   final int eventAttendeesNumber;
   final String eventHolder;
@@ -118,11 +118,15 @@ class _AnEventCardState extends State<AnEventCard> {
         ),
       ),
     ];
-
+    Image? titleImage;
     if (widget.eventTitleImage != null) {
-      firstRowChildren.add(const Placeholder(
-        fallbackHeight: 110,
-        fallbackWidth: 125,
+      titleImage = Image.network(widget.eventTitleImage!);
+      firstRowChildren.add(Container(
+        height: screenHeight * 0.110,
+        width: screenWidth * 0.3,
+        decoration: BoxDecoration(
+            image: DecorationImage(
+                image: titleImage.image, fit: BoxFit.fitHeight)),
       ));
     }
 
@@ -132,6 +136,8 @@ class _AnEventCardState extends State<AnEventCard> {
         onTap: () {
           Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
             return AnEventPage(
+                eventTitleImagePath: widget.eventTitleImage,
+                eventTitleImage: titleImage,
                 eventID: widget.eventID,
                 eventTitle: title,
                 eventHolder: eventHolder,
