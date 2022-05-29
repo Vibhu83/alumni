@@ -45,7 +45,7 @@ class TrendingEventsPage extends StatelessWidget {
               if (snapshot.hasData) {
                 List<Map<String, dynamic>> eventData = snapshot.data!;
                 return eventData.isEmpty
-                    ? Center(
+                    ? const Center(
                         child: Text("No events found"),
                       )
                     : ListView.builder(
@@ -54,7 +54,8 @@ class TrendingEventsPage extends StatelessWidget {
                         itemBuilder: (BuildContext context, int index) {
                           if (index == eventData.length) {
                             return TextButton(
-                                onPressed: () {}, child: Text("See more"));
+                                onPressed: () {},
+                                child: const Text("See more"));
                           }
                           return AnEventCard(
                             eventTitleImage: eventData[index]

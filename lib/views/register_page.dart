@@ -862,7 +862,6 @@ class _RegisterView extends State<RegisterView> {
   }
 
   Future<String?> registerUserAndSaveDetails() async {
-    print(profilePic!.path);
     final String rollNo = _rollNo.text;
     final String name = _name.text;
     final String email = _email.text;
@@ -885,7 +884,7 @@ class _RegisterView extends State<RegisterView> {
       course = "";
     }
     try {
-      var user = await auth!
+      await auth!
           .createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -894,7 +893,6 @@ class _RegisterView extends State<RegisterView> {
         var uid = userRecord.user!.uid;
         String? profilePicUrl;
         if (profilePic != null) {
-          print(profilePic!.path);
           profilePicUrl = await uploadFileAndGetLink(
               profilePic!.path, uid.toString() + "/profilePicture", context);
         }
@@ -957,7 +955,6 @@ class _RegisterView extends State<RegisterView> {
             final String residenceContactNo = _residenceContactNo.text;
             final String currentOfficeContactNo = _currentOfficeContactNo.text;
             final String mobileContactNo = _mobileContactNo.text;
-            print(mobileContactNo);
             //
             //
             final String previousOrgName = _previousOrgName.text;

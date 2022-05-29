@@ -113,7 +113,7 @@ class _AdminRecommendationListTileState
                         content,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 3,
-                        style: TextStyle(
+                        style: const TextStyle(
                             // color: Colors.grey.shade400,
                             fontSize: 13,
                             fontWeight: FontWeight.normal),
@@ -123,7 +123,7 @@ class _AdminRecommendationListTileState
                       ),
                       Text(
                         "(" + time + " ago)",
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 10,
                             // color: Colors.grey.shade600,
                             fontStyle: FontStyle.italic),

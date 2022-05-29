@@ -662,7 +662,6 @@ class _CreateEventState extends State<CreateEvent> {
                       for (XFile e in value) {
                         newGallery.add(Image.file(File(e.path)));
                         newImagePaths.add(e.path);
-                        print(imagePaths);
                       }
                       setState(() {
                         gallery = newGallery;
@@ -847,7 +846,7 @@ class _AddPersonToEventPopUpState extends State<AddPersonToEventPopUp> {
                     Navigator.of(context).pop(value);
                   });
                 },
-                child: Text("Select a user")),
+                child: const Text("Select a user")),
           )
         ],
       ),

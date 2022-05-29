@@ -1,6 +1,5 @@
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class FullScreenImageViewer extends StatefulWidget {
   final List<Image> child;

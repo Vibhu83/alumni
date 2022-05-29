@@ -242,7 +242,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
                       for (XFile e in value) {
                         newImages.add(Image.file(File(e.path)));
                         newImageUrls.add(e.path);
-                        print(_imageUrls);
                       }
                       setState(() {
                         _images = newImages;

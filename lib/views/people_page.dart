@@ -149,7 +149,6 @@ class _PeoplePageState extends State<PeoplePage> {
           List<Widget> children;
           if (snapshot.hasData) {
             List<Map<String, dynamic>> allUserData = snapshot.data!;
-            print(snapshot.data);
             return ListView.builder(
                 itemCount: allUserData.length + 1,
                 itemBuilder: ((context, index) {
@@ -327,7 +326,6 @@ class _PeoplePageState extends State<PeoplePage> {
   }
 
   Widget _buildUserCard(Map<String, dynamic> user, bool isInSelectionMode) {
-    print(user);
     String subTitle = user["accessLevel"];
     subTitle = subTitle.substring(0, 1).toUpperCase() + subTitle.substring(1);
     String? currentDesignation = user["currentDesignation"];

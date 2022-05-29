@@ -1,8 +1,5 @@
 import 'package:alumni/globals.dart';
-import 'package:alumni/views/trending_events.dart';
-import 'package:alumni/views/trending_post.dart';
 import 'package:alumni/widgets/event_card.dart';
-import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/notice_popup.dart';
 import 'package:alumni/widgets/post_card.dart';
@@ -12,16 +9,15 @@ import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
   final int selectedTab;
-  const HomePage({this.selectedTab = 0, Key? key}) : super(key: key);
+  const HomePage({required this.selectedTab, Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  Widget loginModalSheet = const LoginRegisterPopUp();
-  Widget? noticeWidget;
   late bool isInitialBuild;
+  Widget? noticeWidget;
   @override
   void initState() {
     isInitialBuild = true;
@@ -44,6 +40,7 @@ class _HomePageState extends State<HomePage> {
     var eventData = firestore!.collection('events');
     var querySnapshot = await eventData
         .where("eventStartTime", isGreaterThanOrEqualTo: Timestamp.now())
+        .orderBy("eventStartTime", descending: true)
         .limit(10)
         .get();
     //lastDoc = allDocSnap[allDocSnap.length - 1];
@@ -82,7 +79,7 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (BuildContext context, int index) {
                     if (index == eventData.length) {
                       return TextButton(
-                          onPressed: () {}, child: Text("See more"));
+                          onPressed: () {}, child: const Text("See more"));
                     }
                     return AnEventCard(
                       eventTitleImage: eventData[index]["eventTitleImage"],
@@ -127,7 +124,6 @@ class _HomePageState extends State<HomePage> {
     }).toList());
 
     for (int i = 0; i < allData.length; i++) {
-      print(allData[i]);
       allData[i]["authorName"] =
           await getAuthorNameByID(allData[i]["postAuthorID"]);
     }
@@ -147,7 +143,8 @@ class _HomePageState extends State<HomePage> {
               itemCount: postsData.length + 1,
               itemBuilder: (BuildContext context, int index) {
                 if (index == postsData.length) {
-                  return TextButton(onPressed: () {}, child: Text("See more"));
+                  return TextButton(
+                      onPressed: () {}, child: const Text("See more"));
                 }
                 String postID = postsData[index]["postID"];
                 String postTitle = postsData[index]["postTitle"];
@@ -200,24 +197,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return _tabViews[widget.selectedTab];
-  }
-
-  Container _buildTopPosts() {
-    return Container(
-        padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
-        margin: const EdgeInsets.fromLTRB(4, 15, 4, 2),
-        child: Column(children: const [
-          Align(
-            alignment: Alignment.topLeft,
-            child: Text(
-              "Top Posts",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          SizedBox(
-            height: 20,
-          ),
-        ]));
+    int currentTab =
+        currentHomeTab == null ? widget.selectedTab : currentHomeTab!;
+    return _tabViews[currentTab];
   }
 }

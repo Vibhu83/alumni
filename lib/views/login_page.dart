@@ -191,7 +191,7 @@ class _LoginViewState extends State<LoginView> {
               ),
             ),
             SizedBox(height: screenHeight * .01),
-            Text(
+            const Text(
               "Sign in to continue!",
               style: TextStyle(
                 fontSize: 18,

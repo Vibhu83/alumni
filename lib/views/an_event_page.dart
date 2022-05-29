@@ -7,7 +7,6 @@ import 'package:alumni/widgets/ask_message_popup.dart';
 import 'package:alumni/widgets/full_screen_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
-import 'package:alumni/widgets/input_field.dart';
 import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -273,7 +272,6 @@ class _AnEventPageState extends State<AnEventPage> {
           if (snapshot.hasData) {
             return _buildPage();
           } else if (snapshot.hasError) {
-            print(snapshot.error);
             children = buildFutureError(snapshot);
           } else {
             children = buildFutureLoading(snapshot);

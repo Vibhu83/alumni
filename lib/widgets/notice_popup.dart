@@ -59,8 +59,6 @@ class _NoticesState extends State<Notices> {
       for (Map map in sortedNotices) {
         userData["noticesDismissed"].add(map["noticeID"]);
       }
-      print(sortedNotices);
-      print(userData["noticesDismissed"]);
       firestore!
           .collection("users")
           .doc(userData["uid"])
@@ -149,7 +147,7 @@ class _NoticesState extends State<Notices> {
                 contentPadding: EdgeInsets.zero,
                 actionsPadding: EdgeInsets.zero,
                 scrollable: true,
-                backgroundColor: Color.fromARGB(255, 0, 73, 116),
+                backgroundColor: const Color.fromARGB(255, 0, 73, 116),
                 title: Container(
                   decoration: const BoxDecoration(
                       border: Border(bottom: BorderSide(color: Colors.grey))),

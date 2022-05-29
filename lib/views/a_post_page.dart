@@ -220,7 +220,6 @@ class _APost extends State<APost> {
 
       lastPostBool = voteOffsetToVoteBoolMap[voteOffset];
       lastPostNewVotes = votes;
-      print(lastPostNewVotes);
     });
     return changeInVote;
   }
@@ -324,7 +323,7 @@ class _APost extends State<APost> {
               ),
             ),
           )
-        : SizedBox();
+        : const SizedBox();
 
     Widget bannerWidget;
     double bannerAreaHeight;

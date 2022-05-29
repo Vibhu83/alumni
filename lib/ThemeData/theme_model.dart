@@ -1,5 +1,4 @@
 import 'package:alumni/ThemeData/theme_preference.dart';
-import 'package:alumni/globals.dart';
 import 'package:flutter/material.dart';
 
 class ThemeModel extends ChangeNotifier {

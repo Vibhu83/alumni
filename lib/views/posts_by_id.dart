@@ -23,7 +23,6 @@ class PostsByIDPage extends StatelessWidget {
     }).toList());
 
     for (int i = 0; i < allData.length; i++) {
-      print(allData[i]);
       allData[i]["authorName"] =
           await getAuthorNameByID(allData[i]["postAuthorID"]);
     }

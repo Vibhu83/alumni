@@ -2,12 +2,10 @@ import 'dart:io';
 
 import 'package:alumni/classes/date_picker_theme.dart';
 import 'package:alumni/globals.dart';
-import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/change_password_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:alumni/widgets/year_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({Key? key}) : super(key: key);
@@ -66,8 +63,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   late String _signUpAs;
 
-  String? _emailError,
-      _nameError,
+  String? _nameError,
       _idError,
       _addmissionYearError,
       _courseError,
@@ -84,13 +80,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   late bool _isAnAdmin;
 
-  double _strength = 0;
-  String _displayText = "";
-
   @override
   void initState() {
     profilePicPath = userData["profilePic"];
-    print(profilePicPath);
     if (profilePicPath != null) {
       profilePic = Image.network(profilePicPath!);
     }
@@ -165,7 +157,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     _isNRI = userData["isNRI"];
 
-    _emailError = null;
     _nameError = null;
     _idError = null;
     _addmissionYearError = null;
@@ -709,7 +700,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   void resetErrorText() {
     setState(() {
-      _emailError = null;
       _nameError = null;
       _idError = null;
       _addmissionYearError = null;
@@ -727,16 +717,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   bool validate() {
     resetErrorText();
-    String? newEmailError,
+    String?
         // newPasswordError,
         newIdError,
         newNameError,
         newAddmissionError,
         newCourseError;
-
-    RegExp emailExp = RegExp(
-        r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$");
-
     bool isValid = true;
     if (_name.text.isEmpty) {
       newNameError = "Invalid name";
@@ -750,11 +736,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         newIdError = "ID must be of 6 digits";
         isValid = false;
       }
-    }
-
-    if (_email.text.isEmpty || !emailExp.hasMatch(_email.text)) {
-      newEmailError = "Email is invalid";
-      isValid = false;
     }
 
     // if (_password.text.isEmpty || _confirmPassword.text.isEmpty) {
@@ -780,7 +761,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() {
       _nameError = newNameError;
       _idError = newIdError;
-      _emailError = newEmailError;
       // _passwordError = newPasswordError;
       _addmissionYearError = newAddmissionError;
       _courseError = newCourseError;
@@ -886,7 +866,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       String uid = userData["uid"].toString();
       String? profilePicUrl;
       if (profilePicPath!.substring(0, 5) == "/data") {
-        print("uploading");
         profilePicUrl = await uploadFileAndGetLink(
             profilePicPath!, uid.toString() + "/profilePicture", context);
       }
@@ -938,7 +917,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           final String residenceContactNo = _residenceContactNo.text;
           final String currentOfficeContactNo = _currentOfficeContactNo.text;
           final String mobileContactNo = _mobileContactNo.text;
-          print(mobileContactNo);
           //
           //
           final String previousOrgName = _previousOrgName.text;
@@ -988,7 +966,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         //   return const MainPage();
         // }));
       });
-      print("updated");
       return "Updated";
     } on FirebaseAuthException catch (e) {
       return e.message;
@@ -1148,50 +1125,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  InputField _buildEmailField() {
-    return InputField(
-      autoCorrect: false,
-      labelText: "Email*",
-      controller: _email,
-      errorText: _emailError,
-      keyboardType: TextInputType.emailAddress,
-      textInputAction: TextInputAction.next,
-      autoFocus: false,
-    );
-  }
-
-  void _checkPassword(String value) {
-    RegExp numReg = RegExp(r".*[0-9].*");
-    RegExp specialReg = RegExp(r".*[#$%_@&].*");
-    String password = value.trim();
-    double str = 0;
-    String text = "";
-    if (password.isEmpty) {
-      str = 0;
-      text = "Please enter your password";
-    } else if (password.length < 8) {
-      str = 1 / 4;
-      text = "Password is too short";
-    } else if (password.length < 16) {
-      str = 2 / 4;
-      text = "Acceptable but not strong";
-    } else {
-      if (!specialReg.hasMatch(password) || !numReg.hasMatch(password)) {
-        str = 3 / 4;
-        text = "Password is strong";
-      } else {
-        str = 1;
-        text = "Your password is very strong";
-      }
-    }
-    setState(() {
-      _strength = str;
-      _displayText = text;
-    });
-  }
-
   Widget _buildProfilePicField() {
-    print(profilePic == null);
     return GroupBox(
       titleBackground: Theme.of(context).canvasColor,
       title: "Profile Picture",
@@ -1334,7 +1268,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               });
             },
             child: const Text("Change Password"))
-        : SizedBox();
+        : const SizedBox();
   }
 
   Widget _buildCourseDropDown() {

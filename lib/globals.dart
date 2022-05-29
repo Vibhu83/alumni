@@ -15,6 +15,8 @@ import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
 bool noticesSeen = false;
 bool emailPopUpShown = false;
 
+int? currentHomeTab;
+
 FirebaseApp? app;
 FirebaseAuth? auth;
 FirebaseFirestore? firestore;
@@ -228,7 +230,6 @@ void changeVote(String postID, int changeBy) {
         .update({postID: lastPostBool});
     int totalVotes = votes + changeBy;
     int rating = getRating(totalVotes, postedOn);
-    print(rating);
     firestore!.collection("posts").doc(postID).update({"rating": rating});
   });
 }

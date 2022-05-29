@@ -22,7 +22,6 @@ class TrendingPostsPage extends StatelessWidget {
     }).toList());
 
     for (int i = 0; i < allData.length; i++) {
-      print(allData[i]);
       allData[i]["authorName"] =
           await getAuthorNameByID(allData[i]["postAuthorID"]);
     }
@@ -39,7 +38,7 @@ class TrendingPostsPage extends StatelessWidget {
           if (snapshot.hasData) {
             var postsData = snapshot.data!;
             return postsData.isEmpty
-                ? Center(
+                ? const Center(
                     child: Text("No posts found"),
                   )
                 : ListView.builder(
@@ -48,7 +47,7 @@ class TrendingPostsPage extends StatelessWidget {
                     itemBuilder: (BuildContext context, int index) {
                       if (index == postsData.length) {
                         return TextButton(
-                            onPressed: () {}, child: Text("See more"));
+                            onPressed: () {}, child: const Text("See more"));
                       }
                       String postID = postsData[index]["postID"];
                       String postTitle = postsData[index]["postTitle"];

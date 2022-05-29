@@ -27,7 +27,6 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
         return e.data()["uid"].toString();
       }).toList();
     });
-    print(idList);
     if (idList.isEmpty) {
       return true;
     }
@@ -38,11 +37,9 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
         .then((value) {
       int index = 0;
       value.docs.map((e) {
-        print(e.data());
         alumni[index].addAll(e.data());
       }).toList();
     });
-    print(alumni);
     return true;
   }
 
@@ -372,11 +369,11 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                   _currentPage! < (alumni.length - 1)
                                       ? _pageController
                                           .jumpToPage(_currentPage! + 1)
-                                      : print("see more alums");
+                                      : null;
                                 },
                                 child: _currentPage! < (alumni.length - 1)
-                                    ? Text("Next")
-                                    : Text("See more Alums"),
+                                    ? const Text("Next")
+                                    : const Text("See more Alums"),
                               ),
                             )
                           ]),

@@ -147,7 +147,6 @@ class _AnEventCardState extends State<AnEventCard> {
           }))).then((value) {
             if (lastEventAttendeeChange != null &&
                 lastEventAttendeeChange != 0) {
-              print("changing values");
               setState(() {
                 eventAttendees += lastEventAttendeeChange!;
               });

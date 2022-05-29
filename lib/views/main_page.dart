@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:alumni/ThemeData/theme_model.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/chat_room_page.dart';
@@ -29,11 +27,11 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  int _selectedTab = 0;
+  late int _selectedTab;
 
   final List<Widget> _tabsViews = <Widget>[
-    const HomePage(
-      selectedTab: 0,
+    HomePage(
+      selectedTab: currentHomeTab == null ? 0 : currentHomeTab!,
     ),
     const EventsPage(),
     const PeoplePage(),
@@ -171,6 +169,7 @@ class _MainPageState extends State<MainPage> {
 
   @override
   void initState() {
+    _selectedTab = 0;
     _signInPopUp = const LoginRegisterPopUp();
     _selectedTab = widget.startingIndex;
     super.initState();
@@ -225,20 +224,14 @@ class _MainPageState extends State<MainPage> {
         }
         break;
       case 1:
-        var pastEventButton = buildAppBarIcon(
-            onPressed: () {
-              print("getting past events");
-            },
-            icon: Icons.history);
+        var pastEventButton =
+            buildAppBarIcon(onPressed: () {}, icon: Icons.history);
 
         appBarIcons.add(pastEventButton);
         break;
       case 2:
-        var searchForumButton = buildAppBarIcon(
-            onPressed: () {
-              print("Searching forum");
-            },
-            icon: Icons.search_rounded);
+        var searchForumButton =
+            buildAppBarIcon(onPressed: () {}, icon: Icons.search_rounded);
         appBarIcons.add(searchForumButton);
         break;
     }
@@ -268,11 +261,14 @@ class _MainPageState extends State<MainPage> {
                                       .shadowColor!
                                       .withOpacity(0.3)))),
                       child: DefaultTabController(
+                          initialIndex:
+                              currentHomeTab == null ? 0 : currentHomeTab!,
                           length: 3,
                           child: TabBar(
                             labelColor:
                                 Theme.of(context).appBarTheme.foregroundColor,
                             onTap: (value) {
+                              currentHomeTab = value;
                               setState(() {
                                 _tabsViews[0] = HomePage(
                                   selectedTab: value,
@@ -344,7 +340,6 @@ class _MainPageState extends State<MainPage> {
           body: NestedScrollView(
               body: _tabsViews.elementAt(_selectedTab),
               headerSliverBuilder: ((context, innerBoxIsScrolled) {
-                print(innerBoxIsScrolled);
                 return [
                   SliverAppBar(
                     stretchTriggerOffset: 1,
@@ -403,90 +398,6 @@ class _MainPageState extends State<MainPage> {
       ),
     );
   }
-
-  List<BottomNavigationBarItem> _buildNavBarTabs() {
-    return const <BottomNavigationBarItem>[
-      BottomNavigationBarItem(
-        icon: Icon(Icons.home_outlined),
-        activeIcon: Icon(Icons.home_sharp),
-        label: 'Home',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.event_outlined),
-        activeIcon: Icon(Icons.event_sharp),
-        label: 'Events',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.people_alt_outlined),
-        activeIcon: Icon(Icons.people_alt_sharp),
-        label: 'People',
-      ),
-      BottomNavigationBarItem(
-          icon: Icon(Icons.forum_outlined),
-          activeIcon: Icon(Icons.forum_sharp),
-          label: 'Forum')
-    ];
-  }
-
-  // Container _buildMenuDrawer(BuildContext context) {
-  //   //Make some logic to change the trailing icon var depending on the themeMode
-  //   double topPad = screenHeight * 0.082;
-  //   double bottomPad = screenHeight * 0.01;
-  //   Icon trailingIcon = const Icon(Icons.nightlight);
-  //   return Container(
-  //     padding: EdgeInsets.fromLTRB(0, topPad, 0, bottomPad),
-  //     child: ClipRRect(
-  //       borderRadius: const BorderRadius.only(
-  //           topRight: Radius.circular(4), bottomRight: Radius.circular(4)),
-  //       child: Drawer(
-  //         // backgroundColor: const Color(drawerColor),
-  //         child: Column(
-  //           children: [
-  //             Expanded(
-  //               child: Container(
-  //                 alignment: Alignment.center,
-  //                 padding:
-  //                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-  //                 child: Column(children: [
-  //                   Padding(
-  //                       padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-  //                       child: _buildDrawListTile("Alumni List", () {})),
-  //                   _buildDrawListTile("Your Calendar", () {}),
-  //                   _buildDrawListTile("About", () {}),
-  //                   _buildDrawListTile("Contact Us", () {})
-  //                 ]),
-  //               ),
-  //             ),
-  //             Container(
-  //               height: 54,
-  //               width: double.maxFinite,
-  //               decoration: BoxDecoration(
-  //                   color: Colors.grey.shade900,
-  //                   boxShadow: [
-  //                     BoxShadow(
-  //                         color: Colors.black.withOpacity(1),
-  //                         spreadRadius: 4,
-  //                         blurRadius: 4,
-  //                         offset: const Offset(0, 7))
-  //                   ],
-  //                   borderRadius:
-  //                       const BorderRadius.vertical(top: Radius.circular(4.0))),
-  //               child: ListTile(
-  //                 leading: const Icon(Icons.settings),
-  //                 title: const Text("Settings"),
-  //                 trailing: IconButton(
-  //                   icon: trailingIcon,
-  //                   onPressed: () {},
-  //                 ),
-  //                 onTap: () {},
-  //               ),
-  //             )
-  //           ],
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
 
   void logoutUser() async {
     await FirebaseAuth.instance.signOut();
@@ -602,132 +513,4 @@ class _MainPageState extends State<MainPage> {
       ),
     );
   }
-
-  // Container _buildTopAlum() {
-  //   return Container(
-  //     padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
-  //     // decoration: BoxDecoration(
-  //     //     border: Border.all(color: Colors.blue),
-  //     //     borderRadius: BorderRadius.circular(2.5)),
-  //     child: Column(children: [
-  //       const Center(
-  //           child: Text(
-  //         "Alumni Of The Month",
-  //         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-  //       )),
-  //       Container(
-  //         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-  //         child: Row(
-  //           children: [
-  //             IconButton(
-  //               onPressed: () {},
-  //               icon: const Icon(Icons.person),
-  //               iconSize: 120,
-  //             ),
-  //             Column(
-  //               children: [
-  //                 const Text(
-  //                   "Chosen Alumni Name",
-  //                   style: TextStyle(fontSize: 16),
-  //                 ),
-  //                 const Text("Chosen Alumni Desciption here",
-  //                     style:
-  //                         TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
-  //                 Row(
-  //                   children: [
-  //                     TextButton(
-  //                       onPressed: () {},
-  //                       child: const Text("Show Profile"),
-  //                     ),
-  //                     TextButton(
-  //                       onPressed: () {},
-  //                       child: const Text("Show Post"),
-  //                     )
-  //                   ],
-  //                 )
-  //               ],
-  //             )
-  //           ],
-  //         ),
-  //       )
-  //     ]),
-  //   );
-  // }
-
-  // Container _buildTopEvents() {
-  //   return Container(
-  //       padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
-  //       margin: const EdgeInsets.fromLTRB(4, 15, 4, 2),
-  //       child: Column(children: const [
-  //         Align(
-  //           alignment: Alignment.topLeft,
-  //           child: Text(
-  //             "Top Events",
-  //             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-  //           ),
-  //         ),
-  //         SizedBox(
-  //           height: 20,
-  //         ),
-  //         Placeholder(
-  //           fallbackHeight: 600,
-  //         )
-  //       ]));
-  // }
 }
-
-// class CustomSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-//   final double expandedHeight;
-//   final ThemeModel themeNotifier;
-//   final Widget pageFeatures;
-//   final Widget _signInPopUp;
-
-//   const CustomSliverAppBarDelegate(
-//       {required this.expandedHeight,
-//       required this.themeNotifier,
-//       required this.pageFeatures,
-//       required this._signInPopUp});
-
-//   @override
-//   Widget build(
-//       BuildContext context, double shrinkOffset, bool overlapsContent) {
-//     return Stack(
-//       fit: StackFit.expand,
-//       overflow: Overflow.visible,
-//       children: [
-//         _buildAppBar(shrinkOffset, context),
-//         _buildBackground(shrinkOffset),
-//       ],
-//     );
-//   }
-
-//   double disappear(double shrinkOffset) => 1 - shrinkOffset / expandedHeight;
-
-//   Widget _buildBackground(double shrinkOffset) {
-//     return Opacity(
-//       opacity: disappear(shrinkOffset),
-//       child: Image.asset(
-//         "assets/banner.jpg",
-//         fit: BoxFit.fitWidth,
-//       ),
-//     );
-//   }
-
-//   double appear(double shrinkOffset) => shrinkOffset / expandedHeight;
-
-//   Widget _buildAppBar(double shrinkOffset, BuildContext context) {
-//     print(shrinkOffset);
-//     return Container();
-//   }
-
-//   @override
-//   double get maxExtent => expandedHeight;
-
-//   @override
-//   double get minExtent => screenHeight * 0.09;
-
-//   @override
-//   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-//     return true;
-//   }
-// }

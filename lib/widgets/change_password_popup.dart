@@ -133,8 +133,7 @@ class _ChangePasswordPopUpState extends State<ChangePasswordPopUp> {
     String newPassword = _newPassword.text;
 
     try {
-      UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );

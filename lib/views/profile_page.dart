@@ -63,9 +63,9 @@ class _ProfilePageState extends State<ProfilePage>
                     .where("userId", arrayContains: data["uid"])
                     .get()
                     .then((value) {
-                  value.docs.forEach((e) {
+                  for (var e in value.docs) {
                     firestore!.collection("chatRooms").doc(e.id).delete();
-                  });
+                  }
                 });
                 if (data["uid"] == userData["uid"]) {
                   auth!.signOut();
@@ -106,7 +106,6 @@ class _ProfilePageState extends State<ProfilePage>
                         content: InputField(
                           onChanged: ((p0) {
                             about = p0;
-                            print(about);
                           }),
                           labelText: "About(Optional)",
                           maxLines: (screenHeight * 0.024).toInt(),
