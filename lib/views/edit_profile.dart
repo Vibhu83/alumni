@@ -103,7 +103,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _fatherName = TextEditingController(text: userData["fatherName"]);
     _motherName = TextEditingController(text: userData["motherName"]);
     _address = TextEditingController(text: userData["permanentAddress"]);
-    _currentOrgName = TextEditingController(text: userData["currenOrgName"]);
+    _currentOrgName = TextEditingController(text: userData["currentOrgName"]);
     _currentDesignation =
         TextEditingController(text: userData["currentDesignation"]);
     _previousOrgName = TextEditingController(text: userData["previousOrgName"]);
@@ -551,7 +551,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Widget _buildCurrentOrgNameField() {
     return InputField(
-      controller: _spouseOrgName,
+      controller: _currentOrgName,
       labelText: "Name of the current organization",
     );
   }
@@ -871,7 +871,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
       firestore!.collection("users").doc(uid).update({
         "profilePic": profilePicUrl ?? userData["profilePic"],
-        "uid": uid,
         "rollNo": rollNo,
         "name": name,
         "firstName": firstLastName[0],
@@ -881,6 +880,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
         "isAnAlumni": _isAlumni,
         "accessLevel": accessLevel,
       }).then((value) {
+        userData.addAll({
+          "profilePic": profilePicUrl ?? userData["profilePic"],
+          "rollNo": rollNo,
+          "name": name,
+          "firstName": firstLastName[0],
+          "lastName": firstLastName[1],
+          "admissionYear": addmissionYear,
+          "course": course,
+          "isAnAlumni": _isAlumni,
+          "accessLevel": accessLevel,
+        });
+        print("userData updated");
         if (_isAlumni) {
           final String motherName = _motherName.text;
           final String fatherName = _fatherName.text;
@@ -927,6 +938,39 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 Timestamp.fromDate(_wereInPreviousOrgSince!);
           } else {
             wereInPreviousOrgSince = null;
+          }
+          userData.addAll({
+            "motherName": motherName,
+            "fatherName": fatherName,
+            "dateOfBirth": dob,
+            "permanentAddress": address,
+            "passingYear": passingYear,
+            "nationality": nationality,
+            "isNRI": isNRI,
+            "achievements": achievements,
+            //
+            "spouseName": spouseName,
+            "spouseOrgName": spouseOrgName,
+            "spouseDesignation": spouseDesignation,
+            "spouseWorkingInOrgSince": spouseWorkingSince,
+            "spouseOfficeContactNo": spouseOfficeContactNo,
+            "spouseMobileContactNo": spouseMobileContactNo,
+            //
+            "currentOrgName": currentOrgName,
+            "currentDesignation": currentDesignation,
+            "inCurrentOrgSince": workingInCurrentOrgSince,
+            "residenceContactNo": residenceContactNo,
+            "currentOfficeContactNo": currentOfficeContactNo,
+            "mobileContactNo": mobileContactNo,
+            //
+            "previousOrgName": previousOrgName,
+            "previousDesignation": previousDesignation,
+            "wereInPreviousSince": wereInPreviousOrgSince,
+            "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
+          });
+          print("userData updated");
+          for (var i in userData.keys) {
+            print(i.toString() + ": " + userData[i].toString());
           }
           firestore!.collection("users").doc(uid).update({
             "motherName": motherName,

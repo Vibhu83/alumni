@@ -28,7 +28,6 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
 
   Future<bool> getDesignations() async {
     if (designations == null) {
-      print(designations);
       designations = {};
 
       await firestore!.collection("users").get().then((value) {
@@ -57,7 +56,6 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
         builder: (context, snapshot) {
           List<Widget> children = [];
           if (snapshot.hasData) {
-            print(designations);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

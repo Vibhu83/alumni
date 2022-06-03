@@ -561,7 +561,7 @@ class _RegisterView extends State<RegisterView> {
 
   Widget _buildCurrentOrgNameField() {
     return InputField(
-      controller: _spouseOrgName,
+      controller: _currentOrgName,
       labelText: "Name of the current organization",
     );
   }

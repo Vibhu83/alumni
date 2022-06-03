@@ -15,7 +15,6 @@ import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/my_alert_dialog.dart';
-import 'package:alumni/widgets/user_filter_popup.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -68,9 +67,17 @@ class _MainPageState extends State<MainPage> {
   ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedTab = index;
-    });
+    if (index == 4 && userData["uid"] == null) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return _signInPopUp;
+          });
+    } else {
+      setState(() {
+        _selectedTab = index;
+      });
+    }
   }
 
   Future<bool> _setUserLoginStatus() async {
@@ -465,7 +472,11 @@ class _MainPageState extends State<MainPage> {
                                 NotificationPage(uid: userData["uid"]))));
                       }),
                       _buildDrawListTile("Saved Posts", () {}),
-                      _buildDrawListTile("Inbox", () {}),
+                      _buildDrawListTile("Inbox", () {
+                        setState(() {
+                          _selectedTab = 4;
+                        });
+                      }),
                     ]),
                   ),
                 ),
