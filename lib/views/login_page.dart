@@ -2,8 +2,10 @@ import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/register_page.dart';
+import 'package:alumni/widgets/ask_reset_email_popup.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:alumni/widgets/future_widgets.dart';
+import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -204,7 +206,14 @@ class _LoginViewState extends State<LoginView> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  TextEditingController _email = TextEditingController();
+                  showDialog(
+                      context: context,
+                      builder: (context) {
+                        return const ResetEmailPopUp();
+                      });
+                },
                 child: const Text(
                   "Forgot Password?",
                   style: TextStyle(

@@ -6,6 +6,7 @@ import 'package:alumni/views/events_page.dart';
 import 'package:alumni/views/forum_page.dart';
 import 'package:alumni/views/home_page.dart';
 import 'package:alumni/views/notification_page.dart';
+import 'package:alumni/views/past_events_page.dart';
 import 'package:alumni/views/people_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
 import 'package:alumni/views/profile_page.dart';
@@ -14,6 +15,7 @@ import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/user_filter_popup.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -72,6 +74,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<bool> _setUserLoginStatus() async {
+    setScreenDimensions(context);
     User? currentUser = auth!.currentUser;
 
     chat!.firebaseUser = currentUser;
@@ -134,10 +137,11 @@ class _MainPageState extends State<MainPage> {
       null,
       //Events Floating Button
       null,
-      //Chat Floating Button
+      //People Floating Button
       null,
       //Forum Floating Button
       null,
+      //Chat Floating Button
       null
     ];
     if (userData["uid"] != null) {
@@ -184,8 +188,6 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    setScreenDimensions(context);
-
     return FutureBuilder(
         future: _setUserLoginStatus(),
         builder: ((context, AsyncSnapshot<bool?> snapshot) {
@@ -223,17 +225,33 @@ class _MainPageState extends State<MainPage> {
           appBarIcons.add(addNoticeButton);
         }
         break;
+      // case 2:
+      //   appBarIcons.add(buildAppBarIcon(
+      //       onPressed: () {
+      //         showModalBottomSheet(
+      //             context: context,
+      //             builder: (context) {
+      //               return const UserFilterPopUp();
+      //             });
+      //       },
+      //       icon: Icons.filter_alt));
+      //   break;
       case 1:
-        var pastEventButton =
-            buildAppBarIcon(onPressed: () {}, icon: Icons.history);
+        var pastEventButton = buildAppBarIcon(
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
+                return const PastEventsPage();
+              })));
+            },
+            icon: Icons.history);
 
         appBarIcons.add(pastEventButton);
         break;
-      case 2:
-        var searchForumButton =
-            buildAppBarIcon(onPressed: () {}, icon: Icons.search_rounded);
-        appBarIcons.add(searchForumButton);
-        break;
+      // case 2:
+      //   var searchForumButton =
+      //       buildAppBarIcon(onPressed: () {}, icon: Icons.search_rounded);
+      //   appBarIcons.add(searchForumButton);
+      //   break;
     }
     return appBarIcons;
   }

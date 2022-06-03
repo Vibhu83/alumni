@@ -280,4 +280,5 @@ Future<String> uploadFileAndGetLink(
 
 Map<String, dynamic>? newNotice;
 
-// ColorThemes? currentTheme;
+Map<String, int?>? designations;
+Map<String, int?>? nationalities;
