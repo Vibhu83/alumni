@@ -6,6 +6,7 @@ import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
+import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:alumni/widgets/year_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -342,8 +343,12 @@ class _RegisterView extends State<RegisterView> {
       // titleBackground: const Color(backgroundColor),
       child: TextButton(
           onPressed: () {
-            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showDatePicker(
+              context,
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 setState(() {
                   _dob = value;
@@ -520,8 +525,12 @@ class _RegisterView extends State<RegisterView> {
       titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
-            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showDatePicker(
+              context,
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 setState(() {
                   _spouseWorkingInOrgSince = value;
@@ -582,8 +591,12 @@ class _RegisterView extends State<RegisterView> {
       titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
-            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showDatePicker(
+              context,
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 setState(() {
                   _inCurrentOrgSince = value;
@@ -654,8 +667,12 @@ class _RegisterView extends State<RegisterView> {
       titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
-            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showDatePicker(
+              context,
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 _wereInPreviousOrgSince = value;
               }
@@ -1013,7 +1030,9 @@ class _RegisterView extends State<RegisterView> {
   }
 
   Widget _buildRegisteringDialog() {
-    return AlertDialog(
+    return CustomAlertDialog(
+      height: screenHeight * 0.4,
+      title: null,
       // backgroundColor: Colors.grey.shade900,
       actions: [
         Container(
@@ -1100,13 +1119,16 @@ class _RegisterView extends State<RegisterView> {
       child: TextButton(
           style: TextButton.styleFrom(),
           onPressed: () {
-            DatePicker.showPicker(context,
-                    pickerModel: CustomYearPicker(
-                      currentTime: DateTime.now(),
-                      minYear: 1990,
-                    ),
-                    theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showPicker(
+              context,
+              pickerModel: CustomYearPicker(
+                currentTime: DateTime.now(),
+                minYear: 1990,
+              ),
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               setState(() {
                 if (value != null) {
                   _addmissionYear = value.year;
@@ -1140,13 +1162,16 @@ class _RegisterView extends State<RegisterView> {
       child: TextButton(
           style: TextButton.styleFrom(),
           onPressed: () {
-            DatePicker.showPicker(context,
-                    pickerModel: CustomYearPicker(
-                      currentTime: DateTime.now(),
-                      minYear: 1990,
-                    ),
-                    theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showPicker(
+              context,
+              pickerModel: CustomYearPicker(
+                currentTime: DateTime.now(),
+                minYear: 1990,
+              ),
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 setState(() {
                   _passingYear = value.year;

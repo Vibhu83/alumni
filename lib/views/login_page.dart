@@ -5,6 +5,7 @@ import 'package:alumni/views/register_page.dart';
 import 'package:alumni/widgets/ask_reset_email_popup.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:alumni/widgets/future_widgets.dart';
+import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -111,7 +112,9 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _buildLoginDialog() {
-    return AlertDialog(
+    return CustomAlertDialog(
+      height: screenHeight * 0.4,
+      title: null,
       // backgroundColor: Colors.grey.shade900,
       actions: [
         Container(

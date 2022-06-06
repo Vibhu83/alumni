@@ -179,10 +179,13 @@ class _NotificationPageState extends State<NotificationPage> {
                       });
                       return;
                     }
-                    DatePicker.showDatePicker(context,
-                            currentTime: selectedDates[0],
-                            theme: getDarkDatePickerTheme())
-                        .then((firstDate) async {
+                    DatePicker.showDatePicker(
+                      context,
+                      currentTime: selectedDates[0],
+                      theme: Theme.of(context).brightness == Brightness.dark
+                          ? getDarkDatePickerTheme()
+                          : getLightPickerTheme(),
+                    ).then((firstDate) async {
                       DateTime? nextFirstDate;
                       DateTime? nextSecondDate;
                       int? nextOrderType;
@@ -217,7 +220,10 @@ class _NotificationPageState extends State<NotificationPage> {
                           break;
                         case "Between two dates":
                           await DatePicker.showDatePicker(context,
-                                  theme: getDarkDatePickerTheme(),
+                                  theme: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? getDarkDatePickerTheme()
+                                      : getLightPickerTheme(),
                                   currentTime: selectedDates[1])
                               .then((secondDate) {
                             if (firstDate == null || secondDate == null) {

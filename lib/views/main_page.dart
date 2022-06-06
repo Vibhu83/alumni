@@ -17,6 +17,7 @@ import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/my_alert_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_initicon/flutter_initicon.dart';
 import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
@@ -398,7 +399,6 @@ class _MainPageState extends State<MainPage> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       decoration: BoxDecoration(boxShadow: [
-        // so here your custom shadow goes:
         BoxShadow(
           color: Theme.of(context).appBarTheme.shadowColor!.withOpacity(0.3),
           blurStyle: BlurStyle.normal,
@@ -425,6 +425,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   void logoutUser() async {
+    noticesSeen = false;
     await FirebaseAuth.instance.signOut();
     Navigator.of(context).popUntil(ModalRoute.withName(""));
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
@@ -452,13 +453,19 @@ class _MainPageState extends State<MainPage> {
                 child: SingleChildScrollView(
                   child: Container(
                     alignment: Alignment.center,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.only(
+                        left: 8, right: 8, top: 16, bottom: 4),
                     child: Column(children: [
-                      IconButton(
-                          iconSize: 200,
-                          onPressed: () {},
-                          icon: const Icon(Icons.person)),
+                      userData["profilePic"] != null
+                          ? CircleAvatar(
+                              radius: 128,
+                              backgroundImage:
+                                  NetworkImage(userData["profilePic"]),
+                            )
+                          : Initicon(
+                              size: 256,
+                              text: userData["name"],
+                            ),
                       Padding(
                           padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
                           child: _buildDrawListTile("My Profile", () {
@@ -471,7 +478,6 @@ class _MainPageState extends State<MainPage> {
                             builder: ((context) =>
                                 NotificationPage(uid: userData["uid"]))));
                       }),
-                      _buildDrawListTile("Saved Posts", () {}),
                       _buildDrawListTile("Inbox", () {
                         setState(() {
                           _selectedTab = 4;

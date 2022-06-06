@@ -43,8 +43,10 @@ class APost extends StatefulWidget {
 class _APost extends State<APost> {
   late bool isInitialRun;
   late int originalVotes;
+  late bool isBookmarked;
 
   Future<bool> getData() async {
+    isBookmarked = false;
     if (isInitialRun == true) {
       isInitialRun = false;
       votes =
@@ -172,6 +174,7 @@ class _APost extends State<APost> {
 
   @override
   void initState() {
+    isBookmarked = false;
     originalVotes = 0;
     isInitialRun = true;
     votes = 0;
@@ -251,6 +254,12 @@ class _APost extends State<APost> {
     Widget postButtons = const SizedBox(
       height: 0,
     );
+    Color bookMarkIconColor = Theme.of(context).appBarTheme.foregroundColor!;
+    IconData bookMarkIcon = Icons.bookmark_add;
+    if (isBookmarked == true) {
+      bookMarkIcon = Icons.bookmark_added;
+      bookMarkIconColor = Colors.blue;
+    }
     Color votesColor = Colors.grey;
     Color upvoteButtonColor = Colors.grey;
     Color downvoteButtonColor = Colors.grey;
@@ -279,13 +288,24 @@ class _APost extends State<APost> {
           changeVote(widget.postID, changeInVotes);
         },
         icon: const Icon(Icons.arrow_downward_sharp));
+    IconButton bookmarkButton = IconButton(
+        splashRadius: 1,
+        onPressed: () {
+          setState(() {
+            if (isBookmarked == true) {
+              isBookmarked = false;
+            } else {
+              isBookmarked = true;
+            }
+          });
+        },
+        icon: Icon(
+          bookMarkIcon,
+          color: bookMarkIconColor,
+        ));
     List<Widget> bottomNavButtons = [];
     if (userData["uid"] != null) {
-      bottomNavButtons.addAll([
-        upvoteButton,
-        downvoteButton,
-        TextButton(onPressed: () {}, child: const Icon(Icons.bookmark_add)),
-      ]);
+      bottomNavButtons.addAll([upvoteButton, downvoteButton, bookmarkButton]);
     }
     if (postLink != null && Uri.tryParse(postLink!)!.hasAbsolutePath) {
       IconButton openLinkButton = IconButton(

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:alumni/classes/date_picker_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/an_event_page.dart';
 import 'package:alumni/views/main_page.dart';
@@ -458,16 +459,18 @@ class _CreateEventState extends State<CreateEvent> {
       child: TextButton(
           onPressed: () {
             DatePicker.showDatePicker(context,
-                theme: DatePickerTheme(
-                    backgroundColor: Colors.grey.shade900,
-                    itemStyle: const TextStyle(color: Colors.white),
-                    cancelStyle: const TextStyle(color: Colors.deepOrange)),
+                theme: Theme.of(context).brightness == Brightness.dark
+                    ? getDarkDatePickerTheme()
+                    : getLightPickerTheme(),
                 currentTime: chosenStartTime,
                 minTime: DateTime.now(),
                 maxTime: DateTime.now().add(const Duration(days: 365)),
                 onConfirm: (date) {
               DateTime time = DateTime(2020);
               DatePicker.showTimePicker(context,
+                  theme: Theme.of(context).brightness == Brightness.dark
+                      ? getDarkDatePickerTheme()
+                      : getLightPickerTheme(),
                   currentTime: chosenStartTime,
                   showSecondsColumn: false, onConfirm: (date) {
                 time = date;

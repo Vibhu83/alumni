@@ -332,8 +332,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       // titleBackground: const Color(backgroundColor),
       child: TextButton(
           onPressed: () {
-            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showDatePicker(
+              context,
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 setState(() {
                   _dob = value;
@@ -510,8 +514,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
-            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showDatePicker(
+              context,
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 setState(() {
                   _spouseWorkingInOrgSince = value;
@@ -572,8 +580,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
-            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showDatePicker(
+              context,
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 setState(() {
                   _inCurrentOrgSince = value;
@@ -644,8 +656,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       titleBackground: Theme.of(context).canvasColor,
       child: TextButton(
           onPressed: () {
-            DatePicker.showDatePicker(context, theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showDatePicker(
+              context,
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 _wereInPreviousOrgSince = value;
               }
@@ -891,7 +907,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           "isAnAlumni": _isAlumni,
           "accessLevel": accessLevel,
         });
-        print("userData updated");
         if (_isAlumni) {
           final String motherName = _motherName.text;
           final String fatherName = _fatherName.text;
@@ -968,10 +983,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
             "wereInPreviousSince": wereInPreviousOrgSince,
             "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
           });
-          print("userData updated");
-          for (var i in userData.keys) {
-            print(i.toString() + ": " + userData[i].toString());
-          }
           firestore!.collection("users").doc(uid).update({
             "motherName": motherName,
             "fatherName": fatherName,
@@ -1104,13 +1115,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: TextButton(
           style: TextButton.styleFrom(),
           onPressed: () {
-            DatePicker.showPicker(context,
-                    pickerModel: CustomYearPicker(
-                      currentTime: DateTime.now(),
-                      minYear: 1990,
-                    ),
-                    theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showPicker(
+              context,
+              pickerModel: CustomYearPicker(
+                currentTime: DateTime.now(),
+                minYear: 1990,
+              ),
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               setState(() {
                 if (value != null) {
                   _addmissionYear = value.year;
@@ -1141,13 +1155,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: TextButton(
           style: TextButton.styleFrom(),
           onPressed: () {
-            DatePicker.showPicker(context,
-                    pickerModel: CustomYearPicker(
-                      currentTime: DateTime.now(),
-                      minYear: 1990,
-                    ),
-                    theme: getDarkDatePickerTheme())
-                .then((value) {
+            DatePicker.showPicker(
+              context,
+              pickerModel: CustomYearPicker(
+                currentTime: DateTime.now(),
+                minYear: 1990,
+              ),
+              theme: Theme.of(context).brightness == Brightness.dark
+                  ? getDarkDatePickerTheme()
+                  : getLightPickerTheme(),
+            ).then((value) {
               if (value != null) {
                 setState(() {
                   _passingYear = value.year;

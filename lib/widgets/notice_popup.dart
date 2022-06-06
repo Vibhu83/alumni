@@ -26,14 +26,15 @@ class _NoticesState extends State<Notices> {
   }
 
   Future<bool> checkForNotices() async {
+    DateTime oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
+    Timestamp lastDate = Timestamp.fromDate(oneWeekAgo);
+
     var notices = await firestore!
         .collection("notices")
         .where("noticeID", whereNotIn: userData["noticesDismissed"])
         .limit(3)
-        // .where("noticePostOn",
-        //     isGreaterThanOrEqualTo: Timestamp.fromMillisecondsSinceEpoch(
-        //         DateTime.now().millisecondsSinceEpoch -
-        //             const Duration(days: 14).inMilliseconds))
+        .where("noticePostedOn", isGreaterThanOrEqualTo: lastDate)
+        .orderBy("noticePostedOn", descending: true)
         .get()
         .then((value) {
       return value.docs.map((e) {
