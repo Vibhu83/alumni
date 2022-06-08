@@ -9,11 +9,12 @@ class PostsByIDPage extends StatelessWidget {
   final String uid;
   const PostsByIDPage({required this.uid, Key? key}) : super(key: key);
 
-  Future<List<Map<String, dynamic>>> getPosts() async {
+  Future<List<Map<String, dynamic>>> _getPosts() async {
     var postsRef = firestore!.collection('posts');
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
-    querySnapshot = await postsRef.where("authorID", isEqualTo: uid).get();
-    //lastDoc = allDocSnap[allDocSnap.length - 1];
+    querySnapshot = await postsRef.where("postAuthorID", isEqualTo: uid).get();
+    //lastDoc = allDocSnap[allDocSnap.le
+    //ngth - 1];
     final List<Map<String, dynamic>> allData = (querySnapshot.docs.map((doc) {
       Map<String, dynamic> value = doc.data();
       Timestamp temp = value["postedOn"];
@@ -32,7 +33,7 @@ class PostsByIDPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: getPosts(),
+        future: _getPosts(),
         builder:
             ((context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
           List<Widget> children;
@@ -81,7 +82,7 @@ class PostsByIDPage extends StatelessWidget {
           } else if (snapshot.hasError) {
             children = buildFutureError(snapshot);
           } else {
-            children = buildFutureLoading(snapshot, text: "Loading Posts");
+            children = buildFutureLoading(snapshot);
           }
           return Center(
             child: Column(

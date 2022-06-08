@@ -881,12 +881,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
     try {
       String uid = userData["uid"].toString();
       String? profilePicUrl;
-      if (profilePicPath!.substring(0, 5) == "/data") {
+      if (profilePicPath != null &&
+          profilePicPath!.substring(0, 5) == "/data") {
         profilePicUrl = await uploadFileAndGetLink(
             profilePicPath!, uid.toString() + "/profilePicture", context);
       }
       firestore!.collection("users").doc(uid).update({
-        "profilePic": profilePicUrl ?? userData["profilePic"],
+        "profilePic": profilePicUrl,
+        "imageUrl": profilePicUrl,
         "rollNo": rollNo,
         "name": name,
         "firstName": firstLastName[0],
@@ -897,7 +899,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         "accessLevel": accessLevel,
       }).then((value) {
         userData.addAll({
-          "profilePic": profilePicUrl ?? userData["profilePic"],
+          "profilePic": profilePicUrl,
           "rollNo": rollNo,
           "name": name,
           "firstName": firstLastName[0],
@@ -1369,7 +1371,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ]
                 .map<DropdownMenuItem<String>>(
                     (String value) => DropdownMenuItem<String>(
-                          child: Text(value),
+                          child: Text(
+                            value,
+                            style: TextStyle(
+                                color: Theme.of(context)
+                                    .appBarTheme
+                                    .foregroundColor),
+                          ),
                           value: value,
                         ))
                 .toList(),

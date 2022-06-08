@@ -1,6 +1,6 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/input_field.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -23,7 +23,7 @@ class AskMessagePopUp extends StatelessWidget {
       Key? key})
       : super(key: key);
 
-  void shareThisPostWithMessage(String? content) async {
+  void _shareThisPostWithMessage(String? content) async {
     firestore!.collection("recommendationFromAdmins").add({}).then((value) {
       String recommendationID = value.id;
       firestore!
@@ -40,7 +40,7 @@ class AskMessagePopUp extends StatelessWidget {
     });
   }
 
-  void updateTheRecommendation(String content) {
+  void _updateTheRecommendation(String content) {
     firestore!
         .collection("recommendationFromAdmins")
         .doc(recommendationId)
@@ -57,10 +57,10 @@ class AskMessagePopUp extends StatelessWidget {
           TextButton(
               onPressed: () {
                 if (editingFlag == false) {
-                  shareThisPostWithMessage(_messageController.text);
+                  _shareThisPostWithMessage(_messageController.text);
                 } else {
                   updateLastRecommendationText = _messageController.text;
-                  updateTheRecommendation(_messageController.text);
+                  _updateTheRecommendation(_messageController.text);
                 }
                 Navigator.of(context).pop();
               },

@@ -1,6 +1,6 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/input_field.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:flutter/material.dart';
 
 class ResetEmailPopUp extends StatefulWidget {
@@ -22,7 +22,7 @@ class _ResetEmailPopUpState extends State<ResetEmailPopUp> {
     super.initState();
   }
 
-  void checkEmail(String email) {
+  void _checkEmail(String email) {
     RegExp emailExp = RegExp(
         r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$");
     if (email.isEmpty || !emailExp.hasMatch(email)) {
@@ -53,7 +53,7 @@ class _ResetEmailPopUpState extends State<ResetEmailPopUp> {
         title: const Text("Enter your email"),
         content: InputField(
           onChanged: (p0) {
-            checkEmail(p0);
+            _checkEmail(p0);
           },
           labelText: "Email",
           controller: _email,

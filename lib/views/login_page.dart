@@ -1,13 +1,11 @@
-import 'package:alumni/firebase_options.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/register_page.dart';
 import 'package:alumni/widgets/ask_reset_email_popup.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:alumni/widgets/future_widgets.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 class LoginView extends StatefulWidget {
@@ -21,7 +19,7 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView> {
   late TextEditingController _email, _password;
-  String? emailError, passwordError;
+  String? _emailError, _passwordError;
   Function(String? email, String? password)? get onSubmitted =>
       widget.onSubmitted;
 
@@ -29,20 +27,20 @@ class _LoginViewState extends State<LoginView> {
   void initState() {
     _email = TextEditingController();
     _password = TextEditingController();
-    emailError = null;
-    passwordError = null;
+    _emailError = null;
+    _passwordError = null;
     super.initState();
   }
 
-  void resetErrorText() {
+  void _resetErrorText() {
     setState(() {
-      emailError = null;
-      passwordError = null;
+      _emailError = null;
+      _passwordError = null;
     });
   }
 
-  bool validate() {
-    resetErrorText();
+  bool _validate() {
+    _resetErrorText();
     String email = _email.text;
     String password = _password.text;
     RegExp emailExp = RegExp(
@@ -51,14 +49,14 @@ class _LoginViewState extends State<LoginView> {
     bool isValid = true;
     if (email.isEmpty || !emailExp.hasMatch(email)) {
       setState(() {
-        emailError = "Email is invalid";
+        _emailError = "Email is invalid";
       });
       isValid = false;
     }
 
     if (password.isEmpty) {
       setState(() {
-        passwordError = "Please enter a password";
+        _passwordError = "Please enter a password";
       });
       isValid = false;
     }
@@ -66,13 +64,12 @@ class _LoginViewState extends State<LoginView> {
     return isValid;
   }
 
-  Future<String?> loginUser() async {
+  Future<String?> _loginUser() async {
     String email = _email.text;
     String password = _password.text;
-    await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform);
+    Map<String, dynamic> data = {};
     try {
-      await auth!
+      var temp = await auth!
           .signInWithEmailAndPassword(email: email, password: password)
           .then((value) async {
         var temp = await firestore!
@@ -83,26 +80,29 @@ class _LoginViewState extends State<LoginView> {
           if (value.data() == null) {
             return false;
           } else {
+            data = value.data()!;
             return true;
           }
         });
-        if (temp == false) {
-          return "User deleted";
-        }
-        emailPopUpShown = false;
+        return temp;
+      });
+      if (temp == false) {
+        return "User deleted";
+      } else {
+        await setUserLoginStatus(data: data);
         Navigator.of(context).popUntil(ModalRoute.withName(""));
         Navigator.of(context).push(MaterialPageRoute(builder: (context) {
           return const MainPage();
         }));
-      });
-      return "Logged In";
+        return "Logged In";
+      }
     } on FirebaseAuthException catch (e) {
       return e.message;
     }
   }
 
-  void submit() {
-    if (validate()) {
+  void _submit() {
+    if (_validate()) {
       showDialog(
           context: context,
           builder: (context) {
@@ -125,7 +125,7 @@ class _LoginViewState extends State<LoginView> {
         ),
       ],
       content: FutureBuilder(
-        future: loginUser(),
+        future: _loginUser(),
         builder: ((context, AsyncSnapshot<String?> snapshot) {
           List<Widget> children;
           if (snapshot.hasData) {
@@ -237,7 +237,7 @@ class _LoginViewState extends State<LoginView> {
                   style: TextButton.styleFrom(
                       backgroundColor:
                           const Color.fromARGB(255, 100, 122, 177)),
-                  onPressed: submit),
+                  onPressed: _submit),
             ),
             SizedBox(
               height: screenHeight * .15,
@@ -276,7 +276,7 @@ class _LoginViewState extends State<LoginView> {
       autoCorrect: false,
       labelText: "Email",
       controller: _email,
-      errorText: emailError,
+      errorText: _emailError,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
       autoFocus: false,
@@ -285,6 +285,7 @@ class _LoginViewState extends State<LoginView> {
 
   InputField _buildPasswordField(TextEditingController _password) {
     return InputField(
+      errorText: _passwordError,
       autoCorrect: false,
       labelText: "Password",
       obscureText: true,

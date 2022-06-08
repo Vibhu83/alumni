@@ -28,13 +28,13 @@ class AdminRecommendationListTile extends StatefulWidget {
 
 class _AdminRecommendationListTileState
     extends State<AdminRecommendationListTile> {
-  late bool returnEmpty;
-  late String content;
+  late bool _returnEmpty;
+  late String _content;
 
   @override
   void initState() {
-    returnEmpty = false;
-    content = widget.content;
+    _returnEmpty = false;
+    _content = widget.content;
     super.initState();
   }
 
@@ -44,7 +44,7 @@ class _AdminRecommendationListTileState
         widget.recommendedTime.toDate().difference(DateTime.now()));
     String title =
         "Admin Team has recommended this " + widget.recommendationType + ":";
-    if (returnEmpty != true) {
+    if (_returnEmpty != true) {
       return Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(2)),
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
@@ -59,19 +59,20 @@ class _AdminRecommendationListTileState
                 context: context,
                 builder: (context) {
                   return AdminRecommendationPopUp(
+                      title: title,
                       recommendationId: widget.recommendationId,
                       onPressed: widget.onPressed,
                       recommendedItemTitle: widget.recommendedItemTitle,
-                      content: content);
+                      content: _content);
                 }).then((value) {
               if (deleteLastOpenedRecommendation == true) {
                 deleteLastOpenedRecommendation = null;
                 setState(() {
-                  returnEmpty = true;
+                  _returnEmpty = true;
                 });
               } else if (updateLastRecommendationText != null) {
                 setState(() {
-                  content = updateLastRecommendationText!;
+                  _content = updateLastRecommendationText!;
                   updateLastRecommendationText = null;
                 });
               }
@@ -89,8 +90,11 @@ class _AdminRecommendationListTileState
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(title,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                          style: TextStyle(
+                              color:
+                                  Theme.of(context).appBarTheme.foregroundColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(
                         height: 0.1,
                       ),
@@ -109,24 +113,40 @@ class _AdminRecommendationListTileState
                       const SizedBox(
                         height: 4,
                       ),
-                      Text(
-                        content,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 3,
-                        style: const TextStyle(
-                            // color: Colors.grey.shade400,
-                            fontSize: 13,
-                            fontWeight: FontWeight.normal),
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 8),
+                        width: double.maxFinite,
+                        color: Theme.of(context).canvasColor,
+                        child: Text(
+                          _content,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 3,
+                          style: TextStyle(
+                              color:
+                                  Theme.of(context).appBarTheme.foregroundColor,
+                              // color: Colors.grey.shade400,
+                              fontSize: 13,
+                              fontWeight: FontWeight.normal),
+                        ),
                       ),
                       const SizedBox(
                         height: 2,
                       ),
-                      Text(
-                        "(" + time + " ago)",
-                        style: const TextStyle(
-                            fontSize: 10,
-                            // color: Colors.grey.shade600,
-                            fontStyle: FontStyle.italic),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          "(" + time + " ago)",
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor!
+                                  .withOpacity(0.5),
+                              fontSize: 10,
+                              // color: Colors.grey.shade600,
+                              fontStyle: FontStyle.italic),
+                        ),
                       )
                     ],
                   ),

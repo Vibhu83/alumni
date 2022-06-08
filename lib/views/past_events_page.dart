@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 class PastEventsPage extends StatelessWidget {
   const PastEventsPage({Key? key}) : super(key: key);
 
-  Future<List<Map<String, dynamic>>> getPosts() async {
+  Future<List<Map<String, dynamic>>> _getEvents() async {
     var eventData = firestore!.collection('events');
     var querySnapshot = await eventData
         .where("eventStartTime", isLessThan: Timestamp.now())
@@ -42,7 +42,7 @@ class PastEventsPage extends StatelessWidget {
       body: Container(
           padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
           child: FutureBuilder(
-              future: getPosts(),
+              future: _getEvents(),
               builder: (context,
                   AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
                 late List<Widget> children;

@@ -8,23 +8,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
-  final int selectedTab;
-  const HomePage({required this.selectedTab, Key? key}) : super(key: key);
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  late bool isInitialBuild;
-  Widget? noticeWidget;
+  late int _index;
   @override
   void initState() {
-    isInitialBuild = true;
-    noticeWidget = const SizedBox();
+    _index = 0;
     super.initState();
 
-    WidgetsBinding.instance!.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (noticesSeen == false) {
         noticesSeen = true;
         showDialog(
@@ -49,7 +46,7 @@ class _HomePageState extends State<HomePage> {
       Timestamp temp = data["eventStartTime"];
       data["eventStartTime"] = temp.toDate();
       data["eventID"] = doc.id;
-      data["eventDuration"] = Duration(hours: data["eventDuration"]);
+      data["eventDuration"] = data["eventDuration"];
       return data;
     }).toList());
 
@@ -75,12 +72,8 @@ class _HomePageState extends State<HomePage> {
                 List<Map<String, dynamic>> eventData = snapshot.data!;
                 return ListView.builder(
                   shrinkWrap: true,
-                  itemCount: eventData.length + 1,
+                  itemCount: eventData.length,
                   itemBuilder: (BuildContext context, int index) {
-                    if (index == eventData.length) {
-                      return TextButton(
-                          onPressed: () {}, child: const Text("See more"));
-                    }
                     return AnEventCard(
                       eventTitleImage: eventData[index]["eventTitleImage"],
                       eventID: eventData[index]["eventID"],
@@ -140,12 +133,8 @@ class _HomePageState extends State<HomePage> {
             var postsData = snapshot.data!;
             return ListView.builder(
               shrinkWrap: true,
-              itemCount: postsData.length + 1,
+              itemCount: postsData.length,
               itemBuilder: (BuildContext context, int index) {
-                if (index == postsData.length) {
-                  return TextButton(
-                      onPressed: () {}, child: const Text("See more"));
-                }
                 String postID = postsData[index]["postID"];
                 String postTitle = postsData[index]["postTitle"];
                 String postAuthorID = postsData[index]["postAuthorID"];
@@ -197,8 +186,81 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    int currentTab =
-        currentHomeTab == null ? widget.selectedTab : currentHomeTab!;
-    return _tabViews[currentTab];
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context)
+                      .appBarTheme
+                      .shadowColor!
+                      .withOpacity(0.3),
+                  blurStyle: BlurStyle.normal,
+                  spreadRadius: 0.1,
+                  blurRadius: 0.5,
+                  offset: const Offset(0, 1),
+                )
+              ],
+              color: Theme.of(context).cardColor,
+              border: Border(
+                  top: BorderSide(
+                      color: Theme.of(context)
+                          .appBarTheme
+                          .shadowColor!
+                          .withOpacity(0.3)))),
+          child: DefaultTabController(
+              initialIndex: _index,
+              length: 3,
+              child: TabBar(
+                labelColor: Theme.of(context).appBarTheme.foregroundColor,
+                onTap: (value) {
+                  setState(() {
+                    _index = value;
+                  });
+                },
+                labelPadding: EdgeInsets.zero,
+                padding: EdgeInsets.zero,
+                tabs: const [
+                  Tab(
+                    text: "Trending Posts",
+                  ),
+                  Tab(
+                    text: "Upcoming Events",
+                  ),
+                  Tab(
+                    text: "Top Alums",
+                  ),
+                ],
+              )),
+        ),
+        SizedBox(
+          height: screenHeight * 0.75,
+          child: NestedScrollView(
+              body: _tabViews.elementAt(_index),
+              headerSliverBuilder: ((context, innerBoxIsScrolled) {
+                return [
+                  SliverAppBar(
+                    stretchTriggerOffset: 1,
+                    toolbarHeight: 1,
+                    backgroundColor: Colors.transparent,
+                    actions: const [SizedBox()],
+                    expandedHeight: screenHeight * 0.19,
+                    flexibleSpace: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8.0, horizontal: 4),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: FlexibleSpaceBar(
+                          background: Image.asset("assets/banner.jpg"),
+                        ),
+                      ),
+                    ),
+                  )
+                ];
+              })),
+        ),
+      ],
+    );
   }
 }

@@ -11,22 +11,22 @@ class UserFilterPopUp extends StatefulWidget {
 }
 
 class _UserFilterPopUpState extends State<UserFilterPopUp> {
-  late bool showAlumni;
-  late bool showStudents;
-  late bool showAdmins;
-  late int currentChoiceValue;
-  late bool isAscendingOrder;
+  late bool _showAlumni;
+  late bool _showStudents;
+  late bool _showAdmins;
+  late int _currentChoiceValue;
+  late bool _isAscendingOrder;
   @override
   void initState() {
-    isAscendingOrder = true;
-    currentChoiceValue = 7;
-    showAdmins = true;
-    showAlumni = true;
-    showStudents = true;
+    _isAscendingOrder = true;
+    _currentChoiceValue = 7;
+    _showAdmins = true;
+    _showAlumni = true;
+    _showStudents = true;
     super.initState();
   }
 
-  Future<bool> getDesignations() async {
+  Future<bool> _getDesignations() async {
     if (designations == null) {
       designations = {};
 
@@ -52,7 +52,7 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: getDesignations(),
+        future: _getDesignations(),
         builder: (context, snapshot) {
           List<Widget> children = [];
           if (snapshot.hasData) {
@@ -74,7 +74,7 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                           onPressed: () {
                             bool nextValue = true;
                             int changeInChoiceValue = 0;
-                            if (showStudents == true) {
+                            if (_showStudents == true) {
                               nextValue = false;
                               changeInChoiceValue = -1;
                             } else {
@@ -82,8 +82,8 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                               changeInChoiceValue = 1;
                             }
                             setState(() {
-                              showStudents = nextValue;
-                              currentChoiceValue += changeInChoiceValue;
+                              _showStudents = nextValue;
+                              _currentChoiceValue += changeInChoiceValue;
                             });
                           },
                           child: Text(
@@ -98,7 +98,7 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                               elevation: 0,
                               padding: EdgeInsets.zero,
                               onPrimary: Colors.transparent,
-                              primary: showStudents == true
+                              primary: _showStudents == true
                                   ? Colors.blueAccent.withOpacity(0.3)
                                   : Colors.transparent,
                               shape: RoundedRectangleBorder(
@@ -115,7 +115,7 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                           onPressed: () {
                             bool nextValue = true;
                             int changeInChoiceValue = 0;
-                            if (showAlumni == true) {
+                            if (_showAlumni == true) {
                               nextValue = false;
                               changeInChoiceValue = -2;
                             } else {
@@ -123,8 +123,8 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                               changeInChoiceValue = 2;
                             }
                             setState(() {
-                              showAlumni = nextValue;
-                              currentChoiceValue += changeInChoiceValue;
+                              _showAlumni = nextValue;
+                              _currentChoiceValue += changeInChoiceValue;
                             });
                           },
                           child: Text(
@@ -139,7 +139,7 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                               elevation: 0,
                               padding: EdgeInsets.zero,
                               onPrimary: Colors.transparent,
-                              primary: showAlumni == true
+                              primary: _showAlumni == true
                                   ? Colors.blueAccent.withOpacity(0.3)
                                   : Colors.transparent,
                               shape: RoundedRectangleBorder(
@@ -157,7 +157,7 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                             int changeInChoiceValue = 0;
 
                             bool nextValue = true;
-                            if (showAdmins == true) {
+                            if (_showAdmins == true) {
                               nextValue = false;
                               changeInChoiceValue = -4;
                             } else {
@@ -165,8 +165,8 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                               changeInChoiceValue = 4;
                             }
                             setState(() {
-                              showAdmins = nextValue;
-                              currentChoiceValue += changeInChoiceValue;
+                              _showAdmins = nextValue;
+                              _currentChoiceValue += changeInChoiceValue;
                             });
                           },
                           child: Text(
@@ -181,7 +181,7 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                               elevation: 0,
                               padding: EdgeInsets.zero,
                               onPrimary: Colors.transparent,
-                              primary: showAdmins == true
+                              primary: _showAdmins == true
                                   ? Colors.blueAccent.withOpacity(0.3)
                                   : Colors.transparent,
                               shape: RoundedRectangleBorder(
@@ -197,7 +197,7 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                         RotatedBox(
                           quarterTurns: 1,
                           child: IconButton(
-                              color: isAscendingOrder == false
+                              color: _isAscendingOrder == false
                                   ? Theme.of(context)
                                       .appBarTheme
                                       .foregroundColor
@@ -205,11 +205,11 @@ class _UserFilterPopUpState extends State<UserFilterPopUp> {
                               splashRadius: 1,
                               onPressed: (() {
                                 bool nextValue = true;
-                                if (isAscendingOrder) {
+                                if (_isAscendingOrder) {
                                   nextValue = false;
                                 }
                                 setState(() {
-                                  isAscendingOrder = nextValue;
+                                  _isAscendingOrder = nextValue;
                                 });
                               }),
                               icon: const Icon(Icons.compare_arrows_outlined)),

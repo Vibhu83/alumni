@@ -12,7 +12,7 @@ class AnEventCard extends StatefulWidget {
   final int eventAttendeesNumber;
   final String eventHolder;
   final DateTime eventStartTime;
-  final Duration eventDuration;
+  final int eventDuration;
   final String? eventLink;
   final bool readOnly;
   const AnEventCard(
@@ -33,16 +33,38 @@ class AnEventCard extends StatefulWidget {
 }
 
 class _AnEventCardState extends State<AnEventCard> {
-  late String title = widget.eventTitle;
-  late String eventHolder = widget.eventHolder;
-  late DateTime startTime = widget.eventStartTime;
-  late int eventAttendees = widget.eventAttendeesNumber;
+  late String _title;
+  late String _eventHolder;
+  late DateTime _startTime;
+  late int _eventAttendees;
+  late int _duration;
+  late String? _eventLink;
+  late Image? _eventTitleImage;
+  late String? _eventTitleImageUrl;
+  late bool returnEmpty;
 
-  String? eventLink = "https://pub.dev/packages/url_launcher/install";
+  @override
+  void initState() {
+    returnEmpty = false;
+    _eventTitleImage = null;
+    if (widget.eventTitleImage != null) {
+      _eventTitleImage = Image.network(widget.eventTitleImage!);
+    }
+    _eventTitleImageUrl = widget.eventTitleImage;
+    _eventLink = widget.eventLink;
+    _duration = widget.eventDuration;
+    _title = widget.eventTitle;
+    _eventHolder = widget.eventHolder;
+    _startTime = widget.eventStartTime;
+    _eventAttendees = widget.eventAttendeesNumber;
+    super.initState();
+  }
 
-  late List<Widget> eventAttributes = [];
   @override
   Widget build(BuildContext context) {
+    if (returnEmpty == true) {
+      return const SizedBox();
+    }
     List<Widget> firstRowChildren = [
       Flexible(
         child: Padding(
@@ -51,7 +73,7 @@ class _AnEventCardState extends State<AnEventCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                _title,
                 style: GoogleFonts.lato(
                     fontSize: 18, height: 1.3, fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
@@ -62,7 +84,7 @@ class _AnEventCardState extends State<AnEventCard> {
                 height: screenHeight * 0.0025,
               ),
               Text(
-                "By: " + eventHolder,
+                "By: " + _eventHolder,
                 style: GoogleFonts.lato(
                   fontSize: 11,
                 ),
@@ -76,7 +98,7 @@ class _AnEventCardState extends State<AnEventCard> {
               Row(
                 children: [
                   Text(
-                    eventAttendees.toString(),
+                    _eventAttendees.toString(),
                     style: GoogleFonts.lato(
                         fontSize: 14, fontWeight: FontWeight.bold),
                   ),
@@ -106,9 +128,9 @@ class _AnEventCardState extends State<AnEventCard> {
                   width: (screenWidth * .38),
                   child: Text(
                       "On: " +
-                          formatDateTime(startTime) +
+                          formatDateTime(_startTime) +
                           " \nFor: " +
-                          widget.eventDuration.inHours.toString() +
+                          _duration.toString() +
                           " hours",
                       style: GoogleFonts.lato(fontSize: 10)),
                 ),
@@ -119,14 +141,14 @@ class _AnEventCardState extends State<AnEventCard> {
       ),
     ];
     Image? titleImage;
-    if (widget.eventTitleImage != null) {
-      titleImage = Image.network(widget.eventTitleImage!);
+    if (_eventTitleImage != null) {
+      titleImage = _eventTitleImage;
       firstRowChildren.add(Container(
         height: screenHeight * 0.110,
         width: screenWidth * 0.3,
         decoration: BoxDecoration(
             image: DecorationImage(
-                image: titleImage.image, fit: BoxFit.fitHeight)),
+                image: titleImage!.image, fit: BoxFit.fitHeight)),
       ));
     }
 
@@ -136,21 +158,37 @@ class _AnEventCardState extends State<AnEventCard> {
         onTap: () {
           Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
             return AnEventPage(
-                eventTitleImagePath: widget.eventTitleImage,
-                eventTitleImage: titleImage,
+                eventLink: _eventLink,
+                eventTitleImagePath: _eventTitleImageUrl,
+                eventTitleImage: _eventTitleImage,
                 eventID: widget.eventID,
-                eventTitle: title,
-                eventHolder: eventHolder,
-                eventAttendeesNumber: eventAttendees,
-                eventStartTime: startTime,
-                eventDuration: widget.eventDuration);
+                eventTitle: _title,
+                eventHolder: _eventHolder,
+                eventStartTime: _startTime,
+                eventDuration: _duration);
           }))).then((value) {
-            if (lastEventAttendeeChange != null &&
-                lastEventAttendeeChange != 0) {
+            if (value == -1) {
               setState(() {
-                eventAttendees += lastEventAttendeeChange!;
+                returnEmpty = true;
+              });
+            }
+            if (updatedEventID == widget.eventID) {
+              setState(() {
+                _duration = updatedEventData["eventDuration"];
+                _eventHolder = updatedEventData["eventHolder"];
+                _eventLink = updatedEventData["eventLink"];
+                _startTime = updatedEventData["eventStartTime"].toDate();
+                _title = updatedEventData["eventTitle"];
+                _eventTitleImage = updatedEventData["eventTitleImage"];
+                _eventTitleImageUrl = updatedEventData["eventTitleImageUrl"];
+              });
+            }
+            if (lastEventAttendeesNumber != null) {
+              setState(() {
+                _eventAttendees = lastEventAttendeesNumber!;
               });
               lastEventAttendeeChange = null;
+              lastEventAttendeesNumber = null;
               lastEventBool = null;
             }
           });

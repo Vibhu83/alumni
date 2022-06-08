@@ -19,18 +19,18 @@ class NotificationPage extends StatefulWidget {
 }
 
 class _NotificationPageState extends State<NotificationPage> {
-  int? orderType;
-  List<DateTime?> selectedDates = [null, null];
+  int? _filterType;
+  final List<DateTime?> _selectedDates = [null, null];
 
-  Future<List<Map<String, dynamic>>> getNotificationList() async {
+  Future<List<Map<String, dynamic>>> _getNotificationList() async {
     List<Map<String, dynamic>> notifications;
 
-    switch (orderType) {
+    switch (_filterType) {
       case 1:
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .where("recommendedTime",
-                isLessThanOrEqualTo: Timestamp.fromDate(selectedDates[0]!))
+                isLessThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!))
             .orderBy("recommendedTime", descending: true)
             .get()
             .then((value) {
@@ -46,9 +46,9 @@ class _NotificationPageState extends State<NotificationPage> {
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .where("recommendedTime",
-                isGreaterThanOrEqualTo: Timestamp.fromDate(selectedDates[0]!),
+                isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!),
                 isLessThanOrEqualTo: Timestamp.fromDate(
-                    selectedDates[0]!.add(const Duration(days: 1))))
+                    _selectedDates[0]!.add(const Duration(days: 1))))
             .orderBy("recommendedTime", descending: true)
             .get()
             .then((value) {
@@ -63,7 +63,7 @@ class _NotificationPageState extends State<NotificationPage> {
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .where("recommendedTime",
-                isGreaterThanOrEqualTo: Timestamp.fromDate(selectedDates[0]!))
+                isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!))
             .orderBy("recommendedTime", descending: true)
             .get()
             .then((value) {
@@ -78,8 +78,8 @@ class _NotificationPageState extends State<NotificationPage> {
         notifications = await firestore!
             .collection("recommendationFromAdmins")
             .where("recommendedTime",
-                isGreaterThanOrEqualTo: Timestamp.fromDate(selectedDates[0]!),
-                isLessThanOrEqualTo: Timestamp.fromDate(selectedDates[1]!))
+                isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!),
+                isLessThanOrEqualTo: Timestamp.fromDate(_selectedDates[1]!))
             .orderBy("recommendedTime", descending: true)
             .get()
             .then((value) {
@@ -105,7 +105,7 @@ class _NotificationPageState extends State<NotificationPage> {
         break;
     }
     for (int i = 0; i < notifications.length; i++) {
-      var temp = await getTitle(notifications[i]["recommendationType"],
+      var temp = await _getTitle(notifications[i]["recommendationType"],
           notifications[i]["recommendedItemID"]);
       if (temp == null) {
         notifications[i].clear();
@@ -116,7 +116,7 @@ class _NotificationPageState extends State<NotificationPage> {
     return notifications;
   }
 
-  Future<Map<String, dynamic>?> getTitle(String type, String id) async {
+  Future<Map<String, dynamic>?> _getTitle(String type, String id) async {
     String itemType = type + "s";
     var details =
         await firestore!.collection(itemType).doc(id).get().then((value) {
@@ -145,117 +145,128 @@ class _NotificationPageState extends State<NotificationPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> dropDownOptions = [
-      "Before a date",
-      "On a date",
-      "After a date",
-      "Between two dates",
-      "Show all"
-    ];
     return Scaffold(
       // backgroundColor: const Color(backgroundColor),
       appBar: buildAppBar(
           actions: [
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              child: DropdownButton<String>(
-                  icon: const Icon(Icons.sort),
-                  underline: const SizedBox(),
-                  style: const TextStyle(fontSize: 14),
-                  items: dropDownOptions
-                      .map<DropdownMenuItem<String>>(
-                          (String value) => DropdownMenuItem<String>(
-                                child: Text(value),
-                                value: value,
-                              ))
-                      .toList(),
-                  onChanged: (String? selectedOrderType) {
-                    bool changeWanted = true;
-                    if (selectedOrderType == "Show all") {
-                      setState(() {
-                        orderType = null;
-                        selectedDates[0] = null;
-                        selectedDates[1] = null;
-                      });
-                      return;
-                    }
-                    DatePicker.showDatePicker(
-                      context,
-                      currentTime: selectedDates[0],
-                      theme: Theme.of(context).brightness == Brightness.dark
-                          ? getDarkDatePickerTheme()
-                          : getLightPickerTheme(),
-                    ).then((firstDate) async {
-                      DateTime? nextFirstDate;
-                      DateTime? nextSecondDate;
-                      int? nextOrderType;
-
-                      switch (selectedOrderType) {
-                        case "Before a date":
-                          nextSecondDate = null;
-                          nextFirstDate = firstDate;
-                          if (firstDate == null) {
-                            changeWanted = false;
-                          } else {
-                            nextOrderType = 1;
-                          }
-                          break;
-                        case "On a date":
-                          nextSecondDate = null;
-                          nextFirstDate = firstDate;
-                          if (firstDate == null) {
-                            changeWanted = false;
-                          } else {
-                            nextOrderType = 2;
-                          }
-                          break;
-                        case "After a date":
-                          nextSecondDate = null;
-                          nextFirstDate = firstDate;
-                          if (firstDate == null) {
-                            changeWanted = false;
-                          } else {
-                            nextOrderType = 3;
-                          }
-                          break;
-                        case "Between two dates":
-                          await DatePicker.showDatePicker(context,
-                                  theme: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? getDarkDatePickerTheme()
-                                      : getLightPickerTheme(),
-                                  currentTime: selectedDates[1])
-                              .then((secondDate) {
-                            if (firstDate == null || secondDate == null) {
-                              changeWanted = false;
-                            } else {
-                              nextOrderType = 4;
-                              nextFirstDate = firstDate;
-                              nextSecondDate = secondDate;
-                            }
-                          });
-                          break;
-                        case "Show all":
-                          nextOrderType = null;
-                          nextFirstDate = null;
-                          nextSecondDate = null;
-                          break;
-                        default:
-                          changeWanted = false;
-                          break;
-                      }
-                      if (changeWanted == true) {
+            buildAppBarIcon(
+                onPressed: () {
+                  showModalBottomSheet(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      elevation: 2,
+                      backgroundColor: Colors.transparent,
+                      context: context,
+                      builder: (context) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Container(
+                              decoration: BoxDecoration(boxShadow: [
+                                BoxShadow(
+                                  color: Theme.of(context)
+                                      .appBarTheme
+                                      .shadowColor!
+                                      .withOpacity(0.5),
+                                  blurStyle: BlurStyle.normal,
+                                  spreadRadius: 0.1,
+                                  blurRadius: 0.5,
+                                  offset: const Offset(0, 0),
+                                ),
+                              ]),
+                              child: FilterModalBottomSheet(
+                                currentFilter: _filterType,
+                              )),
+                        );
+                      }).then((value) {
+                    if (value != null) {
+                      bool changeWanted = true;
+                      if (value == 5) {
                         setState(() {
-                          orderType = nextOrderType;
-                          selectedDates[0] = nextFirstDate;
-                          selectedDates[1] = nextSecondDate;
+                          _filterType = null;
+                          _selectedDates[0] = null;
+                          _selectedDates[1] = null;
                         });
-                      } else {
                         return;
                       }
-                    });
-                  }),
-            ),
+                      DatePicker.showDatePicker(
+                        context,
+                        currentTime: _selectedDates[0],
+                        theme: Theme.of(context).brightness == Brightness.dark
+                            ? getDarkDatePickerTheme()
+                            : getLightPickerTheme(),
+                      ).then((firstDate) async {
+                        DateTime? nextFirstDate;
+                        DateTime? nextSecondDate;
+                        int? nextOrderType;
+
+                        switch (value) {
+                          case 1:
+                            nextSecondDate = null;
+                            nextFirstDate = firstDate;
+                            if (firstDate == null) {
+                              changeWanted = false;
+                            } else {
+                              nextOrderType = 1;
+                            }
+                            break;
+                          case 2:
+                            nextSecondDate = null;
+                            nextFirstDate = firstDate;
+                            if (firstDate == null) {
+                              changeWanted = false;
+                            } else {
+                              nextOrderType = 2;
+                            }
+                            break;
+                          case 3:
+                            nextSecondDate = null;
+                            nextFirstDate = firstDate;
+                            if (firstDate == null) {
+                              changeWanted = false;
+                            } else {
+                              nextOrderType = 3;
+                            }
+                            break;
+                          case 4:
+                            await DatePicker.showDatePicker(context,
+                                    theme: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? getDarkDatePickerTheme()
+                                        : getLightPickerTheme(),
+                                    currentTime: _selectedDates[1])
+                                .then((secondDate) {
+                              if (firstDate == null || secondDate == null) {
+                                changeWanted = false;
+                              } else {
+                                nextOrderType = 4;
+                                nextFirstDate = firstDate;
+                                nextSecondDate = secondDate;
+                              }
+                            });
+                            break;
+                          case 5:
+                            nextOrderType = null;
+                            nextFirstDate = null;
+                            nextSecondDate = null;
+                            break;
+                          default:
+                            changeWanted = false;
+                            break;
+                        }
+                        if (changeWanted == true) {
+                          setState(() {
+                            _filterType = nextOrderType;
+                            _selectedDates[0] = nextFirstDate;
+                            _selectedDates[1] = nextSecondDate;
+                          });
+                        } else {
+                          return;
+                        }
+                      });
+                    }
+                  });
+                },
+                icon: Icons.filter_alt)
           ],
           leading: buildAppBarIcon(
               onPressed: () {
@@ -263,7 +274,7 @@ class _NotificationPageState extends State<NotificationPage> {
               },
               icon: Icons.close)),
       body: FutureBuilder(
-          future: getNotificationList(),
+          future: _getNotificationList(),
           builder:
               ((context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
             List<Widget> children;
@@ -278,6 +289,18 @@ class _NotificationPageState extends State<NotificationPage> {
                   void Function() onPressed = () {};
                   var item = list[index];
                   if (item["recommendationType"] == "post") {
+                    List<Image>? images = [];
+                    List<String>? urls = [];
+                    if (item["images"] != null) {
+                      for (var url in item["images"]) {
+                        urls.add(url.toString());
+                        images.add(Image.network(url));
+                      }
+                    }
+                    if (images.isEmpty) {
+                      urls = null;
+                      images = null;
+                    }
                     onPressed = () {
                       Timestamp temp = item["postedOn"];
                       var postedDuration =
@@ -285,32 +308,41 @@ class _NotificationPageState extends State<NotificationPage> {
                       Navigator.of(context)
                           .push(MaterialPageRoute(builder: (context) {
                         return APost(
-                            postID: item["recommendedItemID"],
-                            postTitle: item["recommendationTitle"],
-                            authorID: item["postAuthorID"],
-                            postVotes: item["postVotes"],
-                            authorName: item["authorName"],
-                            postBody: item["postBody"],
-                            postedDuration: printDuration(postedDuration));
+                          postID: item["recommendedItemID"],
+                          postTitle: item["recommendationTitle"],
+                          authorID: item["postAuthorID"],
+                          postVotes: item["postVotes"],
+                          authorName: item["authorName"],
+                          postBody: item["postBody"],
+                          postedDuration: printDuration(postedDuration),
+                          postLink: item["postLink"],
+                          images: images,
+                          imagesUrls: urls,
+                        );
                       }));
                     };
                   } else {
                     onPressed = () {
+                      var eventID = item["recommendedItemID"];
+                      var eventTitle = item["eventTitle"];
+                      var eventHolder = item["eventHolder"];
+                      Timestamp temp = item["eventStartTime"];
+                      DateTime eventStartTime = temp.toDate();
+                      var eventDuration = item["eventDuration"];
+                      Image? eventTitleImage;
+                      if (item["eventTitleImage"] != null) {
+                        eventTitleImage =
+                            Image.network(item["eventTitleImage"]);
+                      }
                       Navigator.of(context)
                           .push(MaterialPageRoute(builder: (context) {
-                        var eventID = item["recommendedItemID"];
-                        var eventTitle = item["eventTitle"];
-                        var eventHolder = item["eventHolder"];
-                        int eventAttendeesNumber = item["eventAttendeesNumber"];
-                        Timestamp temp = item["eventStartTime"];
-                        DateTime eventStartTime = temp.toDate();
-                        var eventDuration =
-                            Duration(hours: item["eventDuration"]);
                         return AnEventPage(
                             eventID: eventID,
                             eventTitle: eventTitle,
+                            eventLink: item["eventLink"],
+                            eventTitleImage: eventTitleImage,
+                            eventTitleImagePath: item["eventTitleImage"],
                             eventHolder: eventHolder,
-                            eventAttendeesNumber: eventAttendeesNumber,
                             eventStartTime: eventStartTime,
                             eventDuration: eventDuration);
                       }));
@@ -333,6 +365,154 @@ class _NotificationPageState extends State<NotificationPage> {
             }
             return buildFuture(children: children);
           })),
+    );
+  }
+}
+
+class FilterModalBottomSheet extends StatefulWidget {
+  final int? currentFilter;
+  const FilterModalBottomSheet({required this.currentFilter, Key? key})
+      : super(key: key);
+
+  @override
+  State<FilterModalBottomSheet> createState() => _FilterModalBottomSheetState();
+}
+
+class _FilterModalBottomSheetState extends State<FilterModalBottomSheet> {
+  final List<String> _filterOptions = [
+    "Before a date",
+    "On a date",
+    "After a date",
+    "Between two dates",
+    "Show all"
+  ];
+  late int? _selectedFilter;
+
+  @override
+  void initState() {
+    _selectedFilter = widget.currentFilter;
+
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).canvasColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            width: double.maxFinite,
+            decoration: BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(
+                        color: Theme.of(context).appBarTheme.shadowColor!))),
+            child: const Text(
+              "Filter By Date:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ListTile(
+            onTap: () {
+              int value = 1;
+              setState(() {
+                _selectedFilter = value;
+              });
+              Navigator.of(context).pop(value);
+            },
+            leading: Radio<int>(
+                value: 1,
+                groupValue: _selectedFilter,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFilter = value;
+                  });
+                  Navigator.of(context).pop(value);
+                }),
+            title: Text(_filterOptions[0]),
+          ),
+          ListTile(
+            onTap: () {
+              int value = 2;
+              setState(() {
+                _selectedFilter = value;
+              });
+              Navigator.of(context).pop(value);
+            },
+            leading: Radio<int>(
+                value: 2,
+                groupValue: _selectedFilter,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFilter = value;
+                  });
+                  Navigator.of(context).pop(value);
+                }),
+            title: Text(_filterOptions[1]),
+          ),
+          ListTile(
+            onTap: () {
+              int value = 3;
+              setState(() {
+                _selectedFilter = value;
+              });
+              Navigator.of(context).pop(value);
+            },
+            leading: Radio<int>(
+                value: 3,
+                groupValue: _selectedFilter,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFilter = value;
+                  });
+                  Navigator.of(context).pop(value);
+                }),
+            title: Text(_filterOptions[2]),
+          ),
+          ListTile(
+            onTap: () {
+              int value = 4;
+              setState(() {
+                _selectedFilter = value;
+              });
+              Navigator.of(context).pop(value);
+            },
+            leading: Radio<int>(
+                value: 4,
+                groupValue: _selectedFilter,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFilter = value;
+                  });
+                  Navigator.of(context).pop(value);
+                }),
+            title: Text(_filterOptions[3]),
+          ),
+          ListTile(
+            onTap: () {
+              int value = 5;
+              setState(() {
+                _selectedFilter = value;
+              });
+              Navigator.of(context).pop(value);
+            },
+            leading: Radio<int>(
+                value: 5,
+                groupValue: _selectedFilter,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFilter = value;
+                  });
+                  Navigator.of(context).pop(value);
+                }),
+            title: Text(_filterOptions[4]),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:flutter/material.dart';
 
 class AdminRecommendationPopUp extends StatelessWidget {
@@ -8,15 +8,17 @@ class AdminRecommendationPopUp extends StatelessWidget {
   final String recommendedItemTitle;
   final String content;
   final String recommendationId;
+  final String title;
   const AdminRecommendationPopUp(
       {required this.recommendationId,
       required this.onPressed,
       required this.recommendedItemTitle,
       required this.content,
+      required this.title,
       Key? key})
       : super(key: key);
 
-  void deleteRecommendation() {
+  void _deleteRecommendation() {
     firestore!
         .collection("recommendationFromAdmins")
         .doc(recommendationId)
@@ -26,13 +28,12 @@ class AdminRecommendationPopUp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String title = "Admin Team has recommended this post:";
     List<Widget> recommendationItemActions = [];
     if (userData["uid"] != null) {
       recommendationItemActions.add(IconButton(
           splashRadius: 14,
           onPressed: () {
-            deleteRecommendation();
+            _deleteRecommendation();
             Navigator.of(context).pop();
           },
           icon: const Icon(Icons.delete_outlined)));

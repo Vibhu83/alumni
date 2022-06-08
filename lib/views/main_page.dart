@@ -1,9 +1,10 @@
 import 'package:alumni/ThemeData/theme_model.dart';
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/bookmark_page.dart';
 import 'package:alumni/views/chat_room_page.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/events_page.dart';
-import 'package:alumni/views/forum_page.dart';
+import 'package:alumni/views/posts_page.dart';
 import 'package:alumni/views/home_page.dart';
 import 'package:alumni/views/notification_page.dart';
 import 'package:alumni/views/past_events_page.dart';
@@ -13,8 +14,8 @@ import 'package:alumni/views/profile_page.dart';
 import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
-import 'package:alumni/widgets/future_widgets.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
+import 'package:alumni/widgets/notice_popup.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_initicon/flutter_initicon.dart';
@@ -29,15 +30,11 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  late int _selectedTab;
-
   final List<Widget> _tabsViews = <Widget>[
-    HomePage(
-      selectedTab: currentHomeTab == null ? 0 : currentHomeTab!,
-    ),
+    const HomePage(),
     const EventsPage(),
-    const PeoplePage(),
     const ForumPage(),
+    const PeoplePage(),
     const ChatRooms()
   ];
 
@@ -53,91 +50,88 @@ class _MainPageState extends State<MainPage> {
       label: 'Events',
     ),
     BottomNavigationBarItem(
+        icon: Icon(Icons.forum_outlined),
+        activeIcon: Icon(Icons.forum_sharp),
+        label: 'Forum'),
+    BottomNavigationBarItem(
       icon: Icon(Icons.people_alt_outlined),
       activeIcon: Icon(Icons.people_alt_sharp),
       label: 'People',
     ),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.forum_outlined),
-        activeIcon: Icon(Icons.forum_sharp),
-        label: 'Forum'),
     BottomNavigationBarItem(
         icon: Icon(Icons.chat_bubble_outline_rounded),
         activeIcon: Icon(Icons.chat_sharp),
         label: 'Chats')
   ];
 
-  void _onItemTapped(int index) {
-    if (index == 4 && userData["uid"] == null) {
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return _signInPopUp;
-          });
-    } else {
-      setState(() {
-        _selectedTab = index;
+  late List<Widget> _appBarActions;
+
+  late int _selectedTab;
+  late List<Widget?> _floatingActionButtons;
+  late final Widget _signInPopUp;
+
+  @override
+  void initState() {
+    _appBarActions = [
+      const SizedBox(),
+      const SizedBox(),
+      const SizedBox(),
+      const SizedBox(),
+      const SizedBox()
+    ];
+    _verifyEmail();
+    _setFloatingActionButtons();
+    _setAppBarIcons();
+    _selectedTab = 0;
+    _signInPopUp = const LoginRegisterPopUp();
+    _selectedTab = widget.startingIndex;
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _tabsViews.clear();
+    _floatingActionButtons.clear();
+    super.dispose();
+  }
+
+  void _setAppBarIcons() {
+    for (int i = 0; i < 5; i++) {
+      _appBarActions[i] = Row(
+        children: _setAppBarIconsForTab(i),
+      );
+    }
+  }
+
+  void _verifyEmail() {
+    if (auth!.currentUser != null &&
+        auth!.currentUser!.emailVerified != true &&
+        emailPopUpShown != true) {
+      userData.clear();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        emailPopUpShown = true;
+        showDialog(
+            context: context,
+            builder: (context) {
+              return CustomAlertDialog(
+                  height: screenHeight * 0.05,
+                  actions: [
+                    TextButton(
+                        onPressed: () async {
+                          await auth!.currentUser!.sendEmailVerification();
+                          await auth!.signOut();
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text("Send email verification"))
+                  ],
+                  title: const Text("Email not verified"),
+                  content: const Text(
+                      "To access all features, please verify your email and login again"));
+            });
       });
     }
   }
-
-  Future<bool> _setUserLoginStatus() async {
-    setScreenDimensions(context);
-    User? currentUser = auth!.currentUser;
-
-    chat!.firebaseUser = currentUser;
-    if (currentUser != null) {
-      if (currentUser.emailVerified) {
-        userData["uid"] = currentUser.uid;
-        await _saveUserData(userData["uid"]);
-        return true;
-      } else {
-        userData["uid"] = null;
-        if (emailPopUpShown != true) {
-          WidgetsBinding.instance!.addPostFrameCallback((_) {
-            emailPopUpShown = true;
-            showDialog(
-                context: context,
-                builder: (context) {
-                  return CustomAlertDialog(
-                      height: screenHeight * 0.05,
-                      actions: [
-                        TextButton(
-                            onPressed: () async {
-                              await currentUser.sendEmailVerification();
-                              await auth!.signOut();
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text("Send email verification"))
-                      ],
-                      title: const Text("Email not verified"),
-                      content: const Text(
-                          "To access all features, please verify your email and login again"));
-                });
-          });
-        }
-        return false;
-      }
-    } else {
-      userData["uid"] = null;
-      return false;
-    }
-  }
-
-  Future<bool> _saveUserData(String uid) async {
-    return await firestore!.collection("users").doc(uid).get().then((value) {
-      var temp = value.data();
-      if (temp != null) {
-        temp["uid"] = userData["uid"];
-        userData = temp;
-      }
-      return true;
-    });
-  }
-
-  late List<Widget?> _floatingActionButtons;
-
-  late final Widget _signInPopUp;
 
   void _setFloatingActionButtons() {
     _floatingActionButtons = [
@@ -157,7 +151,6 @@ class _MainPageState extends State<MainPage> {
         _floatingActionButtons[1] =
             //Events Floating Button
             FloatingActionButton(
-          // backgroundColor: currentTheme!.floatingActionButtonColor,
           onPressed: () {
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => const CreateEvent(
@@ -168,8 +161,7 @@ class _MainPageState extends State<MainPage> {
         );
       }
       //Forum Floating Button
-      _floatingActionButtons[3] = FloatingActionButton(
-        // backgroundColor: currentTheme!.floatingActionButtonColor,
+      _floatingActionButtons[2] = FloatingActionButton(
         onPressed: () {
           Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const CreatePostPage()));
@@ -179,46 +171,23 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  @override
-  void initState() {
-    _selectedTab = 0;
-    _signInPopUp = const LoginRegisterPopUp();
-    _selectedTab = widget.startingIndex;
-    super.initState();
+  void _onItemTapped(int index) {
+    if (index == 4 && userData["uid"] == null) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return _signInPopUp;
+          });
+    } else {
+      setState(() {
+        _selectedTab = index;
+      });
+    }
   }
 
-  @override
-  void dispose() {
-    _tabsViews.clear();
-    _floatingActionButtons.clear();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: _setUserLoginStatus(),
-        builder: ((context, AsyncSnapshot<bool?> snapshot) {
-          List<Widget> children;
-          if (snapshot.hasData) {
-            return _buildPage();
-          } else if (snapshot.hasError) {
-            children = buildFutureError(snapshot);
-          } else {
-            children = buildFutureLoading(snapshot);
-          }
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: children,
-            ),
-          );
-        }));
-  }
-
-  List<Widget> _setAppBarIconsForSelectedTabs() {
+  List<Widget> _setAppBarIconsForTab(int tabIndex) {
     List<Widget> appBarIcons = [];
-    switch (_selectedTab) {
+    switch (tabIndex) {
       case 0:
         var addNoticeButton = buildAppBarIcon(
             onPressed: () {
@@ -228,12 +197,24 @@ class _MainPageState extends State<MainPage> {
                     return const AddNoticePopUp();
                   });
             },
-            icon: Icons.notification_add_sharp);
+            icon: Icons.add);
+        var seeNoticesButton = buildAppBarIcon(
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return const Notices(
+                      showAllFlag: true,
+                    );
+                  });
+            },
+            icon: Icons.mail);
         if (userData["accessLevel"] == "admin") {
           appBarIcons.add(addNoticeButton);
         }
+        appBarIcons.add(seeNoticesButton);
         break;
-      // case 2:
+      // case 3:
       //   appBarIcons.add(buildAppBarIcon(
       //       onPressed: () {
       //         showModalBottomSheet(
@@ -254,71 +235,26 @@ class _MainPageState extends State<MainPage> {
             icon: Icons.history);
 
         appBarIcons.add(pastEventButton);
+
         break;
       // case 2:
       //   var searchForumButton =
       //       buildAppBarIcon(onPressed: () {}, icon: Icons.search_rounded);
       //   appBarIcons.add(searchForumButton);
       //   break;
+
     }
     return appBarIcons;
   }
 
-  Consumer _buildPage() {
-    _setFloatingActionButtons();
+  @override
+  Widget build(BuildContext context) {
+    setScreenDimensions(context);
 
-    Row pageFeatures = Row(
-      children: _setAppBarIconsForSelectedTabs(),
-    );
     return Consumer<ThemeModel>(
       builder: ((context, ThemeModel themeNotifier, child) => Scaffold(
+          resizeToAvoidBottomInset: false,
           appBar: buildAppBar(
-            appBarHeight: _selectedTab == 0 ? screenHeight * 0.117 : null,
-            bottom: _selectedTab == 0
-                ? PreferredSize(
-                    preferredSize: Size.fromHeight(screenHeight * 0.1),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          border: Border(
-                              top: BorderSide(
-                                  color: Theme.of(context)
-                                      .appBarTheme
-                                      .shadowColor!
-                                      .withOpacity(0.3)))),
-                      child: DefaultTabController(
-                          initialIndex:
-                              currentHomeTab == null ? 0 : currentHomeTab!,
-                          length: 3,
-                          child: TabBar(
-                            labelColor:
-                                Theme.of(context).appBarTheme.foregroundColor,
-                            onTap: (value) {
-                              currentHomeTab = value;
-                              setState(() {
-                                _tabsViews[0] = HomePage(
-                                  selectedTab: value,
-                                );
-                              });
-                            },
-                            labelPadding: EdgeInsets.zero,
-                            padding: EdgeInsets.zero,
-                            tabs: const [
-                              Tab(
-                                text: "Trending Posts",
-                              ),
-                              Tab(
-                                text: "Upcoming Events",
-                              ),
-                              Tab(
-                                text: "Top Alums",
-                              ),
-                            ],
-                          )),
-                    ),
-                  )
-                : const PreferredSize(
-                    preferredSize: Size.zero, child: SizedBox()),
             title: Container(
               width: screenWidth * 0.22,
               height: screenHeight * 0.043,
@@ -341,7 +277,7 @@ class _MainPageState extends State<MainPage> {
                     ? Icons.nightlight_round_outlined
                     : Icons.wb_sunny_rounded),
             actions: <Widget>[
-              Builder(builder: (context) => pageFeatures),
+              Builder(builder: (context) => _appBarActions[_selectedTab]),
               Builder(
                 builder: (context) {
                   return buildAppBarIcon(
@@ -362,35 +298,12 @@ class _MainPageState extends State<MainPage> {
             ],
           ),
           floatingActionButton: _floatingActionButtons[_selectedTab],
-          endDrawer: _buildProfileDrawer(context),
-          body: NestedScrollView(
-              body: _tabsViews.elementAt(_selectedTab),
-              headerSliverBuilder: ((context, innerBoxIsScrolled) {
-                return [
-                  SliverAppBar(
-                    stretchTriggerOffset: 1,
-                    onStretchTrigger: () async {
-                      setState(() {});
-                    },
-                    toolbarHeight: 1,
-                    backgroundColor: Colors.transparent,
-                    actions: const [SizedBox()],
-                    expandedHeight: _selectedTab == 0 ? screenHeight * 0.19 : 0,
-                    flexibleSpace: _selectedTab == 0
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8.0, horizontal: 4),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: FlexibleSpaceBar(
-                                background: Image.asset("assets/banner.jpg"),
-                              ),
-                            ),
-                          )
-                        : null,
-                  )
-                ];
-              })),
+          endDrawer: Builder(
+            builder: (context) {
+              return _buildProfileDrawer(context);
+            },
+          ),
+          body: _tabsViews.elementAt(_selectedTab),
           bottomNavigationBar: _buildBottomNavBar())),
     );
   }
@@ -424,21 +337,20 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  void logoutUser() async {
-    noticesSeen = false;
+  void _logoutUser() async {
     await FirebaseAuth.instance.signOut();
+    await setUserLoginStatus(data: {});
     Navigator.of(context).popUntil(ModalRoute.withName(""));
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      userData.clear();
       return const MainPage();
     }));
   }
 
-  Widget? _buildProfileDrawer(BuildContext context) {
+  Widget _buildProfileDrawer(BuildContext context) {
     if (userData["uid"] == null) {
-      return null;
+      return const SizedBox();
     }
-    double topPad = screenHeight * 0.085;
+    double topPad = screenHeight * 0.093;
     double bottomPad = screenHeight * 0.01;
     return Container(
       padding: EdgeInsets.fromLTRB(0, topPad, 0, bottomPad),
@@ -456,16 +368,23 @@ class _MainPageState extends State<MainPage> {
                     padding: const EdgeInsets.only(
                         left: 8, right: 8, top: 16, bottom: 4),
                     child: Column(children: [
-                      userData["profilePic"] != null
-                          ? CircleAvatar(
-                              radius: 128,
-                              backgroundImage:
-                                  NetworkImage(userData["profilePic"]),
-                            )
-                          : Initicon(
-                              size: 256,
-                              text: userData["name"],
-                            ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: ((context) =>
+                                  ProfilePage(uid: userData["uid"]))));
+                        },
+                        child: userData["profilePic"] != null
+                            ? CircleAvatar(
+                                radius: 128,
+                                backgroundImage:
+                                    NetworkImage(userData["profilePic"]),
+                              )
+                            : Initicon(
+                                size: 256,
+                                text: userData["name"],
+                              ),
+                      ),
                       Padding(
                           padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
                           child: _buildDrawListTile("My Profile", () {
@@ -478,10 +397,17 @@ class _MainPageState extends State<MainPage> {
                             builder: ((context) =>
                                 NotificationPage(uid: userData["uid"]))));
                       }),
+                      _buildDrawListTile("Bookmarks", () {
+                        Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (context) {
+                          return const BookmarkPage();
+                        }));
+                      }),
                       _buildDrawListTile("Inbox", () {
                         setState(() {
                           _selectedTab = 4;
                         });
+                        Scaffold.of(context).closeEndDrawer();
                       }),
                     ]),
                   ),
@@ -513,14 +439,11 @@ class _MainPageState extends State<MainPage> {
                     iconColor: Theme.of(context).appBarTheme.foregroundColor,
                     textColor: Theme.of(context).appBarTheme.foregroundColor,
                     leading: const Icon(Icons.settings),
-                    title: const Text("Settings"),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.logout_rounded),
-                      onPressed: () {
-                        logoutUser();
-                      },
-                    ),
-                    onTap: () {},
+                    title: const Text("Logout"),
+                    trailing: const Icon(Icons.logout_rounded),
+                    onTap: () {
+                      _logoutUser();
+                    },
                   ),
                 ),
               )

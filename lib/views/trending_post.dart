@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 class TrendingPostsPage extends StatelessWidget {
   const TrendingPostsPage({Key? key}) : super(key: key);
 
-  Future<List<Map<String, dynamic>>> getPosts() async {
+  Future<List<Map<String, dynamic>>> _getPosts() async {
     var postsRef = firestore!.collection('posts');
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
     querySnapshot =
@@ -31,7 +31,7 @@ class TrendingPostsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: getPosts(),
+        future: _getPosts(),
         builder:
             ((context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
           List<Widget> children;

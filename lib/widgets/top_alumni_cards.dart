@@ -14,16 +14,16 @@ class TopAlumniCards extends StatefulWidget {
 }
 
 class _TopAlumniCardsState extends State<TopAlumniCards> {
-  late List<Map<String, dynamic>> alumni = [];
+  late List<Map<String, dynamic>> _alumni = [];
   final PageController _pageController = PageController();
   int? _currentPage = 0;
 
-  Future<bool> getTopAlumni() async {
-    alumni = [];
+  Future<bool> _getTopAlumni() async {
+    _alumni = [];
     List<String> idList =
         await firestore!.collection("topAlumni").get().then((value) {
       return value.docs.map((e) {
-        alumni.add({"topAlumniMessage": e.data()["message"].toString()});
+        _alumni.add({"topAlumniMessage": e.data()["message"].toString()});
         return e.data()["uid"].toString();
       }).toList();
     });
@@ -37,7 +37,7 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
         .then((value) {
       int index = 0;
       value.docs.map((e) {
-        alumni[index].addAll(e.data());
+        _alumni[index].addAll(e.data());
       }).toList();
     });
     return true;
@@ -46,7 +46,7 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: getTopAlumni(),
+        future: _getTopAlumni(),
         builder: (context, AsyncSnapshot<bool> snapshot) {
           List<Widget> children;
           if (snapshot.data == true) {
@@ -68,36 +68,35 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                   ]));
             } else {
               header.add(SizedBox(
-                height: screenHeight * 0.03,
+                height: screenHeight * 0.01,
               ));
             }
-            return alumni.isEmpty
+            return _alumni.isEmpty
                 ? const Center(
-                    child: Text("No alumni have been chosen yet\nStay tuned."),
+                    child: Text("No Alums have been chosen yet\nStay tuned."),
                   )
                 : Card(
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                     shadowColor: Theme.of(context).appBarTheme.shadowColor,
                     elevation: 1,
-                    color: const Color(0xffC2240B),
+                    color: const Color.fromARGB(255, 0, 104, 0),
                     margin: const EdgeInsets.symmetric(
                         vertical: 10, horizontal: 14),
-                    child: SingleChildScrollView(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 0),
-                              child: Row(
-                                children: header,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                              ),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            color: Colors.transparent,
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 0),
+                            child: Row(
+                              children: header,
+                              mainAxisAlignment: MainAxisAlignment.end,
                             ),
-                            SizedBox(
-                              height: screenHeight * 0.625,
+                          ),
+                          Flexible(
+                            child: Center(
                               child: PageView.builder(
                                   onPageChanged: (value) {
                                     setState(() {
@@ -105,27 +104,27 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                     });
                                   },
                                   controller: _pageController,
-                                  itemCount: alumni.length,
+                                  itemCount: _alumni.length,
                                   itemBuilder: ((context, index) {
                                     Widget profilePic;
-                                    if (alumni[index]["profilePic"] != null) {
+                                    if (_alumni[index]["profilePic"] != null) {
                                       profilePic = CircleAvatar(
                                         radius: screenHeight * 0.125,
                                         backgroundImage: Image.network(
-                                                alumni[index]["profilePic"])
+                                                _alumni[index]["profilePic"])
                                             .image,
                                       );
                                     } else {
                                       profilePic = Initicon(
                                         size: screenHeight * 0.25,
-                                        text: alumni[index]["name"],
+                                        text: _alumni[index]["name"],
                                       );
                                     }
                                     String description = "";
                                     String? designation =
-                                        alumni[index]["currentDesignation"];
+                                        _alumni[index]["currentDesignation"];
                                     String? currentOrgName =
-                                        alumni[index]["currentOrgName"];
+                                        _alumni[index]["currentOrgName"];
                                     if (designation != null &&
                                         designation.isNotEmpty &&
                                         currentOrgName != null &&
@@ -143,13 +142,13 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                             fontStyle: FontStyle.italic),
                                       );
                                     }
-                                    String collegeTimeSpan = alumni[index]
+                                    String collegeTimeSpan = _alumni[index]
                                             ["admissionYear"]
                                         .toString();
-                                    if (alumni[index]["passingYear"] != null &&
-                                        alumni[index]["passingYear"] != "") {
+                                    if (_alumni[index]["passingYear"] != null &&
+                                        _alumni[index]["passingYear"] != "") {
                                       collegeTimeSpan += " - " +
-                                          alumni[index]["passingYear"]
+                                          _alumni[index]["passingYear"]
                                               .toString();
                                     } else {
                                       collegeTimeSpan += " - Now ";
@@ -160,19 +159,19 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                             MaterialPageRoute(
                                                 builder: ((context) =>
                                                     ProfilePage(
-                                                        uid: alumni[index]
+                                                        uid: _alumni[index]
                                                             ["uid"]))));
                                       },
                                       child: SingleChildScrollView(
                                         child: Column(
-                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisSize: MainAxisSize.max,
                                           children: [
                                             profilePic,
                                             SizedBox(
                                               height: screenHeight * 0.025,
                                             ),
                                             Text(
-                                              alumni[index]["name"],
+                                              _alumni[index]["name"],
                                               style: const TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 22,
@@ -183,7 +182,7 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                             ),
                                             descriptionWidget,
                                             SizedBox(
-                                              height: screenHeight * 0.01,
+                                              height: screenHeight * 0.025,
                                             ),
                                             Padding(
                                               padding:
@@ -202,7 +201,7 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                                             screenWidth * 0.025,
                                                       ),
                                                       Text(
-                                                        alumni[index]["email"],
+                                                        _alumni[index]["email"],
                                                         style: const TextStyle(
                                                           color: Colors.white,
                                                         ),
@@ -212,9 +211,9 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                                   SizedBox(
                                                     height: screenHeight * 0.01,
                                                   ),
-                                                  alumni[index]["mobileContactNo"] !=
+                                                  _alumni[index]["mobileContactNo"] !=
                                                               null &&
-                                                          alumni[index][
+                                                          _alumni[index][
                                                                   "mobileContactNo"] !=
                                                               ""
                                                       ? Row(
@@ -230,7 +229,7 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                                                       0.025,
                                                             ),
                                                             Text(
-                                                              alumni[index][
+                                                              _alumni[index][
                                                                   "mobileContactNo"],
                                                               style:
                                                                   const TextStyle(
@@ -304,7 +303,7 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                                                         0.025,
                                                               ),
                                                               Text(
-                                                                alumni[index]
+                                                                _alumni[index]
                                                                     ["course"],
                                                                 style:
                                                                     const TextStyle(
@@ -322,9 +321,9 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                             SizedBox(
                                               height: screenHeight * 0.025,
                                             ),
-                                            alumni[index]["topAlumniMessage"] !=
+                                            _alumni[index]["topAlumniMessage"] !=
                                                         null &&
-                                                    alumni[index][
+                                                    _alumni[index][
                                                             "topAlumniMessage"] !=
                                                         ""
                                                 ? Padding(
@@ -332,52 +331,65 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                                             .symmetric(
                                                         horizontal: 8.0),
                                                     child: GroupBox(
-                                                        color: Colors.white,
-                                                        padding:
-                                                            const EdgeInsets
-                                                                    .symmetric(
-                                                                horizontal: 14,
-                                                                vertical: 12),
-                                                        child: Text(
-                                                          alumni[index][
-                                                              "topAlumniMessage"],
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white,
-                                                                  fontSize: 16),
-                                                        ),
-                                                        title: "About The Alum",
-                                                        titleBackground:
-                                                            const Color(
-                                                                0xffC2240B)),
+                                                      color: Colors.white,
+                                                      padding: const EdgeInsets
+                                                              .symmetric(
+                                                          horizontal: 14,
+                                                          vertical: 12),
+                                                      child: Text(
+                                                        _alumni[index][
+                                                            "topAlumniMessage"],
+                                                        style: const TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 16),
+                                                      ),
+                                                      title: "About",
+                                                      titleBackground:
+                                                          const Color.fromARGB(
+                                                              255, 0, 104, 0),
+                                                    ),
                                                   )
                                                 : const SizedBox(),
+                                            Container(
+                                              width: screenWidth,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 4),
+                                              decoration: const BoxDecoration(
+                                                  border: Border(
+                                                      top: BorderSide(
+                                                          color: Colors.grey))),
+                                              child: TextButton(
+                                                onPressed: () {
+                                                  _currentPage! <
+                                                          (_alumni.length - 1)
+                                                      ? _pageController
+                                                          .jumpToPage(
+                                                              _currentPage! + 1)
+                                                      : null;
+                                                },
+                                                child: _currentPage! <
+                                                        (_alumni.length - 1)
+                                                    ? const Text("Next")
+                                                    : Text(
+                                                        "",
+                                                        style: TextStyle(
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .scaffoldBackgroundColor
+                                                                .withOpacity(
+                                                                    0.75)),
+                                                      ),
+                                              ),
+                                            )
                                           ],
                                         ),
                                       ),
                                     );
                                   })),
                             ),
-                            Container(
-                              width: screenWidth,
-                              decoration: const BoxDecoration(
-                                  border: Border(
-                                      top: BorderSide(color: Colors.grey))),
-                              child: TextButton(
-                                onPressed: () {
-                                  _currentPage! < (alumni.length - 1)
-                                      ? _pageController
-                                          .jumpToPage(_currentPage! + 1)
-                                      : null;
-                                },
-                                child: _currentPage! < (alumni.length - 1)
-                                    ? const Text("Next")
-                                    : const Text("See more Alums"),
-                              ),
-                            )
-                          ]),
-                    ),
+                          ),
+                        ]),
                   );
           } else if (snapshot.hasError) {
             children = buildFutureError(snapshot);

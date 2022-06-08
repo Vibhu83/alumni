@@ -6,7 +6,7 @@ import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:alumni/widgets/year_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,7 +26,7 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterView extends State<RegisterView> {
-  XFile? profilePic;
+  XFile? _profilePic;
 
   late TextEditingController _email,
       _password,
@@ -91,7 +91,7 @@ class _RegisterView extends State<RegisterView> {
 
   @override
   void initState() {
-    profilePic = null;
+    _profilePic = null;
 
     _isAlumni = false;
     _signUpAs = "User";
@@ -879,6 +879,7 @@ class _RegisterView extends State<RegisterView> {
   }
 
   Future<String?> registerUserAndSaveDetails() async {
+    Map<String, dynamic> data = {};
     final String rollNo = _rollNo.text;
     final String name = _name.text;
     final String email = _email.text;
@@ -909,9 +910,9 @@ class _RegisterView extends State<RegisterView> {
           .then((userRecord) async {
         var uid = userRecord.user!.uid;
         String? profilePicUrl;
-        if (profilePic != null) {
+        if (_profilePic != null) {
           profilePicUrl = await uploadFileAndGetLink(
-              profilePic!.path, uid.toString() + "/profilePicture", context);
+              _profilePic!.path, uid.toString() + "/profilePicture", context);
         }
         chat!.createUserInFirestore(types.User(
             id: uid,
@@ -934,7 +935,26 @@ class _RegisterView extends State<RegisterView> {
           "accessLevel": accessLevel,
           "noticesDismissed": [""],
           "verified": null,
+          "eventsBookmarked": [""],
+          "postsBookmarked": [""]
         }, SetOptions(merge: true)).then((value) {
+          data = {
+            "profilePic": profilePicUrl,
+            "uid": uid,
+            "rollNo": rollNo,
+            "name": name,
+            "firstName": firstLastName[0],
+            "lastName": firstLastName[1],
+            "email": email,
+            "admissionYear": addmissionYear,
+            "course": course,
+            "isAnAlumni": _isAlumni,
+            "accessLevel": accessLevel,
+            "noticesDismissed": [""],
+            "verified": null,
+            "eventsBookmarked": [""],
+            "postsBookmarked": [""]
+          };
           if (_isAlumni) {
             final String motherName = _motherName.text;
             final String fatherName = _fatherName.text;
@@ -1011,18 +1031,48 @@ class _RegisterView extends State<RegisterView> {
               "previousDesignation": previousDesignation,
               "wereInPreviousSince": wereInPreviousOrgSince,
               "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
-            }, SetOptions(merge: true));
+            }, SetOptions(merge: true)).then((value) {
+              data.addAll({
+                "motherName": motherName,
+                "fatherName": fatherName,
+                "dateOfBirth": dob,
+                "permanentAddress": address,
+                "passingYear": passingYear,
+                "nationality": nationality,
+                "isNRI": isNRI,
+                "achievements": achievements,
+                //
+                "spouseName": spouseName,
+                "spouseOrgName": spouseOrgName,
+                "spouseDesignation": spouseDesignation,
+                "spouseWorkingInOrgSince": spouseWorkingSince,
+                "spouseOfficeContactNo": spouseOfficeContactNo,
+                "spouseMobileContactNo": spouseMobileContactNo,
+                //
+                "currentOrgName": currentOrgName,
+                "currentDesignation": currentDesignation,
+                "inCurrentOrgSince": workingInCurrentOrgSince,
+                "residenceContactNo": residenceContactNo,
+                "currentOfficeContactNo": currentOfficeContactNo,
+                "mobileContactNo": mobileContactNo,
+                //
+                "previousOrgName": previousOrgName,
+                "previousDesignation": previousDesignation,
+                "wereInPreviousSince": wereInPreviousOrgSince,
+                "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
+              });
+            });
           }
-          emailPopUpShown = false;
-          Navigator.of(context).popUntil(ModalRoute.withName(""));
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-            return const MainPage();
-          }));
           // Navigator.push(context, MaterialPageRoute(builder: (context) {
           //   return const MainPage();
           // }));
         });
       });
+      await setUserLoginStatus(data: data);
+      Navigator.of(context).popUntil(ModalRoute.withName(""));
+      Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+        return const MainPage();
+      }));
       return "Registered";
     } on FirebaseAuthException catch (e) {
       return e.message;
@@ -1244,18 +1294,18 @@ class _RegisterView extends State<RegisterView> {
         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
         child: ListTile(
-          trailing: profilePic == null
+          trailing: _profilePic == null
               ? null
               : IconButton(
                   splashRadius: 1,
                   iconSize: 20,
                   onPressed: () {
                     setState(() {
-                      profilePic = null;
+                      _profilePic = null;
                     });
                   },
                   icon: const Icon(Icons.close)),
-          title: profilePic == null
+          title: _profilePic == null
               ? IconButton(
                   onPressed: () {
                     ImagePicker()
@@ -1263,14 +1313,14 @@ class _RegisterView extends State<RegisterView> {
                         .then((value) {
                       if (value != null) {
                         setState(() {
-                          profilePic = value;
+                          _profilePic = value;
                         });
                       }
                     });
                   },
                   icon: const Icon(Icons.add))
               : _buildImage(
-                  profilePic == null
+                  _profilePic == null
                       ? () {}
                       : () {
                           ImagePicker()
@@ -1278,13 +1328,13 @@ class _RegisterView extends State<RegisterView> {
                               .then((value) {
                             if (value != null) {
                               setState(() {
-                                profilePic = value;
+                                _profilePic = value;
                               });
                             }
                           });
                         },
-                  Image.file(File(profilePic!.path))),
-          onTap: profilePic == null
+                  Image.file(File(_profilePic!.path))),
+          onTap: _profilePic == null
               ? () {}
               : () {
                   ImagePicker()
@@ -1292,7 +1342,7 @@ class _RegisterView extends State<RegisterView> {
                       .then((value) {
                     if (value != null) {
                       setState(() {
-                        profilePic = value;
+                        _profilePic = value;
                       });
                     }
                   });
@@ -1411,7 +1461,11 @@ class _RegisterView extends State<RegisterView> {
             ]
                 .map<DropdownMenuItem<String>>(
                     (String value) => DropdownMenuItem<String>(
-                          child: Text(value),
+                          child: Text(value,
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .appBarTheme
+                                      .foregroundColor)),
                           value: value,
                         ))
                 .toList(),

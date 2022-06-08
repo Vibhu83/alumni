@@ -1,6 +1,7 @@
 // import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
+import 'package:alumni/views/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -32,27 +33,35 @@ class APostCard extends StatefulWidget {
 }
 
 class _APostCardState extends State<APostCard> {
-  late String postTitle;
-  late String postBody;
-  late int postVotes;
-  late List<Image> images;
+  late String _postTitle;
+  late String _postBody;
+  late int _postVotes;
+  late List<Image> _images;
+  late List<String> _imageUrls;
+  late bool _returnEmpty;
 
   @override
   void initState() {
-    images = [];
+    _returnEmpty = false;
+    _images = [];
+    _imageUrls = [];
     if (widget.imagesUrls != null) {
+      _imageUrls = widget.imagesUrls!;
       for (int i = 0; i < widget.imagesUrls!.length; i++) {
-        images.add(Image.network(widget.imagesUrls![i]));
+        _images.add(Image.network(widget.imagesUrls![i]));
       }
     }
-    postTitle = widget.postTitle;
-    postBody = widget.postBody;
-    postVotes = widget.postVotes;
+    _postTitle = widget.postTitle;
+    _postBody = widget.postBody;
+    _postVotes = widget.postVotes;
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_returnEmpty == true) {
+      return const SizedBox();
+    }
     Duration postedDuration;
     postedDuration = widget.postedOn.difference(DateTime.now());
 
@@ -64,7 +73,7 @@ class _APostCardState extends State<APostCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.postTitle,
+                _postTitle,
                 style: GoogleFonts.lato(
                     fontSize: 16, height: 1.3, fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
@@ -75,7 +84,12 @@ class _APostCardState extends State<APostCard> {
                 height: screenHeight * 0.005,
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (context) {
+                    return ProfilePage(uid: widget.postAuthorID);
+                  }));
+                },
                 style: TextButton.styleFrom(
                     minimumSize: Size.zero,
                     padding: EdgeInsets.zero,
@@ -99,7 +113,7 @@ class _APostCardState extends State<APostCard> {
                 height: screenHeight * 0.01,
               ),
               Text(
-                postVotes.toString(),
+                _postVotes.toString(),
                 style:
                     GoogleFonts.lato(fontSize: 16, fontWeight: FontWeight.bold),
               ),
@@ -115,13 +129,13 @@ class _APostCardState extends State<APostCard> {
       ],
     );
 
-    if (images.isNotEmpty) {
+    if (_images.isNotEmpty) {
       titleWidgets.add(Container(
         height: screenHeight * 0.110,
         width: screenWidth * 0.3,
         decoration: BoxDecoration(
-            image:
-                DecorationImage(image: images[0].image, fit: BoxFit.fitHeight)),
+            image: DecorationImage(
+                image: _images[0].image, fit: BoxFit.fitHeight)),
       ));
     }
 
@@ -138,27 +152,34 @@ class _APostCardState extends State<APostCard> {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return APost(
               postID: widget.postID,
-              postTitle: postTitle,
+              postTitle: _postTitle,
               authorID: widget.postAuthorID,
               postVotes: widget.postVotes,
               authorName: widget.postAuthorName,
-              postBody: postBody,
-              imagesUrls: widget.imagesUrls,
-              images: images,
+              postBody: _postBody,
+              imagesUrls: _imageUrls,
+              images: _images,
               postLink: widget.postLink,
               postedDuration:
                   printDuration(widget.postedOn.difference(DateTime.now())),
             );
           })).then((value) {
+            if (value == -1) {
+              setState(() {
+                _returnEmpty = true;
+              });
+            }
             if (updatedPostID == widget.postID) {
               setState(() {
-                postTitle = updatedPostData["postTitle"];
-                postBody = updatedPostData["postBody"];
+                _postTitle = updatedPostData["postTitle"];
+                _postBody = updatedPostData["postBody"];
+                _images = updatedPostData["images"];
+                _imageUrls = updatedPostData["imagesUrls"];
               });
             }
             if (lastPostNewVotes != null) {
               setState(() {
-                postVotes = lastPostNewVotes!;
+                _postVotes = lastPostNewVotes!;
               });
             }
 
@@ -197,7 +218,7 @@ class _APostCardState extends State<APostCard> {
                                   horizontal: 8, vertical: 8),
                               width: double.maxFinite,
                               child: Text(
-                                postBody,
+                                _postBody,
                                 maxLines: 5,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.lato(

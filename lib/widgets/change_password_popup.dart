@@ -1,7 +1,7 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/input_field.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -113,7 +113,7 @@ class _ChangePasswordPopUpState extends State<ChangePasswordPopUp> {
     });
   }
 
-  bool validate() {
+  bool _validate() {
     bool isValid = true;
     if (_currentPassword.text.isEmpty) {
       isValid = false;
@@ -125,7 +125,7 @@ class _ChangePasswordPopUpState extends State<ChangePasswordPopUp> {
   }
 
   Future<String> _changePassword() async {
-    if (validate() == false) {
+    if (_validate() == false) {
       return "";
     }
     String email = userData["email"];

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
+import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
@@ -31,7 +32,7 @@ class CreatePostPage extends StatefulWidget {
 }
 
 class _CreatePostPageState extends State<CreatePostPage> {
-  Function? createFireStoreDoc;
+  Function? _createFireStoreDoc;
   late final TextEditingController _titleController;
   late final TextEditingController _bodyController;
   late final TextEditingController _postLink;
@@ -49,20 +50,16 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
     _titleController = TextEditingController(text: widget.postTitle);
     if (widget.postTitle != null) {
-      createFireStoreDoc = saveOrUpdateData;
+      _createFireStoreDoc = _saveOrUpdateData;
     }
     _postLink = TextEditingController(text: widget.postLink);
     _bodyController = TextEditingController(text: widget.postBody);
     super.initState();
   }
 
-  void popOldPostPage() {
-    Navigator.of(context).pop();
-  }
-
-  Future<String> addPost(String postTitle, String authorID, int postVotes,
-      String postBody, Timestamp postTime) async {
-    String postID =
+  Future<Map<String, dynamic>> _addPost(String postTitle, String authorID,
+      int postVotes, String postBody, Timestamp postTime) async {
+    Map<String, dynamic> postData =
         await firestore!.collection("posts").add({}).then((value) async {
       String postID = value.id;
       int count = 0;
@@ -95,31 +92,27 @@ class _CreatePostPageState extends State<CreatePostPage> {
         "postedOn": postTime,
         "rating": 0,
         "postLink": _postLink.text,
-        "images": imageUrls,
+        "imageUrls": imageUrls,
+        "images": _images,
+        "authorName": userData["name"]
       };
-      return postID;
+      return addedPostData!;
     });
-    return postID;
+    return postData;
   }
 
-  void updatePost(String postTitle, String postBody) async {
+  void _updatePost(String postTitle, String postBody) async {
     List<String> imageUrls = [];
-    int count = _imageUrls.length - 1;
+    int count = 0;
     for (String path in _imageUrls) {
       if (path.substring(0, 5) == "/data") {
-        count++;
         imageUrls.add(await uploadFileAndGetLink(
             path, widget.postID! + "/postImage" + count.toString(), context));
       } else {
         imageUrls.add(path);
       }
+      count++;
     }
-    firestore!.collection("posts").doc(widget.postID).update({
-      "postTitle": postTitle,
-      "postBody": postBody,
-      "postLink": _postLink.text,
-      "images": imageUrls
-    });
     updatedPostID = widget.postID;
     updatedPostData = {
       "postTitle": postTitle,
@@ -128,33 +121,50 @@ class _CreatePostPageState extends State<CreatePostPage> {
       "images": _images,
       "imagesUrls": imageUrls
     };
+    firestore!.collection("posts").doc(widget.postID).update({
+      "postTitle": postTitle,
+      "postBody": postBody,
+      "postLink": _postLink.text,
+      "images": imageUrls
+    });
+
+    Navigator.of(context).pop();
   }
 
-  void saveOrUpdateData() async {
+  void _saveOrUpdateData() async {
     String postTitle = _titleController.text;
     String authorID = userData["uid"];
     int postVotes = 0;
     String postBody = _bodyController.text;
     Timestamp postTime = Timestamp.now();
     if (widget.postID == null) {
-      String postID =
-          await addPost(postTitle, authorID, postVotes, postBody, postTime);
-      Navigator.of(context).pop();
+      Map<String, dynamic> postData =
+          await _addPost(postTitle, authorID, postVotes, postBody, postTime);
       String authorName = userData["name"];
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+      Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+        return const MainPage(
+          startingIndex: 2,
+        );
+      }));
       Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
         return APost(
-            postID: postID,
-            postTitle: postTitle,
-            authorID: authorID,
-            postVotes: postVotes,
-            authorName: authorName,
-            postBody: postBody,
-            postedDuration:
-                printDuration(postTime.toDate().difference(DateTime.now())));
+          postID: postData["postID"],
+          postTitle: postData["postTitle"],
+          authorID: postData["postAuthorID"],
+          postVotes: postData["postVotes"],
+          authorName: userData["name"],
+          postBody: postData["postBody"],
+          postedDuration:
+              printDuration(postTime.toDate().difference(DateTime.now())),
+          images: _images,
+          imagesUrls: postData["imageUrls"],
+          postLink: postData["postLink"],
+        );
       })));
     } else {
-      updatePost(postTitle, postBody);
-      Navigator.of(context).pop();
+      _updatePost(postTitle, postBody);
     }
     // Navigator.of(context).push(MaterialPageRoute(builder: (context) {
     //   return const MainPage(
@@ -164,16 +174,16 @@ class _CreatePostPageState extends State<CreatePostPage> {
   }
 
   String? _titleError;
-  void checkTitle() {
+  void _checkTitle() {
     if (_titleController.text.isEmpty) {
       setState(() {
         _titleError = "A post requires a title";
-        createFireStoreDoc = null;
+        _createFireStoreDoc = null;
       });
     } else {
       setState(() {
         _titleError = null;
-        createFireStoreDoc = saveOrUpdateData;
+        _createFireStoreDoc = _saveOrUpdateData;
       });
     }
   }
@@ -301,7 +311,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               child: TextButton(
                   style: const ButtonStyle(),
-                  onPressed: createFireStoreDoc as void Function()?,
+                  onPressed: _createFireStoreDoc as void Function()?,
                   child: Text(
                     buttonText,
                     style: const TextStyle(
@@ -320,7 +330,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   controller: _titleController,
                   labelText: "Title",
                   errorText: _titleError,
-                  onChanged: (value) => checkTitle(),
+                  onChanged: (value) => _checkTitle(),
                   keyboardType: TextInputType.multiline,
                 ),
                 SizedBox(
@@ -341,18 +351,18 @@ class _CreatePostPageState extends State<CreatePostPage> {
                       if (Uri.tryParse(p0)!.hasAbsolutePath != true) {
                         setState(() {
                           _linkError = "Invalid Link";
-                          createFireStoreDoc = null;
+                          _createFireStoreDoc = null;
                         });
                       } else {
                         setState(() {
                           _linkError = null;
-                          createFireStoreDoc = saveOrUpdateData;
+                          _createFireStoreDoc = _saveOrUpdateData;
                         });
                       }
                     } else {
                       setState(() {
                         _linkError = null;
-                        createFireStoreDoc = saveOrUpdateData;
+                        _createFireStoreDoc = _saveOrUpdateData;
                       });
                     }
                   },

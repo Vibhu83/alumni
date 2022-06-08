@@ -2,9 +2,10 @@ import 'package:alumni/globals.dart';
 import 'package:alumni/views/edit_profile.dart';
 import 'package:alumni/views/posts_by_id.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/confirmation_popup.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
@@ -18,9 +19,8 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage>
-    with SingleTickerProviderStateMixin {
-  Map<String, dynamic> data = {};
+class _ProfilePageState extends State<ProfilePage> {
+  Map<String, dynamic> _user = {};
   late TextEditingController _about;
 
   @override
@@ -28,14 +28,14 @@ class _ProfilePageState extends State<ProfilePage>
     super.initState();
   }
 
-  Future<bool> getUserDetails() async {
+  Future<bool> _getUserDetails() async {
     if (userData["uid"] == widget.uid) {
-      data = userData;
+      _user = userData;
       return true;
     } else {
       var temp = await firestore!.collection("users").doc(widget.uid).get();
       Map<String, dynamic> userDataFromFirebase = temp.data()!;
-      data = userDataFromFirebase;
+      _user = userDataFromFirebase;
       return true;
     }
   }
@@ -43,41 +43,62 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: getUserDetails(),
+      future: _getUserDetails(),
       builder: (context, AsyncSnapshot<bool> snapshot) {
         List<Widget> children;
         if (snapshot.hasData) {
-          _about = TextEditingController(text: data["about"]);
+          _about = TextEditingController(text: _user["about"]);
           List<Widget> appBarActions = [];
           Widget delUserButton = buildAppBarIcon(
               onPressed: () {
-                firestore!.collection("users").doc(data["uid"]).delete();
-                firestore!
-                    .collection("eventAttendanceStatus")
-                    .doc(data["uid"])
-                    .delete();
-                firestore!.collection("userVotes").doc(data["uid"]).delete();
-                firestore!.collection("topAlumni").doc(data["uid"]).delete();
-                firestore!
-                    .collection("chatRooms")
-                    .where("userId", arrayContains: data["uid"])
-                    .get()
-                    .then((value) {
-                  for (var e in value.docs) {
-                    firestore!.collection("chatRooms").doc(e.id).delete();
+                showDialog(
+                    context: context,
+                    builder: (context) {
+                      return const ConfirmationPopUp(
+                        title: "Add to Admin Team?",
+                      );
+                    }).then((value) {
+                  if (value == true) {
+                    firestore!.collection("users").doc(_user["uid"]).delete();
+                    deleteStorageFolder(_user["uid"]);
+                    firestore!
+                        .collection("eventAttendanceStatus")
+                        .doc(_user["uid"])
+                        .delete();
+                    firestore!
+                        .collection("userVotes")
+                        .doc(_user["uid"])
+                        .delete();
+                    firestore!
+                        .collection("topAlumni")
+                        .doc(_user["uid"])
+                        .delete();
+                    firestore!
+                        .collection("chatRooms")
+                        .where("userIds", arrayContains: _user["uid"])
+                        .get()
+                        .then((value) {
+                      for (var e in value.docs) {
+                        firestore!.collection("chatRooms").doc(e.id).delete();
+                      }
+                    });
+                    if (_user["uid"] == userData["uid"]) {
+                      auth!.signOut();
+                    }
+                    Navigator.of(context).pop(-1);
                   }
                 });
-                if (data["uid"] == userData["uid"]) {
-                  auth!.signOut();
-                }
-                Navigator.of(context).pop();
               },
               icon: Icons.delete_rounded);
 
           Widget editUserButton = buildAppBarIcon(
             onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: ((context) => const EditProfilePage())));
+              Navigator.of(context)
+                  .push(MaterialPageRoute(
+                      builder: ((context) => const EditProfilePage())))
+                  .then((value) {
+                setState(() {});
+              });
             },
             icon: Icons.edit_rounded,
           );
@@ -96,9 +117,11 @@ class _ProfilePageState extends State<ProfilePage>
                               onPressed: () async {
                                 await firestore!
                                     .collection("topAlumni")
-                                    .doc(data["uid"])
-                                    .set(
-                                        {"uid": data["uid"], "message": about});
+                                    .doc(_user["uid"])
+                                    .set({
+                                  "uid": _user["uid"],
+                                  "message": about
+                                });
                                 Navigator.of(context).pop();
                               },
                               child: const Text("Submit"))
@@ -112,20 +135,46 @@ class _ProfilePageState extends State<ProfilePage>
                         ),
                       );
                     });
-                // firestore!.collection("topAlumni").doc(data["uid"]).set({});
+                // firestore!.collection("topAlumni").doc(_user["uid"]).set({});
               },
               icon: Icons.notification_add_rounded);
+          Widget addToAdminTeamButton = buildAppBarIcon(
+              onPressed: () {
+                showDialog(
+                    context: context,
+                    builder: (context) {
+                      return const ConfirmationPopUp(
+                        title: "Are you sure?",
+                      );
+                    }).then((value) {
+                  if (value == true) {
+                    firestore!
+                        .collection("users")
+                        .doc(_user["uid"])
+                        .update({"accessLevel": "admin"});
+                    lastUserWasMadeAdmin = true;
+                    setState(() {
+                      _user["accessLevel"] = "admin";
+                    });
+                  }
+                });
+              },
+              icon: Icons.add_moderator);
           if (userData["uid"] == widget.uid) {
             appBarActions.add(editUserButton);
             appBarActions.add(delUserButton);
           } else if (userData["accessLevel"] == "admin") {
-            if (data["accessLevel"] == "alumni") {
+            if (_user["isAnAlumni"] == true) {
               appBarActions.add(addToTopAlumniButton);
             }
-            appBarActions.add(delUserButton);
+            if (_user["accessLevel"] != "admin") {
+              appBarActions.add(addToAdminTeamButton);
+
+              appBarActions.add(delUserButton);
+            }
           }
           List<Widget> bottomBarWidgets = [];
-          if (userData["uid"] != data["uid"] && userData["uid"] != null) {
+          if (userData["uid"] != _user["uid"] && userData["uid"] != null) {
             bottomBarWidgets.addAll([
               SizedBox(
                 height: screenHeight * 0.01,
@@ -133,7 +182,7 @@ class _ProfilePageState extends State<ProfilePage>
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    chat!.createRoom(types.User(id: data["uid"]));
+                    chat!.createRoom(types.User(id: _user["uid"]));
                   },
                   child: const Text("Chat"),
                   style: ElevatedButton.styleFrom(
@@ -151,7 +200,7 @@ class _ProfilePageState extends State<ProfilePage>
               onPressed: () {
                 Navigator.of(context)
                     .push(MaterialPageRoute(builder: ((context) {
-                  return PostsByIDPage(uid: data["uid"]);
+                  return PostsByIDPage(uid: _user["uid"]);
                 })));
               },
               child: const Text(" See Posts"),
@@ -231,40 +280,41 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildProfileSummary() {
-    String userType = data["accessLevel"];
+    String userType = _user["accessLevel"];
     String accessLevel =
         userType.substring(0, 1).toUpperCase() + userType.substring(1);
     String occupation = "";
     String nationality = "";
-    if (data["currentDesignation"] != null &&
-        data["currentDesignation"] != "" &&
-        data["currentOrgName"] != null &&
-        data["currentOrgName"] != "") {
-      occupation = data["currentDesignation"] + " at " + data["currentOrgName"];
+    if (_user["currentDesignation"] != null &&
+        _user["currentDesignation"] != "" &&
+        _user["currentOrgName"] != null &&
+        _user["currentOrgName"] != "") {
+      occupation =
+          _user["currentDesignation"] + " at " + _user["currentOrgName"];
     }
 
-    if (data["nationality"] != null && data["nationality"] != "") {
-      nationality = data["nationality"];
+    if (_user["nationality"] != null && _user["nationality"] != "") {
+      nationality = _user["nationality"];
     }
     List<Widget> userDetails;
     userDetails = [
       Align(
         alignment: Alignment.centerLeft,
-        child: data["profilePic"] != null
+        child: _user["profilePic"] != null
             ? CircleAvatar(
                 radius: 48,
-                backgroundImage: NetworkImage(data["profilePic"]),
+                backgroundImage: NetworkImage(_user["profilePic"]),
               )
             : Initicon(
                 size: 96,
-                text: data["name"],
+                text: _user["name"],
               ),
       ),
       SizedBox(
         height: screenHeight * 0.0125,
       ),
       Text(
-        data["name"],
+        _user["name"],
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
       ),
       SizedBox(height: screenHeight * 0.001),
@@ -311,7 +361,7 @@ class _ProfilePageState extends State<ProfilePage>
             ),
           ]));
     }
-    // if (data["about"] != null && data["about"] != "") {
+    // if (_user["about"] != null && _user["about"] != "") {
     userDetails.addAll([
       Padding(
         padding: EdgeInsets.only(top: screenHeight * 0.01),
@@ -320,7 +370,7 @@ class _ProfilePageState extends State<ProfilePage>
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: userData["uid"] == data["uid"]
+              width: userData["uid"] == _user["uid"]
                   ? screenWidth * 0.79
                   : screenWidth * 0.91,
               child: GroupBox(
@@ -343,7 +393,7 @@ class _ProfilePageState extends State<ProfilePage>
                   ),
                   title: ""),
             ),
-            userData["uid"] != data["uid"]
+            userData["uid"] != _user["uid"]
                 ? const SizedBox()
                 : IconButton(
                     splashRadius: 1,
@@ -365,7 +415,7 @@ class _ProfilePageState extends State<ProfilePage>
                                     onPressed: () {
                                       firestore!
                                           .collection("users")
-                                          .doc(data["uid"])
+                                          .doc(_user["uid"])
                                           .set({"about": _about.text},
                                               SetOptions(merge: true));
                                       userData["about"] = _about.text;
@@ -432,20 +482,21 @@ class _ProfilePageState extends State<ProfilePage>
                     SizedBox(
                       width: screenWidth * 0.025,
                     ),
-                    Text(data["email"])
+                    Text(_user["email"])
                   ],
                 ),
                 SizedBox(
                   height: screenHeight * 0.01,
                 ),
-                data["mobileContactNo"] != null && data["mobileContactNo"] != ""
+                _user["mobileContactNo"] != null &&
+                        _user["mobileContactNo"] != ""
                     ? Row(
                         children: [
                           const Icon(Icons.phone),
                           SizedBox(
                             width: screenWidth * 0.025,
                           ),
-                          Text(data["mobileContactNo"])
+                          Text(_user["mobileContactNo"])
                         ],
                       )
                     : const SizedBox()
@@ -456,9 +507,9 @@ class _ProfilePageState extends State<ProfilePage>
       )
     ]);
 
-    String collegeTimeSpan = data["admissionYear"].toString();
-    if (data["passingYear"] != null && data["passingYear"] != "") {
-      collegeTimeSpan += " - " + data["passingYear"].toString();
+    String collegeTimeSpan = _user["admissionYear"].toString();
+    if (_user["passingYear"] != null && _user["passingYear"] != "") {
+      collegeTimeSpan += " - " + _user["passingYear"].toString();
     } else {
       collegeTimeSpan += " - Now ";
     }
@@ -502,7 +553,7 @@ class _ProfilePageState extends State<ProfilePage>
                     SizedBox(
                       width: screenWidth * 0.025,
                     ),
-                    Text(data["course"])
+                    Text(_user["course"])
                   ],
                 )
               ],

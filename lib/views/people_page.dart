@@ -2,6 +2,7 @@ import 'package:alumni/globals.dart';
 import 'package:alumni/views/profile_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_initicon/flutter_initicon.dart';
 
 class PeoplePage extends StatefulWidget {
   final bool isInSelectionMode;
@@ -13,32 +14,32 @@ class PeoplePage extends StatefulWidget {
 }
 
 class _PeoplePageState extends State<PeoplePage> {
-  late bool showAlumni;
-  late bool showStudents;
-  late bool showAdmins;
-  late int currentChoiceValue;
-  late bool isAscendingOrder;
+  late bool _showAlumni;
+  late bool _showStudents;
+  late bool _showAdmins;
+  late int _currentChoiceValue;
+  late bool _isAscendingOrder;
 
   @override
   void initState() {
-    isAscendingOrder = true;
-    currentChoiceValue = 7;
-    showAdmins = true;
-    showAlumni = true;
-    showStudents = true;
+    _isAscendingOrder = true;
+    _currentChoiceValue = 7;
+    _showAdmins = true;
+    _showAlumni = true;
+    _showStudents = true;
     if (widget.isInSelectionMode) {
-      currentChoiceValue = 6;
-      showAdmins = true;
-      showAlumni = true;
-      showStudents = false;
+      _currentChoiceValue = 6;
+      _showAdmins = true;
+      _showAlumni = true;
+      _showStudents = false;
     }
     super.initState();
   }
 
-  Future<List<Map<String, dynamic>>> getUserData() async {
+  Future<List<Map<String, dynamic>>> _getUserData() async {
     List<Map<String, dynamic>> allUsersData;
 
-    switch (currentChoiceValue) {
+    switch (_currentChoiceValue) {
       case 0:
         allUsersData = [];
         break;
@@ -130,7 +131,7 @@ class _PeoplePageState extends State<PeoplePage> {
     allUsersData.sort((a, b) {
       String nameA = a["name"];
       String nameB = b["name"];
-      if (isAscendingOrder) {
+      if (_isAscendingOrder) {
         return nameA.compareTo(nameB);
       } else {
         return nameB.compareTo(nameA);
@@ -143,7 +144,7 @@ class _PeoplePageState extends State<PeoplePage> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: getUserData(),
+        future: _getUserData(),
         builder:
             ((context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
           List<Widget> children;
@@ -159,8 +160,13 @@ class _PeoplePageState extends State<PeoplePage> {
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 2, horizontal: 12),
-                      child: _buildUserCard(
-                          allUserData[index], widget.isInSelectionMode),
+                      child: widget.isInSelectionMode == false
+                          ? UserCard(
+                              user: allUserData[index],
+                              isInSelectionMode: widget.isInSelectionMode,
+                            )
+                          : _buildUserCard(
+                              allUserData[index], widget.isInSelectionMode),
                     );
                   }
                 }));
@@ -191,7 +197,7 @@ class _PeoplePageState extends State<PeoplePage> {
             onPressed: () {
               bool nextValue = true;
               int changeInChoiceValue = 0;
-              if (showStudents == true) {
+              if (_showStudents == true) {
                 nextValue = false;
                 changeInChoiceValue = -1;
               } else {
@@ -199,8 +205,8 @@ class _PeoplePageState extends State<PeoplePage> {
                 changeInChoiceValue = 1;
               }
               setState(() {
-                showStudents = nextValue;
-                currentChoiceValue += changeInChoiceValue;
+                _showStudents = nextValue;
+                _currentChoiceValue += changeInChoiceValue;
               });
             },
             child: Text(
@@ -213,7 +219,7 @@ class _PeoplePageState extends State<PeoplePage> {
                 elevation: 0,
                 padding: EdgeInsets.zero,
                 onPrimary: Colors.transparent,
-                primary: showStudents == true
+                primary: _showStudents == true
                     ? Colors.blueAccent.withOpacity(0.3)
                     : Colors.transparent,
                 shape: RoundedRectangleBorder(
@@ -229,7 +235,7 @@ class _PeoplePageState extends State<PeoplePage> {
             onPressed: () {
               bool nextValue = true;
               int changeInChoiceValue = 0;
-              if (showAlumni == true) {
+              if (_showAlumni == true) {
                 nextValue = false;
                 changeInChoiceValue = -2;
               } else {
@@ -237,8 +243,8 @@ class _PeoplePageState extends State<PeoplePage> {
                 changeInChoiceValue = 2;
               }
               setState(() {
-                showAlumni = nextValue;
-                currentChoiceValue += changeInChoiceValue;
+                _showAlumni = nextValue;
+                _currentChoiceValue += changeInChoiceValue;
               });
             },
             child: Text(
@@ -251,7 +257,7 @@ class _PeoplePageState extends State<PeoplePage> {
                 elevation: 0,
                 padding: EdgeInsets.zero,
                 onPrimary: Colors.transparent,
-                primary: showAlumni == true
+                primary: _showAlumni == true
                     ? Colors.blueAccent.withOpacity(0.3)
                     : Colors.transparent,
                 shape: RoundedRectangleBorder(
@@ -268,7 +274,7 @@ class _PeoplePageState extends State<PeoplePage> {
               int changeInChoiceValue = 0;
 
               bool nextValue = true;
-              if (showAdmins == true) {
+              if (_showAdmins == true) {
                 nextValue = false;
                 changeInChoiceValue = -4;
               } else {
@@ -276,8 +282,8 @@ class _PeoplePageState extends State<PeoplePage> {
                 changeInChoiceValue = 4;
               }
               setState(() {
-                showAdmins = nextValue;
-                currentChoiceValue += changeInChoiceValue;
+                _showAdmins = nextValue;
+                _currentChoiceValue += changeInChoiceValue;
               });
             },
             child: Text(
@@ -290,7 +296,7 @@ class _PeoplePageState extends State<PeoplePage> {
                 elevation: 0,
                 padding: EdgeInsets.zero,
                 onPrimary: Colors.transparent,
-                primary: showAdmins == true
+                primary: _showAdmins == true
                     ? Colors.blueAccent.withOpacity(0.3)
                     : Colors.transparent,
                 shape: RoundedRectangleBorder(
@@ -305,17 +311,17 @@ class _PeoplePageState extends State<PeoplePage> {
           RotatedBox(
             quarterTurns: 1,
             child: IconButton(
-                color: isAscendingOrder == false
+                color: _isAscendingOrder == false
                     ? Theme.of(context).appBarTheme.foregroundColor
                     : Colors.grey,
                 splashRadius: 1,
                 onPressed: (() {
                   bool nextValue = true;
-                  if (isAscendingOrder) {
+                  if (_isAscendingOrder) {
                     nextValue = false;
                   }
                   setState(() {
-                    isAscendingOrder = nextValue;
+                    _isAscendingOrder = nextValue;
                   });
                 }),
                 icon: const Icon(Icons.compare_arrows_outlined)),
@@ -334,6 +340,18 @@ class _PeoplePageState extends State<PeoplePage> {
     currentOrg ??= "";
     if (currentDesignation != "" && currentOrg != "") {
       subTitle = currentDesignation + " at " + currentOrg;
+    }
+    Widget leading = CircleAvatar(
+        radius: 56, backgroundImage: NetworkImage(user["imageUrl"]));
+    if (user["profilePic"] == null) {
+      leading = CircleAvatar(
+        backgroundColor: Colors.transparent,
+        radius: 56,
+        child: Initicon(
+          size: 56,
+          text: user["name"],
+        ),
+      );
     }
     return Card(
       margin: const EdgeInsets.only(bottom: 4, top: 4),
@@ -357,15 +375,16 @@ class _PeoplePageState extends State<PeoplePage> {
                     {"uid": uid, "name": name, "description": description});
               }
             : () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => ProfilePage(uid: user["uid"])));
+                Navigator.of(context)
+                    .push(MaterialPageRoute(
+                        builder: (context) => ProfilePage(uid: user["uid"])))
+                    .then((value) {
+                  setState(() {});
+                });
               },
         minLeadingWidth: 56,
         contentPadding: const EdgeInsets.symmetric(vertical: 4),
-        leading: CircleAvatar(
-          radius: 56,
-          backgroundImage: NetworkImage(user["imageUrl"]),
-        ),
+        leading: leading,
         title: Text(
           user["name"],
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -376,5 +395,114 @@ class _PeoplePageState extends State<PeoplePage> {
         ),
       ),
     );
+  }
+}
+
+class UserCard extends StatefulWidget {
+  final Map<String, dynamic> user;
+  final bool isInSelectionMode;
+  const UserCard({required this.user, this.isInSelectionMode = false, Key? key})
+      : super(key: key);
+
+  @override
+  State<UserCard> createState() => _UserCardState();
+}
+
+class _UserCardState extends State<UserCard> {
+  late bool returnEmpty;
+  late Map<String, dynamic> user;
+
+  @override
+  void initState() {
+    user = widget.user;
+    if (widget.user["uid"] == userData["uid"]) {
+      user = userData;
+    }
+    returnEmpty = false;
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (returnEmpty == true) {
+      return const SizedBox();
+    } else {
+      String subTitle = user["accessLevel"];
+      subTitle = subTitle.substring(0, 1).toUpperCase() + subTitle.substring(1);
+      String? currentDesignation = user["currentDesignation"];
+      currentDesignation ??= "";
+      String? currentOrg = user["currentOrgName"];
+      currentOrg ??= "";
+      if (currentDesignation != "" && currentOrg != "") {
+        subTitle = currentDesignation + " at " + currentOrg;
+      }
+      Widget leading = CircleAvatar(
+          radius: 56, backgroundImage: NetworkImage(widget.user["imageUrl"]));
+      if (user["profilePic"] == null) {
+        leading = CircleAvatar(
+          backgroundColor: Colors.transparent,
+          radius: 56,
+          child: Initicon(
+            size: 56,
+            text: user["name"],
+          ),
+        );
+      }
+      return Card(
+        margin: const EdgeInsets.only(bottom: 4, top: 4),
+        shadowColor:
+            Theme.of(context).appBarTheme.shadowColor!.withOpacity(0.5),
+        elevation: 1,
+        child: ListTile(
+          onTap: widget.isInSelectionMode
+              ? () {
+                  String name = user["name"];
+                  String uid = user["uid"];
+                  String? description;
+                  if (user["currentDesignation"] != null &&
+                      user["currentDesignation"] != "" &&
+                      user["currentOrgName"] != null &&
+                      user["currentOrgName"] != "") {
+                    description = user["currentDesignation"] +
+                        " at " +
+                        user["currentOrgName"];
+                  }
+                  Navigator.of(context).pop(
+                      {"uid": uid, "name": name, "description": description});
+                }
+              : () {
+                  Navigator.of(context)
+                      .push(MaterialPageRoute(
+                          builder: (context) => ProfilePage(uid: user["uid"])))
+                      .then((value) {
+                    if (value == -1) {
+                      setState(() {
+                        returnEmpty = true;
+                      });
+                    } else {
+                      setState(() {});
+                    }
+                    if (lastUserWasMadeAdmin == true) {
+                      lastUserWasMadeAdmin = false;
+                      setState(() {
+                        user["accessLevel"] = "admin";
+                      });
+                    }
+                  });
+                },
+          minLeadingWidth: 56,
+          contentPadding: const EdgeInsets.symmetric(vertical: 4),
+          leading: leading,
+          title: Text(
+            user["name"],
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+            subTitle,
+            style: const TextStyle(fontStyle: FontStyle.italic),
+          ),
+        ),
+      );
+    }
   }
 }

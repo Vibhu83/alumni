@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:alumni/globals.dart';
-import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
+import 'package:alumni/widgets/confirmation_popup.dart';
 import 'package:alumni/widgets/full_screen_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -41,21 +44,37 @@ class APost extends StatefulWidget {
 }
 
 class _APost extends State<APost> {
-  late bool isInitialRun;
-  late int originalVotes;
-  late bool isBookmarked;
+  late bool _isInitialRun;
+  late bool _isBookmarked;
 
-  Future<bool> getData() async {
-    isBookmarked = false;
-    if (isInitialRun == true) {
-      isInitialRun = false;
-      votes =
+  @override
+  void initState() {
+    if (userData["postBookmarked"] != null) {
+      _isBookmarked = userData["postsBookmarked"].contains(widget.postID);
+    } else {
+      _isBookmarked = false;
+    }
+    _isInitialRun = true;
+    _votes = 0;
+    _voteOffset = 0;
+    _postBody = widget.postBody;
+    _postTitle = widget.postTitle;
+    _postImages = widget.images;
+    _postImagesUrl = widget.imagesUrls;
+    postLink = widget.postLink;
+    super.initState();
+  }
+
+  Future<bool> _getData() async {
+    if (_isInitialRun == true) {
+      _isInitialRun = false;
+
+      _votes =
           await firestore!.collection("posts").doc(widget.postID).get().then(
         (value) {
           return value.data()!["postVotes"];
         },
       );
-      originalVotes = votes;
       if (userData["uid"] == null) {
         return false;
       }
@@ -68,87 +87,107 @@ class _APost extends State<APost> {
         return value.data()![widget.postID];
       });
 
-      voteOffset = voteBoolToVoteOffsetMap[voteValue];
+      _voteOffset = voteBoolToVoteOffsetMap[voteValue];
       return false;
     } else {
       return false;
     }
   }
 
-  final Map voteOffsetToVoteBoolMap = {
-    -1: false,
-    0: null,
-    1: true,
-  };
+  late int _voteOffset;
+  late int _votes;
 
-  final Map voteBoolToVoteOffsetMap = {false: -1, null: 0, true: 1};
-
-  late int voteOffset;
-  late int votes;
-
-  void deletePost() {
+  void _deletePost() {
     firestore!.collection("posts").doc(widget.postID).delete();
-    backToForumPage();
+    deleteStorageFolder(widget.postID);
+    firestore!
+        .collection("recommendationFromAdmins")
+        .where("recommendedItemID", isEqualTo: widget.postID)
+        .get()
+        .then((value) {
+      for (var element in value.docs) {
+        if (element.data()["recommendationType"] == "post") {
+          firestore!
+              .collection("recommendationFromAdmins")
+              .doc(element["recommendationID"])
+              .delete();
+        }
+      }
+    });
+    firestore!
+        .collection("userVotes")
+        .where(widget.postID, isNotEqualTo: null)
+        .get()
+        .then((value) {
+      for (var element in value.docs) {
+        firestore!
+            .collection("userVotes")
+            .doc(element.id)
+            .update({widget.postID: FieldValue.delete()});
+      }
+    });
+    Navigator.of(context).pop(-1);
   }
 
-  void editPost() {
+  void _editPost() {
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return CreatePostPage(
         postID: widget.postID,
-        postTitle: postTitle,
-        postBody: postBody,
-        imageUrls: postImagesUrl,
-        images: postImages,
+        postTitle: _postTitle,
+        postBody: _postBody,
+        imageUrls: _postImagesUrl,
+        images: _postImages,
         postLink: widget.postLink,
       );
     })).then((value) {
       if (updatedPostID == widget.postID) {
         setState(() {
-          postTitle = updatedPostData["postTitle"];
-          postBody = updatedPostData["postBody"];
-          postImages = updatedPostData["images"];
-          postImagesUrl = updatedPostData["imageUrls"];
+          _postTitle = updatedPostData["postTitle"];
+          _postBody = updatedPostData["postBody"];
+          _postImages = updatedPostData["images"];
+          _postImagesUrl = updatedPostData["imagesUrls"];
         });
       }
     });
   }
 
-  void sharePost() {
+  void _sharePost() {
     showDialog(
         context: context,
         builder: (context) {
           return AskMessagePopUp(
               editingFlag: false,
-              title: postTitle,
+              title: _postTitle,
               authorName: widget.authorName,
               id: widget.postID,
               type: "post");
         });
   }
 
-  void backToForumPage() {
-    Navigator.of(context).popUntil(ModalRoute.withName(""));
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return const MainPage(
-        startingIndex: 3,
-      );
-    }));
-  }
-
-  List<Widget> getAppBarActions() {
+  List<Widget> _getAppBarActions() {
     IconButton shareButton = buildAppBarIcon(
         onPressed: () {
-          sharePost();
+          _sharePost();
         },
         icon: Icons.notification_add_rounded);
     IconButton editButton = buildAppBarIcon(
         onPressed: () {
-          editPost();
+          _editPost();
         },
         icon: Icons.edit);
     IconButton deleteButton = buildAppBarIcon(
         onPressed: () {
-          deletePost();
+          showDialog(
+              context: context,
+              builder: (context) {
+                return const ConfirmationPopUp(
+                  title: "Are you sure?",
+                );
+              }).then((value) {
+            if (value == true) {
+              _deletePost();
+            }
+          });
         },
         icon: Icons.delete_rounded);
     List<Widget> appBarActions = [];
@@ -166,31 +205,16 @@ class _APost extends State<APost> {
     return appBarActions;
   }
 
-  late String postTitle;
-  late String postBody;
-  late List<Image>? postImages;
-  late List<String>? postImagesUrl;
+  late String _postTitle;
+  late String _postBody;
+  late List<Image>? _postImages;
+  late List<String>? _postImagesUrl;
   late String? postLink;
-
-  @override
-  void initState() {
-    isBookmarked = false;
-    originalVotes = 0;
-    isInitialRun = true;
-    votes = 0;
-    voteOffset = 0;
-    postBody = widget.postBody;
-    postTitle = widget.postTitle;
-    postImages = widget.images;
-    postImagesUrl = widget.imagesUrls;
-    postLink = widget.postLink;
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: getData(),
+        future: _getData(),
         builder: (context, AsyncSnapshot<bool> snapshot) {
           List<Widget> children = [];
           if (snapshot.hasData) {
@@ -207,10 +231,10 @@ class _APost extends State<APost> {
   int upvote() {
     int changeInVote = 0;
     int nextVoteOffset = 0;
-    if (voteOffset == 1) {
+    if (_voteOffset == 1) {
       nextVoteOffset = 0;
       changeInVote = -1;
-    } else if (voteOffset == 0) {
+    } else if (_voteOffset == 0) {
       nextVoteOffset = 1;
       changeInVote = 1;
     } else {
@@ -218,11 +242,11 @@ class _APost extends State<APost> {
       changeInVote = 2;
     }
     setState(() {
-      voteOffset = nextVoteOffset;
-      votes += changeInVote;
+      _voteOffset = nextVoteOffset;
+      _votes += changeInVote;
 
-      lastPostBool = voteOffsetToVoteBoolMap[voteOffset];
-      lastPostNewVotes = votes;
+      lastPostBool = voteOffsetToVoteBoolMap[_voteOffset];
+      lastPostNewVotes = _votes;
     });
     return changeInVote;
   }
@@ -230,10 +254,10 @@ class _APost extends State<APost> {
   int downvote() {
     int changeInVote = 0;
     int nextVoteOffset = 0;
-    if (voteOffset == -1) {
+    if (_voteOffset == -1) {
       nextVoteOffset = 0;
       changeInVote = 1;
-    } else if (voteOffset == 0) {
+    } else if (_voteOffset == 0) {
       nextVoteOffset = -1;
       changeInVote = -1;
     } else {
@@ -241,32 +265,56 @@ class _APost extends State<APost> {
       changeInVote = -2;
     }
     setState(() {
-      voteOffset = nextVoteOffset;
-      votes += changeInVote;
-      lastPostNewVotes = votes;
-      lastPostBool = voteOffsetToVoteBoolMap[voteOffset];
+      _voteOffset = nextVoteOffset;
+      _votes += changeInVote;
+      lastPostNewVotes = _votes;
+      lastPostBool = voteOffsetToVoteBoolMap[_voteOffset];
     });
     return changeInVote;
   }
 
+  void setBookmark() {
+    List postsBookmarked = userData["postsBookmarked"];
+    postsBookmarked.add(widget.postID);
+
+    userData["postBookmarked"] = postsBookmarked;
+
+    firestore!
+        .collection("users")
+        .doc(userData["uid"])
+        .update({"postsBookmarked": postsBookmarked});
+  }
+
+  void unsetBookmark() {
+    List postsBookmarked = userData["postsBookmarked"];
+    postsBookmarked.remove(widget.postID);
+
+    userData["postBookmarked"] = postsBookmarked;
+
+    firestore!
+        .collection("users")
+        .doc(userData["uid"])
+        .update({"postsBookmarked": postsBookmarked});
+  }
+
   Scaffold _buildPage() {
-    var appBarActions = getAppBarActions();
+    var appBarActions = _getAppBarActions();
     Widget postButtons = const SizedBox(
       height: 0,
     );
     Color bookMarkIconColor = Theme.of(context).appBarTheme.foregroundColor!;
     IconData bookMarkIcon = Icons.bookmark_add;
-    if (isBookmarked == true) {
+    if (_isBookmarked == true) {
       bookMarkIcon = Icons.bookmark_added;
       bookMarkIconColor = Colors.blue;
     }
     Color votesColor = Colors.grey;
     Color upvoteButtonColor = Colors.grey;
     Color downvoteButtonColor = Colors.grey;
-    if (voteOffset == 1) {
+    if (_voteOffset == 1) {
       upvoteButtonColor = Colors.blue;
       votesColor = upvoteButtonColor;
-    } else if (voteOffset == -1) {
+    } else if (_voteOffset == -1) {
       downvoteButtonColor = Colors.deepOrange;
       votesColor = downvoteButtonColor;
     }
@@ -291,13 +339,17 @@ class _APost extends State<APost> {
     IconButton bookmarkButton = IconButton(
         splashRadius: 1,
         onPressed: () {
-          setState(() {
-            if (isBookmarked == true) {
-              isBookmarked = false;
-            } else {
-              isBookmarked = true;
-            }
-          });
+          if (_isBookmarked == true) {
+            unsetBookmark();
+            setState(() {
+              _isBookmarked = false;
+            });
+          } else {
+            setBookmark();
+            setState(() {
+              _isBookmarked = true;
+            });
+          }
         },
         icon: Icon(
           bookMarkIcon,
@@ -347,18 +399,18 @@ class _APost extends State<APost> {
 
     Widget bannerWidget;
     double bannerAreaHeight;
-    if (postImages != null && postImages!.isNotEmpty) {
+    if (_postImages != null && _postImages!.isNotEmpty) {
       bannerAreaHeight = screenHeight * 0.2;
       bannerWidget = GestureDetector(
         onTap: () {
           Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
-            return FullScreenImageViewer(child: postImages!, dark: true);
+            return FullScreenImageViewer(child: _postImages!, dark: true);
           })));
         },
         child: Container(
           decoration: BoxDecoration(
               image: DecorationImage(
-                  image: postImages![0].image, fit: BoxFit.fitHeight)),
+                  image: _postImages![0].image, fit: BoxFit.fitHeight)),
         ),
       );
     } else {
@@ -375,104 +427,101 @@ class _APost extends State<APost> {
                 },
                 icon: Icons.close_rounded),
             actions: appBarActions),
-        body: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              stretchTriggerOffset: 1,
-              onStretchTrigger: () async {
-                setState(() {});
-              },
-              toolbarHeight: 0,
-              backgroundColor: Colors.transparent,
-              actions: const [SizedBox()],
-              expandedHeight: bannerAreaHeight,
-              flexibleSpace: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: FlexibleSpaceBar(background: bannerWidget),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      postTitle,
-                      style: GoogleFonts.lato(
-                          fontSize: 16,
-                          height: 1.3,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(
-                      height: screenHeight * 0.005,
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      style: TextButton.styleFrom(
-                          minimumSize: Size.zero,
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                      child: Text(
-                        "By:" +
-                            widget.authorName +
-                            " (" +
-                            widget.postedDuration +
-                            ")",
-                        style: GoogleFonts.lato(
-                            fontSize: 10,
-                            color: Theme.of(context)
-                                .appBarTheme
-                                .shadowColor!
-                                .withOpacity(0.8)),
-                      ),
-                    ),
-                    SizedBox(
-                      height: screenHeight * 0.01,
-                    ),
-                    Text(
-                      votes.toString(),
-                      style: GoogleFonts.lato(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: votesColor),
-                    ),
-                    SizedBox(
-                      height: screenHeight * 0.01,
-                    ),
-                    Flexible(
-                        child: widget.postBody.isNotEmpty
-                            ? Container(
-                                margin: const EdgeInsets.only(bottom: 4),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 2, vertical: 4),
-                                decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .scaffoldBackgroundColor
-                                        .withOpacity(0.8)),
-                                width: double.maxFinite,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6.0, vertical: 4),
-                                  child: Text(
-                                    postBody,
-                                    style: GoogleFonts.lato(
-                                        fontSize: 14,
-                                        color: Theme.of(context)
-                                            .appBarTheme
-                                            .foregroundColor),
-                                  ),
-                                ))
-                            : const SizedBox()),
-                    const SizedBox(
-                      height: 2,
-                    ),
-                  ],
+        body: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverAppBar(
+                  stretchTriggerOffset: 1,
+                  onStretchTrigger: () async {
+                    setState(() {});
+                  },
+                  toolbarHeight: 0,
+                  backgroundColor: Theme.of(context).canvasColor,
+                  actions: const [SizedBox()],
+                  expandedHeight: bannerAreaHeight,
+                  flexibleSpace: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: FlexibleSpaceBar(background: bannerWidget),
+                  ),
                 ),
+              ];
+            },
+            body: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _postTitle,
+                    style: GoogleFonts.lato(
+                        fontSize: 16, height: 1.3, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(
+                    height: screenHeight * 0.005,
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    style: TextButton.styleFrom(
+                        minimumSize: Size.zero,
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                    child: Text(
+                      "By:" +
+                          widget.authorName +
+                          " (" +
+                          widget.postedDuration +
+                          ")",
+                      style: GoogleFonts.lato(
+                          fontSize: 10,
+                          color: Theme.of(context)
+                              .appBarTheme
+                              .shadowColor!
+                              .withOpacity(0.8)),
+                    ),
+                  ),
+                  SizedBox(
+                    height: screenHeight * 0.01,
+                  ),
+                  Text(
+                    _votes.toString(),
+                    style: GoogleFonts.lato(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: votesColor),
+                  ),
+                  SizedBox(
+                    height: screenHeight * 0.01,
+                  ),
+                  Flexible(
+                      child: widget.postBody.isNotEmpty
+                          ? Container(
+                              margin: const EdgeInsets.only(bottom: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 2, vertical: 4),
+                              decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .scaffoldBackgroundColor
+                                      .withOpacity(0.8)),
+                              width: double.maxFinite,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6.0, vertical: 4),
+                                child: Text(
+                                  _postBody,
+                                  style: GoogleFonts.lato(
+                                      fontSize: 14,
+                                      color: Theme.of(context)
+                                          .appBarTheme
+                                          .foregroundColor),
+                                ),
+                              ))
+                          : const SizedBox()),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                ],
               ),
-            )
-          ],
-        ));
+            )));
   }
 }

@@ -1,6 +1,6 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/input_field.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -9,7 +9,7 @@ class AddNoticePopUp extends StatelessWidget {
   final String? message;
   const AddNoticePopUp({this.id, this.message, Key? key}) : super(key: key);
 
-  void addNotice(String message) async {
+  void _addNotice(String message) async {
     Timestamp currentTime = Timestamp.fromDate(DateTime.now());
     var doc = await firestore!
         .collection("notices")
@@ -26,7 +26,7 @@ class AddNoticePopUp extends StatelessWidget {
     };
   }
 
-  void updateNotice(String message) {
+  void _updateNotice(String message) {
     firestore!.collection("notices").doc(id).update({"noticeMessage": message});
     newNotice = {"new?": false, "noticeMessage": message};
   }
@@ -40,8 +40,8 @@ class AddNoticePopUp extends StatelessWidget {
           TextButton(
               onPressed: () async {
                 message == null
-                    ? addNotice(_message.text)
-                    : updateNotice(_message.text);
+                    ? _addNotice(_message.text)
+                    : _updateNotice(_message.text);
                 Navigator.of(context).pop();
               },
               child: const Text("Submit"))

@@ -7,11 +7,13 @@ class CustomAlertDialog extends StatelessWidget {
   final Widget? content;
   final double? height;
   final EdgeInsets titlePadding;
+  final MainAxisAlignment actionsMainAxisAlignment;
   const CustomAlertDialog(
       {required this.actions,
       required this.title,
       required this.content,
       this.titlePadding = EdgeInsets.zero,
+      this.actionsMainAxisAlignment = MainAxisAlignment.center,
       this.height,
       Key? key})
       : super(key: key);
@@ -21,17 +23,20 @@ class CustomAlertDialog extends StatelessWidget {
     double height;
     this.height == null ? height = screenHeight * 0.5 : height = this.height!;
     return AlertDialog(
-        backgroundColor: Theme.of(context).canvasColor,
+        elevation: 1,
+        backgroundColor: Theme.of(context).cardColor,
         titlePadding: titlePadding,
         actions: actions != null
             ? [
                 Container(
                   decoration: BoxDecoration(
-                      border:
-                          Border(top: BorderSide(color: Colors.grey.shade800))),
+                      border: Border(
+                          top: BorderSide(
+                              color:
+                                  Theme.of(context).appBarTheme.shadowColor!))),
                   child: Row(
                       mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: actionsMainAxisAlignment,
                       children: actions!),
                 )
               ]
@@ -47,10 +52,12 @@ class CustomAlertDialog extends StatelessWidget {
                                 Theme.of(context).appBarTheme.shadowColor!))),
                 child: title)
             : null,
-        content: SizedBox(
-          height: height,
-          width: double.maxFinite,
-          child: SingleChildScrollView(child: content),
-        ));
+        content: content != null
+            ? SizedBox(
+                height: height,
+                width: double.maxFinite,
+                child: SingleChildScrollView(child: content),
+              )
+            : null);
   }
 }

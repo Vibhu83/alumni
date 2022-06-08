@@ -6,7 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class Notices extends StatefulWidget {
-  const Notices({Key? key}) : super(key: key);
+  final bool showAllFlag;
+  const Notices({this.showAllFlag = false, Key? key}) : super(key: key);
 
   @override
   State<Notices> createState() => _NoticesState();
@@ -25,22 +26,52 @@ class _NoticesState extends State<Notices> {
     super.initState();
   }
 
-  Future<bool> checkForNotices() async {
+  Future<bool> _checkForNotices() async {
     DateTime oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
     Timestamp lastDate = Timestamp.fromDate(oneWeekAgo);
 
-    var notices = await firestore!
-        .collection("notices")
-        .where("noticeID", whereNotIn: userData["noticesDismissed"])
-        .limit(3)
-        .where("noticePostedOn", isGreaterThanOrEqualTo: lastDate)
-        .orderBy("noticePostedOn", descending: true)
-        .get()
-        .then((value) {
-      return value.docs.map((e) {
-        return e.data();
-      }).toList();
-    });
+    List<Map<String, dynamic>> notices = [];
+    if (widget.showAllFlag == false) {
+      notices = await firestore!
+          .collection("notices")
+          // .where("noticeID", whereNotIn: userData["noticesDismissed"])
+          .where("noticePostedOn", isGreaterThanOrEqualTo: lastDate)
+          .limit(3)
+          .orderBy("noticePostedOn", descending: true)
+          .get()
+          .then((value) {
+        List noticesDismissed;
+        if (userData["noticesDismissed"] != null) {
+          noticesDismissed = userData["noticesDismissed"];
+        } else {
+          noticesDismissed = [];
+        }
+        List<Map<String, dynamic>> returnList = [];
+
+        for (var e in value.docs) {
+          if (noticesDismissed.contains(e.data()["noticeID"].toString()) ==
+              false) {
+            returnList.add(e.data());
+          }
+        }
+        return returnList;
+      });
+    } else {
+      notices = await firestore!
+          .collection("notices")
+          // .where("noticeID", whereNotIn: userData["noticesDismissed"])
+          .orderBy("noticePostedOn", descending: true)
+          .get()
+          .then((value) {
+        List<Map<String, dynamic>> returnList = [];
+
+        for (var e in value.docs) {
+          returnList.add(e.data());
+        }
+
+        return returnList;
+      });
+    }
     if (notices.isNotEmpty) {
       sortedNotices = notices;
       sortedNotices.sort((a, b) {
@@ -51,11 +82,26 @@ class _NoticesState extends State<Notices> {
       return true;
     } else {
       Navigator.of(context).pop();
+      if (widget.showAllFlag) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+          elevation: 1,
+          content: Text(
+            "No notices found",
+            style:
+                TextStyle(color: Theme.of(context).appBarTheme.foregroundColor),
+          ),
+          duration: const Duration(seconds: 1),
+        ));
+      }
       return false;
     }
   }
 
-  void dismissNotices() async {
+  void _dismissNotices() async {
+    if (widget.showAllFlag == true) {
+      return;
+    }
     if (userData["uid"] != null) {
       for (Map map in sortedNotices) {
         userData["noticesDismissed"].add(map["noticeID"]);
@@ -69,20 +115,14 @@ class _NoticesState extends State<Notices> {
 
   @override
   Widget build(BuildContext context) {
+    if (shouldReturnEmpty == true) {
+      Navigator.of(context).pop();
+    }
     return FutureBuilder(
-        future: checkForNotices(),
+        future: _checkForNotices(),
         builder: (context, AsyncSnapshot<bool> snapshot) {
           List<Widget> children;
           if (snapshot.data == true) {
-            if (newNotice != null) {
-              if (newNotice!["new?"] == true) {
-                newNotice!.remove("new?");
-                setState(() {
-                  sortedNotices.insert(0, newNotice!);
-                });
-                newNotice = null;
-              }
-            }
             List<Widget> header = [
               Text(
                 "Notices (" +
@@ -132,15 +172,16 @@ class _NoticesState extends State<Notices> {
                               .delete();
                           setState(() {
                             sortedNotices.removeAt(currentIndex);
+                            if (currentIndex != 0) {
+                              _pageController.jumpToPage(currentIndex--);
+                            } else {
+                              shouldReturnEmpty = true;
+                            }
                           });
                         },
                         icon: Icons.delete,
                         padding: EdgeInsets.zero)
                   ]));
-            }
-            if (shouldReturnEmpty == true) {
-              Navigator.of(context).pop();
-              return const SizedBox();
             }
 
             return AlertDialog(
@@ -193,7 +234,7 @@ class _NoticesState extends State<Notices> {
                     child: TextButton(
                       onPressed: currentIndex == sortedNotices.length - 1
                           ? () {
-                              dismissNotices();
+                              _dismissNotices();
                               Navigator.of(context).pop();
                             }
                           : () {

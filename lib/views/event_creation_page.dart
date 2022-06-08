@@ -8,9 +8,8 @@ import 'package:alumni/views/people_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
-import 'package:alumni/widgets/my_alert_dialog.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,6 +18,7 @@ class CreateEvent extends StatefulWidget {
   final String? eventId;
   final String? eventTitle;
   final String? eventHolder;
+  final int? eventAttendeeNumber;
   final DateTime? eventStartTime;
   final int? eventDuration;
   final String? eventLink;
@@ -33,6 +33,7 @@ class CreateEvent extends StatefulWidget {
       this.eventTitle,
       this.eventTitleImage,
       this.eventHolder,
+      this.eventAttendeeNumber,
       this.eventStartTime,
       this.eventDuration,
       this.eventLink,
@@ -49,16 +50,15 @@ class CreateEvent extends StatefulWidget {
 }
 
 class _CreateEventState extends State<CreateEvent> {
-  Function? createFireStoreDoc;
   late final TextEditingController _titleController;
   late final TextEditingController _holderController;
   late final TextEditingController _durationController;
   late final TextEditingController _linkController;
   late final TextEditingController _descriptionController;
-  late List<Image> gallery;
-  late List<String> imagePaths;
-  late List<Map<String, dynamic>> peopleInEvent;
-  late DateTime? chosenStartTime;
+  late List<Image> _gallery;
+  late List<String> _imagePaths;
+  late List<Map<String, dynamic>> _peopleInEvent;
+  late DateTime? _chosenStartTime;
 
   String? _titleError,
       _holderError,
@@ -66,7 +66,7 @@ class _CreateEventState extends State<CreateEvent> {
       _startTimeError,
       _linkError;
 
-  void resetError() {
+  void _resetError() {
     _titleError = null;
     _holderError = null;
     _durationError = null;
@@ -74,44 +74,42 @@ class _CreateEventState extends State<CreateEvent> {
     _linkError = null;
   }
 
-  final FirebaseStorage storage = FirebaseStorage.instance;
-
-  Image? eventTitleImage;
-  String? eventTitleImagePath;
+  Image? _eventTitleImage;
+  String? _eventTitleImagePath;
   // late Color pageBackground;
   @override
   void initState() {
-    gallery = [];
-    imagePaths = [];
+    _gallery = [];
+    _imagePaths = [];
     if (widget.gallery != null) {
       for (String str in widget.gallery!) {
-        imagePaths.add(str);
-        gallery.add(Image.network(str));
+        _imagePaths.add(str);
+        _gallery.add(Image.network(str));
       }
     }
     // pageBackground = const Color(eventPageBackground);
     if (widget.eventTitleImage != null) {
-      eventTitleImage = widget.eventTitleImage;
-      eventTitleImagePath = widget.eventTitleImagePath;
+      _eventTitleImage = widget.eventTitleImage;
+      _eventTitleImagePath = widget.eventTitleImagePath;
     } else {
-      eventTitleImage = null;
-      eventTitleImagePath = null;
+      _eventTitleImage = null;
+      _eventTitleImagePath = null;
     }
-    chosenStartTime = widget.eventStartTime;
+    _chosenStartTime = widget.eventStartTime;
     _titleController = TextEditingController(text: widget.eventTitle);
     _holderController = TextEditingController(text: widget.eventHolder);
     _durationController =
-        initialiseController(widget.eventDuration.toString(), "");
-    _linkController = initialiseController(widget.eventLink.toString(), "");
+        _initialiseController(widget.eventDuration.toString(), "");
+    _linkController = _initialiseController(widget.eventLink.toString(), "");
     _descriptionController =
         TextEditingController(text: widget.eventDescription);
     widget.peopleInEvent == null
-        ? peopleInEvent = []
-        : peopleInEvent = widget.peopleInEvent!;
+        ? _peopleInEvent = []
+        : _peopleInEvent = widget.peopleInEvent!;
     super.initState();
   }
 
-  TextEditingController initialiseController(
+  TextEditingController _initialiseController(
       String initialiseWith, String defaultValue) {
     if (initialiseWith != "null") {
       return TextEditingController(text: initialiseWith);
@@ -120,8 +118,8 @@ class _CreateEventState extends State<CreateEvent> {
     }
   }
 
-  bool validate() {
-    resetError();
+  bool _validate() {
+    _resetError();
     String? title, holder, duration, startTime, link;
     bool isValid = true;
     if (_titleController.text.isEmpty) {
@@ -139,7 +137,7 @@ class _CreateEventState extends State<CreateEvent> {
       duration = "Duration must only have digits";
       isValid = false;
     }
-    if (chosenStartTime == null) {
+    if (_chosenStartTime == null) {
       startTime = "Start time must be chosen";
       isValid = false;
     }
@@ -160,29 +158,28 @@ class _CreateEventState extends State<CreateEvent> {
     return isValid;
   }
 
-  void submit() {
-    if (validate()) {
+  void _submit() {
+    if (_validate()) {
       if (widget.eventUpdationFlag == false) {
-        saveEvent();
+        _saveEvent();
       } else {
-        updateEvent();
+        _updateEvent();
       }
     }
   }
 
-  void updateEvent() async {
+  void _updateEvent() async {
     String eventTitle = _titleController.text;
     String eventHolder = _holderController.text;
     int eventDuration = int.tryParse(_durationController.text)!;
-    int eventAttendeesNumber = 0;
     String eventLink = _linkController.text;
     String eventDescription = _descriptionController.text;
-    var eventStartTime = Timestamp.fromDate(chosenStartTime!);
+    var eventStartTime = Timestamp.fromDate(_chosenStartTime!);
 
     String? titleImageUrl;
     List<String> imageUrls = [];
-    int count = gallery.length - 1;
-    for (String path in imagePaths) {
+    int count = 0;
+    for (String path in _imagePaths) {
       if (path.substring(0, 5) == "/data") {
         count++;
         imageUrls.add(await uploadFileAndGetLink(path,
@@ -192,14 +189,32 @@ class _CreateEventState extends State<CreateEvent> {
       }
     }
 
-    if (eventTitleImagePath != null &&
-        eventTitleImagePath!.substring(0, 5) == "/data") {
-      await storage.refFromURL(eventTitleImagePath!).delete();
+    if (_eventTitleImagePath != null &&
+        _eventTitleImagePath!.substring(0, 5) == "/data") {
       titleImageUrl = await uploadFileAndGetLink(
-          eventTitleImagePath!, widget.eventId! + "titleImage", context);
+          _eventTitleImagePath!, widget.eventId! + "titleImage", context);
     } else {
-      titleImageUrl = eventTitleImagePath;
+      titleImageUrl = _eventTitleImagePath;
     }
+
+    List<Map<String, dynamic>> peopleInEvent = [];
+    for (var map in _peopleInEvent) {
+      if (map["uid"] == null) {
+        peopleInEvent.add(map);
+      } else {
+        peopleInEvent.add({"uid": map["uid"]});
+      }
+    }
+    updatedEventID = widget.eventId;
+    updatedEventData = {
+      "eventDuration": eventDuration,
+      "eventHolder": eventHolder,
+      "eventLink": eventLink,
+      "eventStartTime": eventStartTime,
+      "eventTitle": eventTitle,
+      "eventTitleImage": _eventTitleImage,
+      "eventTitleImageUrl": titleImageUrl,
+    };
 
     firestore!.collection('events').doc(widget.eventId).update({
       "eventDuration": eventDuration,
@@ -214,53 +229,56 @@ class _CreateEventState extends State<CreateEvent> {
     });
     Navigator.of(context).pop();
     Navigator.of(context).pop();
-    Navigator.of(context).pop();
-
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return const MainPage(
-        startingIndex: 1,
-      );
-    }));
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return AnEventPage(
-          eventTitleImage: widget.eventTitleImage,
+          eventLink: eventLink,
+          eventTitleImage: _eventTitleImage,
+          eventTitleImagePath: titleImageUrl,
           eventID: widget.eventId!,
           eventTitle: eventTitle,
           eventHolder: eventHolder,
-          eventAttendeesNumber: eventAttendeesNumber,
-          eventStartTime: eventStartTime.toDate(),
-          eventDuration: Duration(hours: eventDuration));
+          eventStartTime: _chosenStartTime!,
+          eventDuration: eventDuration);
     }));
   }
 
-  void saveEvent() async {
+  void _saveEvent() async {
     String eventTitle = _titleController.text;
     String eventHolder = _holderController.text;
     int eventDuration = int.tryParse(_durationController.text)!;
-    int eventAttendeesNumber = 0;
     String eventLink = _linkController.text;
     String eventDescription = _descriptionController.text;
-    var eventStartTime = Timestamp.fromDate(chosenStartTime!);
+    var eventStartTime = Timestamp.fromDate(_chosenStartTime!);
+    String? titleImageUrl;
     String eventID =
         await firestore!.collection("events").add({}).then((value) async {
       String eventID = value.id;
-      String? titleImageUrl;
       List<String> imageUrls = [];
       int count = 0;
-      for (String path in imagePaths) {
+      for (String path in _imagePaths) {
         if (path.substring(0, 5) == "/data") {
           count++;
           imageUrls.add(await uploadFileAndGetLink(
               path, eventID + "/galleryImage" + count.toString(), context));
         }
       }
-      if (eventTitleImagePath != null) {
+      if (_eventTitleImagePath != null) {
         titleImageUrl = await uploadFileAndGetLink(
-            eventTitleImagePath!, eventID + "/titleImage", context);
+            _eventTitleImagePath!, eventID + "/titleImage", context);
       }
+
+      List<Map<String, dynamic>> peopleInEvent = [];
+      for (var map in _peopleInEvent) {
+        if (map["uid"] == null) {
+          peopleInEvent.add(map);
+        } else {
+          peopleInEvent.add({"uid": map["uid"]});
+        }
+      }
+
       await firestore!.collection('events').doc(eventID).set({
         "eventID": eventID,
-        "eventAttendeesNumber": eventAttendeesNumber,
+        "eventAttendeesNumber": 0,
         "eventDuration": eventDuration,
         "eventHolder": eventHolder,
         "eventLink": eventLink,
@@ -283,18 +301,14 @@ class _CreateEventState extends State<CreateEvent> {
     }));
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return AnEventPage(
+          eventLink: eventLink,
+          eventTitleImage: _eventTitleImage,
+          eventTitleImagePath: titleImageUrl,
           eventID: eventID,
           eventTitle: eventTitle,
           eventHolder: eventHolder,
-          eventAttendeesNumber: eventAttendeesNumber,
-          eventStartTime: eventStartTime.toDate(),
-          eventDuration: Duration(hours: eventDuration));
-    }));
-
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return const MainPage(
-        startingIndex: 1,
-      );
+          eventStartTime: _chosenStartTime!,
+          eventDuration: eventDuration);
     }));
   }
 
@@ -328,7 +342,7 @@ class _CreateEventState extends State<CreateEvent> {
               child: TextButton(
                   // style: TextButton.styleFrom(primary: Colors.blue.shade100),
                   onPressed: () {
-                    submit();
+                    _submit();
                   },
                   child: Text(
                     buttonText,
@@ -365,19 +379,19 @@ class _CreateEventState extends State<CreateEvent> {
               .then((value) {
             if (value != null) {
               setState(() {
-                eventTitleImage = Image.file(File(value.path));
-                eventTitleImagePath = value.path;
+                _eventTitleImage = Image.file(File(value.path));
+                _eventTitleImagePath = value.path;
               });
             } else {
               setState(() {
-                eventTitleImage = null;
-                eventTitleImagePath = null;
+                _eventTitleImage = null;
+                _eventTitleImagePath = null;
               });
             }
           });
         },
         child: const Text("Choose image"));
-    if (eventTitleImage != null) {
+    if (_eventTitleImage != null) {
       child = Container(
         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
@@ -391,8 +405,8 @@ class _CreateEventState extends State<CreateEvent> {
                     iconSize: 20,
                     onPressed: () {
                       setState(() {
-                        eventTitleImage = null;
-                        eventTitleImagePath = null;
+                        _eventTitleImage = null;
+                        _eventTitleImagePath = null;
                       });
                     },
                     icon: const Icon(Icons.close)),
@@ -406,12 +420,12 @@ class _CreateEventState extends State<CreateEvent> {
             ImagePicker().pickImage(source: ImageSource.gallery).then((value) {
               if (value != null) {
                 setState(() {
-                  eventTitleImage = Image.file(File(value.path));
-                  eventTitleImagePath = value.path;
+                  _eventTitleImage = Image.file(File(value.path));
+                  _eventTitleImagePath = value.path;
                 });
               }
             });
-          }, eventTitleImage!),
+          }, _eventTitleImage!),
           onTap: () {},
         ),
       );
@@ -448,8 +462,8 @@ class _CreateEventState extends State<CreateEvent> {
 
   Widget _showDatePicker() {
     String buttonText = "Choose event start time";
-    if (chosenStartTime != null) {
-      buttonText = formatDateTime(chosenStartTime!);
+    if (_chosenStartTime != null) {
+      buttonText = formatDateTime(_chosenStartTime!);
     }
     return GroupBox(
       titleBackground: Theme.of(context).canvasColor,
@@ -462,7 +476,7 @@ class _CreateEventState extends State<CreateEvent> {
                 theme: Theme.of(context).brightness == Brightness.dark
                     ? getDarkDatePickerTheme()
                     : getLightPickerTheme(),
-                currentTime: chosenStartTime,
+                currentTime: _chosenStartTime,
                 minTime: DateTime.now(),
                 maxTime: DateTime.now().add(const Duration(days: 365)),
                 onConfirm: (date) {
@@ -471,12 +485,12 @@ class _CreateEventState extends State<CreateEvent> {
                   theme: Theme.of(context).brightness == Brightness.dark
                       ? getDarkDatePickerTheme()
                       : getLightPickerTheme(),
-                  currentTime: chosenStartTime,
+                  currentTime: _chosenStartTime,
                   showSecondsColumn: false, onConfirm: (date) {
                 time = date;
               }).then((value) {
                 setState(() {
-                  chosenStartTime = DateTime(
+                  _chosenStartTime = DateTime(
                       date.year, date.month, date.day, time.hour, time.minute);
                 });
               });
@@ -526,9 +540,9 @@ class _CreateEventState extends State<CreateEvent> {
           SizedBox(
             child: ListView.builder(
                 shrinkWrap: true,
-                itemCount: peopleInEvent.length,
+                itemCount: _peopleInEvent.length,
                 itemBuilder: (context, index) {
-                  Map<String, dynamic> person = peopleInEvent[index];
+                  Map<String, dynamic> person = _peopleInEvent[index];
                   String subTitle = "";
                   if (person["description"] == null) {
                     subTitle = "";
@@ -546,7 +560,7 @@ class _CreateEventState extends State<CreateEvent> {
                           iconSize: 20,
                           onPressed: () {
                             setState(() {
-                              peopleInEvent.removeAt(index);
+                              _peopleInEvent.removeAt(index);
                             });
                           },
                           icon: const Icon(Icons.close)),
@@ -558,17 +572,17 @@ class _CreateEventState extends State<CreateEvent> {
                               context: context,
                               builder: (context) {
                                 return AddPersonToEventPopUp(
-                                  uid: peopleInEvent[index]["uid"],
-                                  name: peopleInEvent[index]["name"],
-                                  description: peopleInEvent[index]
+                                  uid: _peopleInEvent[index]["uid"],
+                                  name: _peopleInEvent[index]["name"],
+                                  description: _peopleInEvent[index]
                                       ["description"],
-                                  number: peopleInEvent[index]["number"],
-                                  email: peopleInEvent[index]["email"],
+                                  number: _peopleInEvent[index]["number"],
+                                  email: _peopleInEvent[index]["email"],
                                 );
                               }).then((value) {
                             if (value != null) {
                               setState(() {
-                                peopleInEvent[index] = value;
+                                _peopleInEvent[index] = value;
                               });
                             }
                           });
@@ -588,7 +602,7 @@ class _CreateEventState extends State<CreateEvent> {
                     }).then((value) {
                   if (value != null) {
                     setState(() {
-                      peopleInEvent.add(value);
+                      _peopleInEvent.add(value);
                     });
                   }
                 });
@@ -612,7 +626,7 @@ class _CreateEventState extends State<CreateEvent> {
             SizedBox(
               child: ListView.builder(
                   shrinkWrap: true,
-                  itemCount: gallery.length,
+                  itemCount: _gallery.length,
                   itemBuilder: (context, index) {
                     return Container(
                       margin: const EdgeInsets.symmetric(
@@ -629,8 +643,8 @@ class _CreateEventState extends State<CreateEvent> {
                                   iconSize: 20,
                                   onPressed: () {
                                     setState(() {
-                                      gallery.removeAt(index);
-                                      imagePaths.removeAt(index);
+                                      _gallery.removeAt(index);
+                                      _imagePaths.removeAt(index);
                                     });
                                   },
                                   icon: const Icon(Icons.close)),
@@ -645,11 +659,11 @@ class _CreateEventState extends State<CreateEvent> {
                               .pickImage(source: ImageSource.gallery)
                               .then((value) {
                             if (value != null) {
-                              gallery[index] = Image.file(File(value.path));
-                              imagePaths.add(value.path);
+                              _gallery[index] = Image.file(File(value.path));
+                              _imagePaths.add(value.path);
                             }
                           });
-                        }, gallery[index]),
+                        }, _gallery[index]),
                         onTap: () {},
                       ),
                     );
@@ -660,15 +674,15 @@ class _CreateEventState extends State<CreateEvent> {
                 onPressed: () {
                   ImagePicker().pickMultiImage().then((value) {
                     if (value != null) {
-                      var newGallery = gallery;
-                      var newImagePaths = imagePaths;
+                      var newGallery = _gallery;
+                      var newImagePaths = _imagePaths;
                       for (XFile e in value) {
                         newGallery.add(Image.file(File(e.path)));
                         newImagePaths.add(e.path);
                       }
                       setState(() {
-                        gallery = newGallery;
-                        imagePaths = newImagePaths;
+                        _gallery = newGallery;
+                        _imagePaths = newImagePaths;
                       });
                     }
                   });
@@ -782,6 +796,7 @@ class _AddPersonToEventPopUpState extends State<AddPersonToEventPopUp> {
             onPressed: () {
               if (validateFields() == true) {
                 Map<String, dynamic> returningMap = {
+                  "uid": null,
                   "name": _name.text,
                   "description":
                       _decription.text == "" ? null : _decription.text,

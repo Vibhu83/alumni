@@ -15,6 +15,12 @@ import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
 bool noticesSeen = false;
 bool emailPopUpShown = false;
 
+Map<String, dynamic> userData = {};
+
+void initialiseVar() async {
+  noticesSeen = false;
+}
+
 int? currentHomeTab;
 
 FirebaseApp? app;
@@ -44,12 +50,45 @@ Future<bool> initialiseFlutterFire() async {
     storage = FirebaseStorage.instance;
     chat = FirebaseChatCore.instance;
     chat!.setConfig(FirebaseChatCoreConfig(app.name, "chatRooms", "users"));
+    await setUserLoginStatus();
     return true;
   });
   return returnVal;
 }
 
-Map<String, dynamic> userData = {};
+Future<void> setUserLoginStatus({Map<String, dynamic>? data}) async {
+  User? currentUser = auth!.currentUser;
+
+  chat!.firebaseUser = currentUser;
+  noticesSeen = false;
+  if (currentUser != null) {
+    if (currentUser.emailVerified) {
+      emailPopUpShown = true;
+      userData["uid"] = currentUser.uid;
+      if (data != null) {
+        userData = data;
+      } else {
+        await _saveUserData(userData["uid"]);
+      }
+    } else {
+      userData = {};
+      userData["uid"] = null;
+    }
+  } else {
+    userData = {};
+    userData["uid"] = null;
+  }
+}
+
+Future<bool> _saveUserData(String uid) async {
+  return await firestore!.collection("users").doc(uid).get().then((value) {
+    var temp = value.data();
+    if (temp != null) {
+      userData = temp;
+    }
+    return true;
+  });
+}
 
 late double screenHeight;
 late double screenWidth;
@@ -186,6 +225,9 @@ Map<String, dynamic> updatedPostData = {};
 bool? postAdded;
 Map<String, dynamic>? addedPostData = {};
 
+String? updatedEventID;
+Map<String, dynamic> updatedEventData = {};
+
 void setScreenDimensions(BuildContext context) {
   var mediaQuery = MediaQuery.of(context);
   orientation = mediaQuery.orientation;
@@ -210,6 +252,7 @@ int? lastPostNewVotes;
 bool? lastPostBool;
 
 int? lastEventAttendeeChange;
+int? lastEventAttendeesNumber;
 bool? lastEventBool;
 
 void changeVote(String postID, int changeBy) {
@@ -282,3 +325,13 @@ Map<String, dynamic>? newNotice;
 
 Map<String, int?>? designations;
 Map<String, int?>? nationalities;
+
+void deleteStorageFolder(String ref) {
+  storage!.ref(ref).listAll().then((value) {
+    for (var element in value.items) {
+      storage!.ref(element.fullPath).delete();
+    }
+  });
+}
+
+bool lastUserWasMadeAdmin = false;
