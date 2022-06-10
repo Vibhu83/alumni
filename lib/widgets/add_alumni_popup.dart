@@ -27,7 +27,6 @@ class AddAlumniPopUp extends StatelessWidget {
                     .set({"uid": uid, "message": _message.text});
                 Navigator.of(context).pop();
               } else {
-                print("editing");
                 await firestore!
                     .collection("topAlumni")
                     .doc(uid)
