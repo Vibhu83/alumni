@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:alumni/ThemeData/theme_model.dart';
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/bookmark_page.dart';
@@ -13,12 +15,16 @@ import 'package:alumni/views/post_creation_page.dart';
 import 'package:alumni/views/profile_page.dart';
 import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:alumni/widgets/notice_popup.dart';
+import 'package:excel/excel.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_initicon/flutter_initicon.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
@@ -147,7 +153,7 @@ class _MainPageState extends State<MainPage> {
       null
     ];
     if (userData["uid"] != null) {
-      if (userData["accessLevel"] == "admin") {
+      if (userData["hasAdminAccess"] == true) {
         _floatingActionButtons[1] =
             //Events Floating Button
             FloatingActionButton(
@@ -209,22 +215,11 @@ class _MainPageState extends State<MainPage> {
                   });
             },
             icon: Icons.mail);
-        if (userData["accessLevel"] == "admin") {
+        if (userData["hasAdminAccess"] == true) {
           appBarIcons.add(addNoticeButton);
         }
         appBarIcons.add(seeNoticesButton);
         break;
-      // case 3:
-      //   appBarIcons.add(buildAppBarIcon(
-      //       onPressed: () {
-      //         showModalBottomSheet(
-      //             context: context,
-      //             builder: (context) {
-      //               return const UserFilterPopUp();
-      //             });
-      //       },
-      //       icon: Icons.filter_alt));
-      //   break;
       case 1:
         var pastEventButton = buildAppBarIcon(
             onPressed: () {
@@ -237,14 +232,260 @@ class _MainPageState extends State<MainPage> {
         appBarIcons.add(pastEventButton);
 
         break;
-      // case 2:
-      //   var searchForumButton =
-      //       buildAppBarIcon(onPressed: () {}, icon: Icons.search_rounded);
-      //   appBarIcons.add(searchForumButton);
-      //   break;
+      case 2:
+        var searchForumButton =
+            buildAppBarIcon(onPressed: () {}, icon: Icons.search_rounded);
+        appBarIcons.add(searchForumButton);
+        break;
+      case 3:
+        //   appBarIcons.add(buildAppBarIcon(
+        //       onPressed: () {
+        //         showModalBottomSheet(
+        //             isScrollControlled: true,
+        //             elevation: 2,
+        //             backgroundColor: Colors.transparent,
+        //             context: context,
+        //             builder: (context) {
+        //               return Wrap(children: const [
+        //                 Padding(
+        //                   padding:
+        //                       EdgeInsets.only(left: 8.0, right: 8, bottom: 16),
+        //                   child: UserFilterPopUp(),
+        //                 ),
+        //               ]);
+        //             }).then((value) {
+        //           print("value changed");
+        //         });
+        //       },
+        //       icon: Icons.filter_alt));
+        if (userData["hasAdminAccess"] == true) {
+          appBarIcons.add(buildAppBarIcon(
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return CustomAlertDialog(
+                      height: screenHeight * 0.25,
+                      title: null,
+                      actions: null,
+                      content: Center(
+                        child: FutureBuilder(
+                            future: _downloadUsersDataSheet(),
+                            builder: ((context, AsyncSnapshot<Excel> snapshot) {
+                              List<Widget> children = [];
+                              if (snapshot.hasData) {
+                                children = <Widget>[
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    color: Colors.green,
+                                    size: screenWidth * 0.15,
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 16),
+                                    child: Text(
+                                      "File Ready!",
+                                      style: TextStyle(color: Colors.green),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: screenHeight * 0.05,
+                                  ),
+                                  ElevatedButton(
+                                      onPressed: () {
+                                        if (snapshot.data != null) {
+                                          saveExcelFile(snapshot.data!);
+                                        }
+                                      },
+                                      style: TextButton.styleFrom(
+                                          backgroundColor: Colors.green),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: const [
+                                          Icon(Icons.download),
+                                          Text("Download")
+                                        ],
+                                      ))
+                                ];
+                              } else if (snapshot.hasError) {
+                                children = buildFutureError(snapshot);
+                              } else {
+                                children = buildFutureLoading(snapshot);
+                              }
+                              return buildFuture(children: children);
+                            })),
+                      ),
+                    );
+                  });
+              _downloadUsersDataSheet();
+            },
+            icon: Icons.download,
+          ));
+        }
 
+        break;
     }
     return appBarIcons;
+  }
+
+  Future<Excel> _downloadUsersDataSheet() async {
+    List<List<String>> _usersData = [
+      [
+        "UID",
+        "Roll No.",
+        "Name",
+        "Email",
+        "Year of Admission",
+        "Course",
+        "User Type",
+        "Is An Alumni",
+        "Mother's Name",
+        "Father's Name",
+        "Date of Birth",
+        "Permanent Address",
+        "Year of Passing",
+        "Nationality",
+        "Is NRI",
+        "Achievements",
+        "Current Designation",
+        "Current Organisation",
+        "In Current Organisation Since",
+        "Residence Contact No",
+        "Current Office Number",
+        "Mobile Contact Number",
+        "Previous Organisation Name",
+        "Previous Designation",
+        "Were In Previous Organisation Since",
+        "Previous Office Contact Number",
+        "Spouse Name",
+        "Spouse Organisation Name",
+        "Spouse Designation",
+        "Spouse In Organisation Since",
+        "Spouse Office Contact Number",
+        "Spouse Mobile Contace Number",
+      ]
+    ];
+    await firestore!.collection("users").get().then((value) {
+      for (var element in value.docs) {
+        Map<String, dynamic> user = element.data();
+        if (element.data()["uid"] == null) {
+          continue;
+        }
+        _usersData.add([
+          _formatToString(user["uid"]),
+          _formatToString(user["rollNo"]),
+          _formatToString(user["name"]),
+          _formatToString(user["email"]),
+          _formatToString(user["admissionYear"]),
+          _formatToString(user["course"]),
+          _formatToString(user["userType"]),
+          _formatToString(user["isAnAlumni"]),
+          _formatToString(user["motherName"]),
+          _formatToString(user["fatherName"]),
+          _formatTimestampToString(user["dateOfBirth"]),
+          _formatToString(user["permanentAddress"]),
+          _formatToString(user["passingYear"]),
+          _formatToString(user["nationality"]),
+          _formatToString(user["isNRI"]),
+          _formatToString(user["achievements"]),
+          _formatToString(user["currentDesignation"]),
+          _formatToString(user["currentOrgName"]),
+          _formatTimestampToString(user["inCurrentOrgSince"]),
+          _formatToString(user["residenceContactNo"]),
+          _formatToString(user["currentOfficeContactNo"]),
+          _formatToString(user["mobileContactNo"]),
+          _formatToString(user["previousOrgName"]),
+          _formatToString(user["previousDesignation"]),
+          _formatTimestampToString(user["wereInPreviousOrgSince"]),
+          _formatToString(user["previousOrgOfficeContactNo"]),
+          _formatToString(user["spouseName"]),
+          _formatToString(user["spouseOrgName"]),
+          _formatToString(user["spouseDesignation"]),
+          _formatTimestampToString(user["spouseWorkingInOrgSince"]),
+          _formatToString(user["spouseOfficeContactNo"]),
+          _formatToString(user["spouseMobileContactNo"]),
+        ]);
+      }
+    });
+    final Excel excelDoc = Excel.createExcel();
+    final Sheet sheet = excelDoc[excelDoc.getDefaultSheet()!];
+    for (int x = 0; x < _usersData.length; x++) {
+      for (int y = 0; y < _usersData[x].length; y++) {
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: y, rowIndex: x))
+            .value = _usersData[x][y];
+      }
+    }
+    excelDoc.save(fileName: "userList");
+    return excelDoc;
+  }
+
+  String _formatToString(var value) {
+    if (value == null || value.toString() == "") {
+      return "-";
+    } else {
+      return value.toString();
+    }
+  }
+
+  String _formatTimestampToString(var value) {
+    if (value == null) {
+      return "-";
+    } else {
+      List<String> temp = value.toDate().toString().split(" ")[0].split("-");
+      return temp[2] + "-" + temp[1] + "-" + temp[0];
+    }
+  }
+
+  Future<void> saveExcelFile(Excel excel) async {
+    try {
+      var storagePermissionStatus = await Permission.storage.status;
+      if (storagePermissionStatus.isGranted) {
+        await Permission.storage.request();
+      }
+      await FilePicker.platform.clearTemporaryFiles();
+      FilePicker.platform.getDirectoryPath().then((value) {
+        if (value != null) {
+          String path = value;
+          try {
+            File(path + "/userList.xlsx")
+              ..createSync(recursive: true)
+              ..writeAsBytesSync(
+                excel.encode()!,
+              );
+          } on FileSystemException catch (e) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: Theme.of(context).cardColor,
+              content: Text(
+                "Some error occurred while saving file\nFile saved to Internal Storage's Downloads folder\n(\"/storage/emulated/0/Download/\")",
+                style: TextStyle(
+                    color: Theme.of(context).appBarTheme.foregroundColor),
+              ),
+            ));
+          } finally {
+            File("/storage/emulated/0/Download/userList.xlsx")
+              ..createSync(recursive: true)
+              ..writeAsBytesSync(
+                excel.encode()!,
+              );
+          }
+        }
+      });
+    } on Exception catch (e) {
+      Navigator.of(context).pop();
+      showDialog(
+          context: context,
+          builder: (context) {
+            return const CustomAlertDialog(
+                actions: null,
+                title: null,
+                content: Text(
+                  "Some error occured",
+                  style: TextStyle(color: Colors.red),
+                ));
+          });
+    }
   }
 
   @override

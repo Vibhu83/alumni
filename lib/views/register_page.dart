@@ -63,7 +63,7 @@ class _RegisterView extends State<RegisterView> {
 
   bool? _isNRI;
 
-  late bool _isAlumni;
+  late bool _isAnAlumni;
 
   late String _signUpAs;
 
@@ -93,7 +93,7 @@ class _RegisterView extends State<RegisterView> {
   void initState() {
     _profilePic = null;
 
-    _isAlumni = false;
+    _isAnAlumni = false;
     _signUpAs = "User";
 
     _email = TextEditingController();
@@ -180,7 +180,7 @@ class _RegisterView extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     List<Widget> additionalDetailsWidgets = [const SizedBox()];
-    if (_isAlumni == true) {
+    if (_isAnAlumni == true) {
       additionalDetailsWidgets = getAdditionalDetailsWidget();
     }
     List<Widget> form = [
@@ -792,7 +792,7 @@ class _RegisterView extends State<RegisterView> {
       isValid = false;
     }
 
-    if (_isAlumni) {
+    if (_isAnAlumni) {
       isValid = validateAdditionalDetails();
     }
 
@@ -885,15 +885,15 @@ class _RegisterView extends State<RegisterView> {
     final String email = _email.text;
     final String password = _password.text;
     final int addmissionYear = _addmissionYear!;
-    late final String accessLevel;
+    late final String userType;
     List<String> firstLastName = name.split(" ");
     //
     //
     final String previousOrgOfficeContactNo = _previousOfficeContactNo.text;
-    if (_isAlumni == true) {
-      accessLevel = "alumni";
+    if (_isAnAlumni == true) {
+      userType = "alumni";
     } else {
-      accessLevel = "student";
+      userType = "student";
     }
     final String course;
     if (_courseValue != null) {
@@ -931,8 +931,8 @@ class _RegisterView extends State<RegisterView> {
           "email": email,
           "admissionYear": addmissionYear,
           "course": course,
-          "isAnAlumni": _isAlumni,
-          "accessLevel": accessLevel,
+          "isAnAlumni": _isAnAlumni,
+          "userType": userType,
           "noticesDismissed": [""],
           "verified": null,
           "eventsBookmarked": [""],
@@ -948,14 +948,15 @@ class _RegisterView extends State<RegisterView> {
             "email": email,
             "admissionYear": addmissionYear,
             "course": course,
-            "isAnAlumni": _isAlumni,
-            "accessLevel": accessLevel,
+            "isAnAlumni": _isAnAlumni,
+            "hasAdminAccess": false,
+            "userType": userType,
             "noticesDismissed": [""],
             "verified": null,
             "eventsBookmarked": [""],
             "postsBookmarked": [""]
           };
-          if (_isAlumni) {
+          if (_isAnAlumni) {
             final String motherName = _motherName.text;
             final String fatherName = _fatherName.text;
             final Timestamp dob = Timestamp.fromDate(_dob!);
@@ -1029,7 +1030,7 @@ class _RegisterView extends State<RegisterView> {
               //
               "previousOrgName": previousOrgName,
               "previousDesignation": previousDesignation,
-              "wereInPreviousSince": wereInPreviousOrgSince,
+              "wereInPreviousOrgSince": wereInPreviousOrgSince,
               "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
             }, SetOptions(merge: true)).then((value) {
               data.addAll({
@@ -1058,7 +1059,7 @@ class _RegisterView extends State<RegisterView> {
                 //
                 "previousOrgName": previousOrgName,
                 "previousDesignation": previousDesignation,
-                "wereInPreviousSince": wereInPreviousOrgSince,
+                "wereInPreviousOrgSince": wereInPreviousOrgSince,
                 "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
               });
             });
@@ -1490,7 +1491,7 @@ class _RegisterView extends State<RegisterView> {
         ),
         Switch(
           activeColor: Colors.green,
-          value: _isAlumni,
+          value: _isAnAlumni,
           onChanged: (value) {
             String nextSignUpAs;
             if (value == true) {
@@ -1500,7 +1501,7 @@ class _RegisterView extends State<RegisterView> {
             }
             setState(() {
               _signUpAs = nextSignUpAs;
-              _isAlumni = value;
+              _isAnAlumni = value;
             });
           },
         ),

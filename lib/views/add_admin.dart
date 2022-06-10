@@ -2,10 +2,11 @@ import 'dart:io';
 
 import 'package:alumni/classes/date_picker_theme.dart';
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/login_page.dart';
 import 'package:alumni/views/main_page.dart';
-import 'package:alumni/widgets/change_password_popup.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:alumni/widgets/year_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,20 +14,23 @@ import 'package:flutter/material.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 
-class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({Key? key}) : super(key: key);
+class AddAdmin extends StatefulWidget {
+  final Function(String? email, String? password)? onSubmitted;
+
+  const AddAdmin({this.onSubmitted, Key? key}) : super(key: key);
 
   @override
-  State<EditProfilePage> createState() => _EditProfilePageState();
+  _AddAdmin createState() => _AddAdmin();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
-  String? profilePicPath;
-  Image? profilePic;
-  bool _passwordChanged = false;
+class _AddAdmin extends State<AddAdmin> {
+  XFile? _profilePic;
 
   late TextEditingController _email,
+      _password,
+      _confirmPassword,
       _rollNo,
       _name,
       _fatherName,
@@ -61,9 +65,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   late bool _isAnAlumni;
 
-  late String _userType;
+  late String _signUpAs;
 
-  String? _nameError,
+  String? _emailError,
+      _passwordError,
+      _nameError,
       _idError,
       _addmissionYearError,
       _courseError,
@@ -77,82 +83,57 @@ class _EditProfilePageState extends State<EditProfilePage> {
       _mobileContactError;
 
   late int? _addmissionYear, _passingYear;
+  Function(String? email, String? password)? get onSubmitted =>
+      widget.onSubmitted;
 
-  late bool _isAnAdmin;
+  double _strength = 0;
+  String _displayText = "";
 
   @override
   void initState() {
-    profilePicPath = userData["profilePic"];
-    if (profilePicPath != null) {
-      profilePic = Image.network(profilePicPath!);
-    }
-    _isAnAdmin = false;
-    _isAnAlumni = userData["isAnAlumni"];
-    _userType = userData["userType"];
-    if (userData["hasAdminAccess"] == true) {
-      _isAnAdmin = true;
-    }
+    _profilePic = null;
 
-    _email = TextEditingController(text: userData["email"]);
-    _rollNo = TextEditingController(text: userData["rollNo"]);
-    _name = TextEditingController(text: userData["name"]);
-    _fatherName = TextEditingController(text: userData["fatherName"]);
-    _motherName = TextEditingController(text: userData["motherName"]);
-    _address = TextEditingController(text: userData["permanentAddress"]);
-    _currentOrgName = TextEditingController(text: userData["currentOrgName"]);
-    _currentDesignation =
-        TextEditingController(text: userData["currentDesignation"]);
-    _previousOrgName = TextEditingController(text: userData["previousOrgName"]);
-    _previousDesignation =
-        TextEditingController(text: userData["previousDesignation"]);
-    _residenceContactNo =
-        TextEditingController(text: userData["residenceContactNo"]);
-    _currentOfficeContactNo =
-        TextEditingController(text: userData["residenceContactNo"]);
-    _mobileContactNo = TextEditingController(text: userData["mobileContactNo"]);
-    _previousOfficeContactNo =
-        TextEditingController(text: userData["previousOrgOfficeContactNo"]);
-    _achievements = TextEditingController(text: userData["achievements"]);
-    _spouseName = TextEditingController(text: userData["spouseName"]);
-    _spouseOrgName = TextEditingController(text: userData["spouseOrgName"]);
-    _spouseDesignation =
-        TextEditingController(text: userData["spouseDesignation"]);
-    _spouseMobileContactNo =
-        TextEditingController(text: userData["spouseMobileContactNo"]);
-    _spouseOfficeContactNo =
-        TextEditingController(text: userData["spouseOfficeContactNo"]);
+    _isAnAlumni = false;
+    _signUpAs = "User";
 
-    if (userData["dateOfBirth"] == null) {
-      _dob = null;
-    } else {
-      _dob = userData["dateOfBirth"].toDate();
-    }
+    _email = TextEditingController();
+    _password = TextEditingController();
+    _confirmPassword = TextEditingController();
+    _rollNo = TextEditingController();
+    _name = TextEditingController();
+    _fatherName = TextEditingController();
+    _motherName = TextEditingController();
+    _address = TextEditingController();
+    _currentOrgName = TextEditingController();
+    _currentDesignation = TextEditingController();
+    _previousOrgName = TextEditingController();
+    _previousDesignation = TextEditingController();
+    _residenceContactNo = TextEditingController();
+    _currentOfficeContactNo = TextEditingController();
+    _mobileContactNo = TextEditingController();
+    _previousOfficeContactNo = TextEditingController();
+    _achievements = TextEditingController();
+    _spouseName = TextEditingController();
+    _spouseOrgName = TextEditingController();
+    _spouseDesignation = TextEditingController();
+    _spouseMobileContactNo = TextEditingController();
+    _spouseOfficeContactNo = TextEditingController();
 
-    if (userData["inCurrentOrgSince"] == null) {
-      _inCurrentOrgSince = null;
-    } else {
-      _inCurrentOrgSince = userData["inCurrentOrgSince"].toDate();
-    }
-    if (userData["wereInPreviousSince"] == null) {
-      _wereInPreviousOrgSince = null;
-    } else {
-      _wereInPreviousOrgSince = userData["wereInPreviousOrgSince"].toDate();
-    }
-    if (userData["spouseWorkingInOrgSince"] == null) {
-      _spouseWorkingInOrgSince = null;
-    } else {
-      _spouseWorkingInOrgSince = userData["spouseWorkingInOrgSince"].toDate();
-    }
+    _dob = null;
+    _wereInPreviousOrgSince = null;
+    _wereInPreviousOrgSince = null;
+    _spouseWorkingInOrgSince = null;
 
-    _addmissionYear = userData["admissionYear"];
-    _passingYear = userData["passingYear"];
+    _addmissionYear = null;
+    _passingYear = null;
 
-    _courseValue = userData["course"];
-    _isIndian = userData["nationality"] == "Indian" ? true : null;
-    _nationality = userData["nationality"];
+    _courseValue = null;
+    _isIndian = null;
 
-    _isNRI = userData["isNRI"];
+    _isNRI = null;
 
+    _emailError = null;
+    _passwordError = null;
     _nameError = null;
     _idError = null;
     _addmissionYearError = null;
@@ -172,6 +153,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void dispose() {
     _email.dispose();
+    _password.dispose();
+    _confirmPassword.dispose();
     _rollNo.dispose();
     _name.dispose();
     _fatherName.dispose();
@@ -202,33 +185,65 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
     List<Widget> form = [
       _buildPadding(0.005),
+      _buildHeading("Create Account,"),
+      _buildPadding(.01),
+      _buildSubHeading("Sign up to get started!"),
+      _buildPadding(0.025),
       _buildProfilePicField(),
       _buildRollNoField(),
       _buildNameField(),
+      _buildEmailField(),
       _buildPasswordField(),
-      // _buildPasswordStrengthProgress(),
-      // _buildConfirmPasswordField(),
+      _buildPasswordStrengthProgress(),
+      _buildConfirmPasswordField(),
       _buildYearOfAdmissionField(),
       _buildCourseDropDown(),
       _buildAlumniToggle(),
     ];
     form.addAll(additionalDetailsWidgets);
+    form.addAll([
+      _buildPadding(0.015),
+      _buildSubmitButton(),
+      _buildPadding(.01),
+    ]);
 
     return Scaffold(
-      bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .appBarTheme
-                  .backgroundColor!
-                  .withOpacity(0.3),
-              border: Border(
-                  top: BorderSide(
-                      color: Theme.of(context)
-                          .appBarTheme
-                          .shadowColor!
-                          .withOpacity(0.25)))),
-          child: _buildSubmitButton()),
       backgroundColor: Theme.of(context).canvasColor,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+            color:
+                Theme.of(context).appBarTheme.backgroundColor!.withOpacity(0.3),
+            border: Border(
+                top: BorderSide(
+                    color: Theme.of(context)
+                        .appBarTheme
+                        .shadowColor!
+                        .withOpacity(0.25)))),
+        child: TextButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+              return const LoginView();
+            }));
+          },
+          child: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              text: "I'm already a member, ",
+              style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium!.color),
+              children: const [
+                TextSpan(
+                  text: "Sign In",
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: Container(
         // decoration: const BoxDecoration(color: Color(backgroundColor)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -712,6 +727,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   void resetErrorText() {
     setState(() {
+      _emailError = null;
+      _passwordError = null;
       _nameError = null;
       _idError = null;
       _addmissionYearError = null;
@@ -729,12 +746,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   bool validate() {
     resetErrorText();
-    String?
-        // newPasswordError,
+    String? newEmailError,
+        newPasswordError,
         newIdError,
         newNameError,
         newAddmissionError,
         newCourseError;
+
+    RegExp emailExp = RegExp(
+        r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$");
+
     bool isValid = true;
     if (_name.text.isEmpty) {
       newNameError = "Invalid name";
@@ -750,13 +771,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
     }
 
-    // if (_password.text.isEmpty || _confirmPassword.text.isEmpty) {
-    //   newPasswordError = "Invalid Password";
-    //   isValid = false;
-    // } else if (_password.text != _confirmPassword.text) {
-    //   newPasswordError = "Passwords do not match";
-    //   isValid = false;
-    // }
+    if (_email.text.isEmpty || !emailExp.hasMatch(_email.text)) {
+      newEmailError = "Email is invalid";
+      isValid = false;
+    }
+
+    if (_password.text.isEmpty || _confirmPassword.text.isEmpty) {
+      newPasswordError = "Invalid Password";
+      isValid = false;
+    } else if (_password.text != _confirmPassword.text) {
+      newPasswordError = "Passwords do not match";
+      isValid = false;
+    }
     if (_courseValue == null) {
       newCourseError = "Invalid course";
       isValid = false;
@@ -773,7 +799,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() {
       _nameError = newNameError;
       _idError = newIdError;
-      // _passwordError = newPasswordError;
+      _emailError = newEmailError;
+      _passwordError = newPasswordError;
       _addmissionYearError = newAddmissionError;
       _courseError = newCourseError;
     });
@@ -852,15 +879,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<String?> registerUserAndSaveDetails() async {
+    Map<String, dynamic> data = {};
     final String rollNo = _rollNo.text;
     final String name = _name.text;
+    final String email = _email.text;
+    final String password = _password.text;
     final int addmissionYear = _addmissionYear!;
-    late String userType;
+    late final String userType;
     List<String> firstLastName = name.split(" ");
     //
     //
     final String previousOrgOfficeContactNo = _previousOfficeContactNo.text;
-    userType = _userType;
+    if (_isAnAlumni == true) {
+      userType = "alumni";
+    } else {
+      userType = "student";
+    }
     final String course;
     if (_courseValue != null) {
       course = _courseValue!;
@@ -868,161 +902,188 @@ class _EditProfilePageState extends State<EditProfilePage> {
       course = "";
     }
     try {
-      String uid = userData["uid"].toString();
-      String? profilePicUrl;
-      if (profilePicPath != null &&
-          profilePicPath!.substring(0, 5) == "/data") {
-        profilePicUrl = await uploadFileAndGetLink(
-            profilePicPath!, uid.toString() + "/profilePicture", context);
-      }
-      firestore!.collection("users").doc(uid).update({
-        "profilePic": profilePicUrl,
-        "imageUrl": profilePicUrl,
-        "rollNo": rollNo,
-        "name": name,
-        "firstName": firstLastName[0],
-        "lastName": firstLastName[1],
-        "admissionYear": addmissionYear,
-        "course": course,
-        "isAnAlumni": _isAnAlumni,
-        "userType": userType,
-        "hasAdminAccess": _isAnAdmin,
-      }).then((value) {
-        userData.addAll({
+      await auth!
+          .createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      )
+          .then((userRecord) async {
+        var uid = userRecord.user!.uid;
+        String? profilePicUrl;
+        if (_profilePic != null) {
+          profilePicUrl = await uploadFileAndGetLink(
+              _profilePic!.path, uid.toString() + "/profilePicture", context);
+        }
+        chat!.createUserInFirestore(types.User(
+            id: uid,
+            firstName: firstLastName[0],
+            lastName: firstLastName[1],
+            imageUrl: profilePicUrl));
+        firestore!.collection("userVotes").doc(uid).set({});
+        firestore!.collection("eventAttendanceStatus").doc(uid).set({});
+        firestore!.collection("users").doc(uid).set({
           "profilePic": profilePicUrl,
-          "imageUrl": profilePicUrl,
+          "uid": uid,
           "rollNo": rollNo,
           "name": name,
           "firstName": firstLastName[0],
           "lastName": firstLastName[1],
+          "email": email,
           "admissionYear": addmissionYear,
           "course": course,
           "isAnAlumni": _isAnAlumni,
           "userType": userType,
-          "hasAdminAccess": _isAnAdmin,
-        });
-        if (_isAnAlumni) {
-          final String motherName = _motherName.text;
-          final String fatherName = _fatherName.text;
-          final Timestamp dob = Timestamp.fromDate(_dob!);
-          final String address = _address.text;
-          final int passingYear = _passingYear!;
-          final String nationality = _nationality!;
-          final bool isNRI = _isNRI!;
-          final String achievements = _achievements.text;
-          //
-          //
-          final String spouseName = _spouseName.text;
-          final String spouseOrgName = _spouseOrgName.text;
-          final String spouseDesignation = _spouseDesignation.text;
-          late final Timestamp? spouseWorkingSince;
+          "noticesDismissed": [""],
+          "verified": null,
+          "eventsBookmarked": [""],
+          "postsBookmarked": [""]
+        }, SetOptions(merge: true)).then((value) {
+          data = {
+            "profilePic": profilePicUrl,
+            "uid": uid,
+            "rollNo": rollNo,
+            "name": name,
+            "firstName": firstLastName[0],
+            "lastName": firstLastName[1],
+            "email": email,
+            "admissionYear": addmissionYear,
+            "course": course,
+            "isAnAlumni": _isAnAlumni,
+            "hasAdminAccess": false,
+            "userType": userType,
+            "noticesDismissed": [""],
+            "verified": null,
+            "eventsBookmarked": [""],
+            "postsBookmarked": [""]
+          };
+          if (_isAnAlumni) {
+            final String motherName = _motherName.text;
+            final String fatherName = _fatherName.text;
+            final Timestamp dob = Timestamp.fromDate(_dob!);
+            final String address = _address.text;
+            final int passingYear = _passingYear!;
+            final String nationality = _nationality!;
+            final bool isNRI = _isNRI!;
+            final String achievements = _achievements.text;
+            //
+            //
+            final String spouseName = _spouseName.text;
+            final String spouseOrgName = _spouseOrgName.text;
+            final String spouseDesignation = _spouseDesignation.text;
+            late final Timestamp? spouseWorkingSince;
 
-          if (_spouseWorkingInOrgSince != null) {
-            Timestamp.fromDate(_spouseWorkingInOrgSince!);
-          } else {
-            spouseWorkingSince = null;
+            if (_spouseWorkingInOrgSince != null) {
+              Timestamp.fromDate(_spouseWorkingInOrgSince!);
+            } else {
+              spouseWorkingSince = null;
+            }
+            final String spouseOfficeContactNo = _spouseOfficeContactNo.text;
+            final String spouseMobileContactNo = _spouseMobileContactNo.text;
+            //
+            //
+            final String currentOrgName = _currentOrgName.text;
+            final String currentDesignation = _currentDesignation.text;
+            late final Timestamp? workingInCurrentOrgSince;
+            if (_inCurrentOrgSince != null) {
+              workingInCurrentOrgSince =
+                  Timestamp.fromDate(_inCurrentOrgSince!);
+            } else {
+              workingInCurrentOrgSince = null;
+            }
+            final String residenceContactNo = _residenceContactNo.text;
+            final String currentOfficeContactNo = _currentOfficeContactNo.text;
+            final String mobileContactNo = _mobileContactNo.text;
+            //
+            //
+            final String previousOrgName = _previousOrgName.text;
+            final String previousDesignation = _previousDesignation.text;
+            late final Timestamp? wereInPreviousOrgSince;
+            if (_wereInPreviousOrgSince != null) {
+              wereInPreviousOrgSince =
+                  Timestamp.fromDate(_wereInPreviousOrgSince!);
+            } else {
+              wereInPreviousOrgSince = null;
+            }
+            firestore!.collection("users").doc(uid).set({
+              "motherName": motherName,
+              "fatherName": fatherName,
+              "dateOfBirth": dob,
+              "permanentAddress": address,
+              "passingYear": passingYear,
+              "nationality": nationality,
+              "isNRI": isNRI,
+              "achievements": achievements,
+              //
+              "spouseName": spouseName,
+              "spouseOrgName": spouseOrgName,
+              "spouseDesignation": spouseDesignation,
+              "spouseWorkingInOrgSince": spouseWorkingSince,
+              "spouseOfficeContactNo": spouseOfficeContactNo,
+              "spouseMobileContactNo": spouseMobileContactNo,
+              //
+              "currentOrgName": currentOrgName,
+              "currentDesignation": currentDesignation,
+              "inCurrentOrgSince": workingInCurrentOrgSince,
+              "residenceContactNo": residenceContactNo,
+              "currentOfficeContactNo": currentOfficeContactNo,
+              "mobileContactNo": mobileContactNo,
+              //
+              "previousOrgName": previousOrgName,
+              "previousDesignation": previousDesignation,
+              "wereInPreviousSince": wereInPreviousOrgSince,
+              "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
+            }, SetOptions(merge: true)).then((value) {
+              data.addAll({
+                "motherName": motherName,
+                "fatherName": fatherName,
+                "dateOfBirth": dob,
+                "permanentAddress": address,
+                "passingYear": passingYear,
+                "nationality": nationality,
+                "isNRI": isNRI,
+                "achievements": achievements,
+                //
+                "spouseName": spouseName,
+                "spouseOrgName": spouseOrgName,
+                "spouseDesignation": spouseDesignation,
+                "spouseWorkingInOrgSince": spouseWorkingSince,
+                "spouseOfficeContactNo": spouseOfficeContactNo,
+                "spouseMobileContactNo": spouseMobileContactNo,
+                //
+                "currentOrgName": currentOrgName,
+                "currentDesignation": currentDesignation,
+                "inCurrentOrgSince": workingInCurrentOrgSince,
+                "residenceContactNo": residenceContactNo,
+                "currentOfficeContactNo": currentOfficeContactNo,
+                "mobileContactNo": mobileContactNo,
+                //
+                "previousOrgName": previousOrgName,
+                "previousDesignation": previousDesignation,
+                "wereInPreviousSince": wereInPreviousOrgSince,
+                "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
+              });
+            });
           }
-          final String spouseOfficeContactNo = _spouseOfficeContactNo.text;
-          final String spouseMobileContactNo = _spouseMobileContactNo.text;
-          //
-          //
-          final String currentOrgName = _currentOrgName.text;
-          final String currentDesignation = _currentDesignation.text;
-          late final Timestamp? workingInCurrentOrgSince;
-          if (_inCurrentOrgSince != null) {
-            workingInCurrentOrgSince = Timestamp.fromDate(_inCurrentOrgSince!);
-          } else {
-            workingInCurrentOrgSince = null;
-          }
-          final String residenceContactNo = _residenceContactNo.text;
-          final String currentOfficeContactNo = _currentOfficeContactNo.text;
-          final String mobileContactNo = _mobileContactNo.text;
-          //
-          //
-          final String previousOrgName = _previousOrgName.text;
-          final String previousDesignation = _previousDesignation.text;
-          late final Timestamp? wereInPreviousOrgSince;
-          if (_wereInPreviousOrgSince != null) {
-            wereInPreviousOrgSince =
-                Timestamp.fromDate(_wereInPreviousOrgSince!);
-          } else {
-            wereInPreviousOrgSince = null;
-          }
-          userData.addAll({
-            "motherName": motherName,
-            "fatherName": fatherName,
-            "dateOfBirth": dob,
-            "permanentAddress": address,
-            "passingYear": passingYear,
-            "nationality": nationality,
-            "isNRI": isNRI,
-            "achievements": achievements,
-            //
-            "spouseName": spouseName,
-            "spouseOrgName": spouseOrgName,
-            "spouseDesignation": spouseDesignation,
-            "spouseWorkingInOrgSince": spouseWorkingSince,
-            "spouseOfficeContactNo": spouseOfficeContactNo,
-            "spouseMobileContactNo": spouseMobileContactNo,
-            //
-            "currentOrgName": currentOrgName,
-            "currentDesignation": currentDesignation,
-            "inCurrentOrgSince": workingInCurrentOrgSince,
-            "residenceContactNo": residenceContactNo,
-            "currentOfficeContactNo": currentOfficeContactNo,
-            "mobileContactNo": mobileContactNo,
-            //
-            "previousOrgName": previousOrgName,
-            "previousDesignation": previousDesignation,
-            "wereInPreviousOrgSince": wereInPreviousOrgSince,
-            "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
-          });
-          firestore!.collection("users").doc(uid).update({
-            "motherName": motherName,
-            "fatherName": fatherName,
-            "dateOfBirth": dob,
-            "permanentAddress": address,
-            "passingYear": passingYear,
-            "nationality": nationality,
-            "isNRI": isNRI,
-            "achievements": achievements,
-            //
-            "spouseName": spouseName,
-            "spouseOrgName": spouseOrgName,
-            "spouseDesignation": spouseDesignation,
-            "spouseWorkingInOrgSince": spouseWorkingSince,
-            "spouseOfficeContactNo": spouseOfficeContactNo,
-            "spouseMobileContactNo": spouseMobileContactNo,
-            //
-            "currentOrgName": currentOrgName,
-            "currentDesignation": currentDesignation,
-            "inCurrentOrgSince": workingInCurrentOrgSince,
-            "residenceContactNo": residenceContactNo,
-            "currentOfficeContactNo": currentOfficeContactNo,
-            "mobileContactNo": mobileContactNo,
-            //
-            "previousOrgName": previousOrgName,
-            "previousDesignation": previousDesignation,
-            "wereInPreviousOrgSince": wereInPreviousOrgSince,
-            "previousOrgOfficeContactNo": previousOrgOfficeContactNo,
-          });
-        }
-        Navigator.of(context).popUntil(ModalRoute.withName(""));
-        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-          return const MainPage();
-        }));
-        // Navigator.push(context, MaterialPageRoute(builder: (context) {
-        //   return const MainPage();
-        // }));
+          // Navigator.push(context, MaterialPageRoute(builder: (context) {
+          //   return const MainPage();
+          // }));
+        });
       });
-      return "Updated";
+      await setUserLoginStatus(data: data);
+      Navigator.of(context).popUntil(ModalRoute.withName(""));
+      Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+        return const MainPage();
+      }));
+      return "Registered";
     } on FirebaseAuthException catch (e) {
       return e.message;
     }
   }
 
   Widget _buildRegisteringDialog() {
-    return AlertDialog(
+    return CustomAlertDialog(
+      height: screenHeight * 0.4,
+      title: null,
       // backgroundColor: Colors.grey.shade900,
       actions: [
         Container(
@@ -1037,7 +1098,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         builder: ((context, AsyncSnapshot<String?> snapshot) {
           List<Widget> children;
           if (snapshot.hasData) {
-            if (snapshot.data == "Updated") {
+            if (snapshot.data == "Registered") {
               children = <Widget>[
                 Icon(
                   Icons.check_circle_outline,
@@ -1047,7 +1108,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 const Padding(
                   padding: EdgeInsets.only(top: 16),
                   child: Text(
-                    "Updated",
+                    "User Logged In",
                     style: TextStyle(color: Colors.green),
                   ),
                 )
@@ -1069,7 +1130,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ];
             }
           } else {
-            children = buildFutureLoading(snapshot, text: "Updating");
+            children = buildFutureLoading(snapshot, text: "Registering");
           }
           return Container(
             height: screenHeight * 0.325,
@@ -1087,7 +1148,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   void submit() {
-    // _checkPassword(_password.text);
+    _checkPassword(_password.text);
     if (validate()) {
       showDialog(
           context: context,
@@ -1142,6 +1203,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Widget _buildYearOfLeavingField() {
     String text = "Select Year";
+    if (_passingYear != null) {
+      text = _passingYear.toString();
+    }
     return GroupBox(
       titleBackground: Theme.of(context).canvasColor,
       errorText: _passingYearError,
@@ -1180,6 +1244,48 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
+  InputField _buildEmailField() {
+    return InputField(
+      autoCorrect: false,
+      labelText: "Email*",
+      controller: _email,
+      errorText: _emailError,
+      keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.next,
+      autoFocus: false,
+    );
+  }
+
+  void _checkPassword(String value) {
+    RegExp numReg = RegExp(r".*[0-9].*");
+    RegExp specialReg = RegExp(r".*[#$%_@&].*");
+    String password = value.trim();
+    double str = 0;
+    String text = "";
+    if (password.isEmpty) {
+      str = 0;
+      text = "Please enter your password";
+    } else if (password.length < 8) {
+      str = 1 / 4;
+      text = "Password is too short";
+    } else if (password.length < 16) {
+      str = 2 / 4;
+      text = "Acceptable but not strong";
+    } else {
+      if (!specialReg.hasMatch(password) || !numReg.hasMatch(password)) {
+        str = 3 / 4;
+        text = "Password is strong";
+      } else {
+        str = 1;
+        text = "Your password is very strong";
+      }
+    }
+    setState(() {
+      _strength = str;
+      _displayText = text;
+    });
+  }
+
   Widget _buildProfilePicField() {
     return GroupBox(
       titleBackground: Theme.of(context).canvasColor,
@@ -1189,19 +1295,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
         child: ListTile(
-          trailing: profilePic == null
+          trailing: _profilePic == null
               ? null
               : IconButton(
                   splashRadius: 1,
                   iconSize: 20,
                   onPressed: () {
                     setState(() {
-                      profilePicPath = null;
-                      profilePic = null;
+                      _profilePic = null;
                     });
                   },
                   icon: const Icon(Icons.close)),
-          title: profilePic == null
+          title: _profilePic == null
               ? IconButton(
                   onPressed: () {
                     ImagePicker()
@@ -1209,15 +1314,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         .then((value) {
                       if (value != null) {
                         setState(() {
-                          profilePicPath = value.path;
-                          profilePic = Image.file(File(value.path));
+                          _profilePic = value;
                         });
                       }
                     });
                   },
                   icon: const Icon(Icons.add))
               : _buildImage(
-                  profilePic == null
+                  _profilePic == null
                       ? () {}
                       : () {
                           ImagePicker()
@@ -1225,14 +1329,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               .then((value) {
                             if (value != null) {
                               setState(() {
-                                profilePicPath = value.path;
-                                profilePic = Image.file(File(value.path));
+                                _profilePic = value;
                               });
                             }
                           });
                         },
-                  profilePic!),
-          onTap: profilePic == null
+                  Image.file(File(_profilePic!.path))),
+          onTap: _profilePic == null
               ? () {}
               : () {
                   ImagePicker()
@@ -1240,8 +1343,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       .then((value) {
                     if (value != null) {
                       setState(() {
-                        profilePicPath = value.path;
-                        profilePic = Image.file(File(value.path));
+                        _profilePic = value;
                       });
                     }
                   });
@@ -1302,28 +1404,25 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  Widget _buildPasswordField() {
-    return _passwordChanged == false
-        ? ElevatedButton(
-            onPressed: () {
-              showDialog(
-                  context: context,
-                  builder: (context) {
-                    return const ChangePasswordPopUp();
-                  }).then((value) {
-                if (value == true) {
-                  setState(() {
-                    _passwordChanged = true;
-                  });
-                } else {
-                  setState(() {
-                    _passwordChanged = false;
-                  });
-                }
-              });
-            },
-            child: const Text("Change Password"))
-        : const SizedBox();
+  InputField _buildPasswordField() {
+    return InputField(
+      autoCorrect: false,
+      labelText: "Password*",
+      obscureText: true,
+      controller: _password,
+      onChanged: (value) => _checkPassword(value),
+      textInputAction: TextInputAction.next,
+    );
+  }
+
+  InputField _buildConfirmPasswordField() {
+    return InputField(
+      labelText: "Confirm Password*",
+      errorText: _passwordError,
+      obscureText: true,
+      textInputAction: TextInputAction.done,
+      controller: _confirmPassword,
+    );
   }
 
   Widget _buildCourseDropDown() {
@@ -1363,13 +1462,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ]
                 .map<DropdownMenuItem<String>>(
                     (String value) => DropdownMenuItem<String>(
-                          child: Text(
-                            value,
-                            style: TextStyle(
-                                color: Theme.of(context)
-                                    .appBarTheme
-                                    .foregroundColor),
-                          ),
+                          child: Text(value,
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .appBarTheme
+                                      .foregroundColor)),
                           value: value,
                         ))
                 .toList(),
@@ -1383,15 +1480,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _buildAlumniToggle() {
-    if (_userType == "admin") {
-      return const SizedBox();
-    }
     return Row(
       children: [
         SizedBox(
           width: screenWidth * 0.35,
           child: Text(
-            "Sign up as " + _userType,
+            "Sign up as " + _signUpAs,
             style: const TextStyle(fontSize: 16),
           ),
         ),
@@ -1406,13 +1500,49 @@ class _EditProfilePageState extends State<EditProfilePage> {
               nextSignUpAs = "User";
             }
             setState(() {
-              _userType = nextSignUpAs;
+              _signUpAs = nextSignUpAs;
               _isAnAlumni = value;
             });
           },
         ),
       ],
     );
+  }
+
+  Column _buildPasswordStrengthProgress() {
+    return Column(children: [
+      LinearProgressIndicator(
+        value: _strength,
+        backgroundColor: Colors.grey[300],
+        color: _strength <= 1 / 4
+            ? Colors.red
+            : _strength == 2 / 4
+                ? Colors.orange
+                : _strength == 3 / 4
+                    ? Colors.yellow
+                    : Colors.green,
+        minHeight: 5,
+      ),
+      const SizedBox(
+        height: 1,
+      ),
+
+      // The message about the strength of the entered password
+      _buildPadding(0.005),
+      Text(
+        _displayText,
+        style: TextStyle(
+          fontSize: 12,
+          color: _strength <= 1 / 4
+              ? Colors.red.shade800
+              : _strength == 2 / 4
+                  ? Colors.orange
+                  : _strength == 3 / 4
+                      ? Colors.yellow
+                      : Colors.green,
+        ),
+      ),
+    ]);
   }
 
   Widget _buildSubmitButton() {

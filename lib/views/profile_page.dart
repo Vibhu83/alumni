@@ -1,6 +1,7 @@
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/edit_profile.dart';
 import 'package:alumni/views/posts_by_id.dart';
+import 'package:alumni/widgets/add_alumni_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/confirmation_popup.dart';
 import 'package:alumni/widgets/group_box.dart';
@@ -109,30 +110,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 showDialog(
                     context: context,
                     builder: (context) {
-                      return CustomAlertDialog(
-                        height: screenHeight * 0.5,
-                        title: const Text("About this alumni"),
-                        actions: [
-                          TextButton(
-                              onPressed: () async {
-                                await firestore!
-                                    .collection("topAlumni")
-                                    .doc(_user["uid"])
-                                    .set({
-                                  "uid": _user["uid"],
-                                  "message": about
-                                });
-                                Navigator.of(context).pop();
-                              },
-                              child: const Text("Submit"))
-                        ],
-                        content: InputField(
-                          onChanged: ((p0) {
-                            about = p0;
-                          }),
-                          labelText: "About(Optional)",
-                          maxLines: (screenHeight * 0.024).toInt(),
-                        ),
+                      return AddAlumniPopUp(
+                        uid: _user["uid"],
                       );
                     });
                 // firestore!.collection("topAlumni").doc(_user["uid"]).set({});
@@ -151,10 +130,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     firestore!
                         .collection("users")
                         .doc(_user["uid"])
-                        .update({"accessLevel": "admin"});
+                        .update({"hasAdminAccess": true, "userType": "admin"});
                     lastUserWasMadeAdmin = true;
                     setState(() {
-                      _user["accessLevel"] = "admin";
+                      _user["hasAdminAccess"] = true;
+                      _user["userType"] = "admin";
                     });
                   }
                 });
@@ -163,11 +143,11 @@ class _ProfilePageState extends State<ProfilePage> {
           if (userData["uid"] == widget.uid) {
             appBarActions.add(editUserButton);
             appBarActions.add(delUserButton);
-          } else if (userData["accessLevel"] == "admin") {
+          } else if (userData["hasAdminAccess"] == true) {
             if (_user["isAnAlumni"] == true) {
               appBarActions.add(addToTopAlumniButton);
             }
-            if (_user["accessLevel"] != "admin") {
+            if (_user["hasAdminAccess"] != true) {
               appBarActions.add(addToAdminTeamButton);
 
               appBarActions.add(delUserButton);
@@ -280,9 +260,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileSummary() {
-    String userType = _user["accessLevel"];
-    String accessLevel =
-        userType.substring(0, 1).toUpperCase() + userType.substring(1);
+    String userType = _user["userType"];
+    userType = userType.substring(0, 1).toUpperCase() + userType.substring(1);
     String occupation = "";
     String nationality = "";
     if (_user["currentDesignation"] != null &&
@@ -319,7 +298,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       SizedBox(height: screenHeight * 0.001),
       Text(
-        accessLevel,
+        userType,
         style: TextStyle(
             color: Theme.of(context)
                 .appBarTheme

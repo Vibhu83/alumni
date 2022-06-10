@@ -192,13 +192,13 @@ class _APost extends State<APost> {
         icon: Icons.delete_rounded);
     List<Widget> appBarActions = [];
     if (userData["uid"] == widget.authorID) {
-      if (userData["accessLevel"] == "admin") {
+      if (userData["hasAdminAccess"] == true) {
         appBarActions.add(shareButton);
       }
 
       appBarActions.add(editButton);
       appBarActions.add(deleteButton);
-    } else if (userData["accessLevel"] == "admin") {
+    } else if (userData["hasAdminAccess"] == true) {
       appBarActions.add(shareButton);
       appBarActions.add(deleteButton);
     }

@@ -29,7 +29,7 @@ class AdminRecommendationPopUp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<Widget> recommendationItemActions = [];
-    if (userData["uid"] != null) {
+    if (userData["hasAdminAccess"] == true) {
       recommendationItemActions.add(IconButton(
           splashRadius: 14,
           onPressed: () {

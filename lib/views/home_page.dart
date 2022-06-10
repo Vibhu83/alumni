@@ -16,6 +16,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late int _index;
+
   @override
   void initState() {
     _index = 0;
@@ -31,6 +32,11 @@ class _HomePageState extends State<HomePage> {
             }));
       }
     });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<List<Map<String, dynamic>>> getEvents() async {
@@ -71,7 +77,6 @@ class _HomePageState extends State<HomePage> {
               if (snapshot.hasData) {
                 List<Map<String, dynamic>> eventData = snapshot.data!;
                 return ListView.builder(
-                  shrinkWrap: true,
                   itemCount: eventData.length,
                   itemBuilder: (BuildContext context, int index) {
                     return AnEventCard(
@@ -187,6 +192,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           decoration: BoxDecoration(

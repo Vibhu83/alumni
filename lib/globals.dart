@@ -323,8 +323,11 @@ Future<String> uploadFileAndGetLink(
 
 Map<String, dynamic>? newNotice;
 
-Map<String, int?>? designations;
-Map<String, int?>? nationalities;
+Map<String, int?>? designationData;
+Map<String, int?>? nationalityData;
+Map<String, int?>? courseData;
+Map<int, int?>? admissionYearData;
+Map<String, int?>? organisationData;
 
 void deleteStorageFolder(String ref) {
   storage!.ref(ref).listAll().then((value) {

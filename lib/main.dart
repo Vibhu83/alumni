@@ -10,6 +10,8 @@ void main() async {
     statusBarColor: Colors.transparent,
   ));
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await initialiseFlutterFire();
   runApp(ChangeNotifierProvider(
     create: (_) => ThemeModel(),

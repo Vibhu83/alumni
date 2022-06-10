@@ -91,7 +91,7 @@ class _NoticesState extends State<Notices> {
             style:
                 TextStyle(color: Theme.of(context).appBarTheme.foregroundColor),
           ),
-          duration: const Duration(seconds: 1),
+          duration: const Duration(seconds: 2),
         ));
       }
       return false;
@@ -134,7 +134,7 @@ class _NoticesState extends State<Notices> {
                     const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ];
-            if (userData["accessLevel"] == "admin") {
+            if (userData["hasAdminAccess"] == true) {
               header.add(Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,

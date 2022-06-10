@@ -270,7 +270,7 @@ class _AnEventPageState extends State<AnEventPage> {
 
   List<Widget> _setActionButtons() {
     List<Widget> appBarActions = [];
-    if (userData["accessLevel"] == "admin") {
+    if (userData["hasAdminAccess"] == true) {
       IconButton shareButton = buildAppBarIcon(
           onPressed: () {
             showDialog(
