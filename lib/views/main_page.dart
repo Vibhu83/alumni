@@ -19,6 +19,7 @@ import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/login_popup.dart';
 import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:alumni/widgets/notice_popup.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -439,20 +440,31 @@ class _MainPageState extends State<MainPage> {
 
   Future<void> saveExcelFile(Excel excel) async {
     try {
-      var storagePermissionStatus = await Permission.storage.status;
-      if (storagePermissionStatus.isGranted) {
-        await Permission.storage.request();
-      }
-      await FilePicker.platform.clearTemporaryFiles();
-      FilePicker.platform.getDirectoryPath().then((value) {
+      await Permission.storage.request();
+
+      await Permission.accessMediaLocation.request();
+
+      await Permission.manageExternalStorage.request();
+
+      List temp = Timestamp.now().toDate().toString().split(".")[0].split(" ");
+      String name = "List-" + temp[0] + temp[1] + ".xlsx";
+      temp = name.split(":");
+      name = temp[0] + temp[1];
+      temp = name.split("-");
+      name = temp[0] + temp[3] + ".xlsx";
+
+      String path = "/storage/emulated/0/Download";
+
+      FilePicker.platform.clearTemporaryFiles();
+      FilePicker.platform.getDirectoryPath().then((value) async {
         if (value != null) {
-          String path = value;
           try {
-            File(path + "/userList.xlsx")
-              ..createSync(recursive: true)
+            File(value + "/" + name)
+              ..createSync(recursive: false)
               ..writeAsBytesSync(
                 excel.encode()!,
               );
+            Navigator.of(context).pop();
           } on FileSystemException catch (e) {
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -463,9 +475,9 @@ class _MainPageState extends State<MainPage> {
                     color: Theme.of(context).appBarTheme.foregroundColor),
               ),
             ));
-          } finally {
-            File("/storage/emulated/0/Download/userList.xlsx")
-              ..createSync(recursive: true)
+
+            File(path + "/" + name)
+              ..createSync(recursive: false)
               ..writeAsBytesSync(
                 excel.encode()!,
               );
@@ -473,16 +485,18 @@ class _MainPageState extends State<MainPage> {
         }
       });
     } on Exception catch (e) {
-      Navigator.of(context).pop();
       showDialog(
           context: context,
           builder: (context) {
-            return const CustomAlertDialog(
+            return CustomAlertDialog(
+                height: screenHeight * 0.1,
                 actions: null,
                 title: null,
-                content: Text(
-                  "Some error occured",
-                  style: TextStyle(color: Colors.red),
+                content: const Center(
+                  child: Text(
+                    "Some error occured",
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ));
           });
     }
