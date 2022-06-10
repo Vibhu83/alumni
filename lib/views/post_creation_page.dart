@@ -140,7 +140,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
     if (widget.postID == null) {
       Map<String, dynamic> postData =
           await _addPost(postTitle, authorID, postVotes, postBody, postTime);
-      String authorName = userData["name"];
       Navigator.of(context).pop();
       Navigator.of(context).pop();
       Navigator.of(context).push(MaterialPageRoute(builder: (context) {

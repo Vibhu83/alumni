@@ -106,7 +106,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
           Widget addToTopAlumniButton = buildAppBarIcon(
               onPressed: () {
-                String about = "";
                 showDialog(
                     context: context,
                     builder: (context) {
@@ -114,7 +113,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         uid: _user["uid"],
                       );
                     });
-                // firestore!.collection("topAlumni").doc(_user["uid"]).set({});
               },
               icon: Icons.notification_add_rounded);
           Widget addToAdminTeamButton = buildAppBarIcon(
