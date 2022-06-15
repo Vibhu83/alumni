@@ -158,14 +158,16 @@ class _AnEventCardState extends State<AnEventCard> {
         onTap: () {
           Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
             return AnEventPage(
-                eventLink: _eventLink,
-                eventTitleImagePath: _eventTitleImageUrl,
-                eventTitleImage: _eventTitleImage,
-                eventID: widget.eventID,
-                eventTitle: _title,
-                eventHolder: _eventHolder,
-                eventStartTime: _startTime,
-                eventDuration: _duration);
+              eventLink: _eventLink,
+              eventTitleImagePath: _eventTitleImageUrl,
+              eventTitleImage: _eventTitleImage,
+              eventID: widget.eventID,
+              eventTitle: _title,
+              eventHolder: _eventHolder,
+              eventStartTime: _startTime,
+              eventDuration: _duration,
+              readOnly: widget.readOnly,
+            );
           }))).then((value) {
             if (value == -1) {
               setState(() {

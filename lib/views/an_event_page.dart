@@ -22,6 +22,7 @@ class AnEventPage extends StatefulWidget {
   final DateTime eventStartTime;
   final int eventDuration;
   final String? eventLink;
+  final bool readOnly;
   const AnEventPage(
       {required this.eventID,
       this.eventTitleImage,
@@ -31,6 +32,7 @@ class AnEventPage extends StatefulWidget {
       required this.eventStartTime,
       required this.eventDuration,
       this.eventLink,
+      this.readOnly = false,
       Key? key})
       : super(key: key);
 
@@ -263,6 +265,26 @@ class _AnEventPageState extends State<AnEventPage> {
                 .update({widget.eventID: FieldValue.delete()});
           }
         });
+        String id = widget.eventID;
+        List temp = userData["eventsBookmarked"];
+        temp.remove(id);
+        userData["eventsBookmarked"] = temp;
+        firestore!
+            .collection("users")
+            .where("eventsBookmarked", arrayContains: id)
+            .get()
+            .then((value) {
+          for (var element in value.docs) {
+            List? temp = element.data()["eventsBookmarked"];
+            if (temp != null) {
+              temp.remove(id);
+              firestore!
+                  .collection("users")
+                  .doc(element.id)
+                  .update({"eventsBookmarked": temp});
+            }
+          }
+        });
         Navigator.pop(context, -1);
       }
     });
@@ -304,6 +326,7 @@ class _AnEventPageState extends State<AnEventPage> {
                 gallery: _galleryUrls,
                 peopleInEvent: _people,
                 eventTitleImagePath: widget.eventTitleImagePath,
+                readOnly: widget.readOnly,
               );
             }));
           },
@@ -454,37 +477,41 @@ class _AnEventPageState extends State<AnEventPage> {
       bannerAreaHeight = 0;
       bannerWidget = const SizedBox();
     }
-    List<Widget> iconButtons = [
-      IconButton(
-          splashRadius: 1,
-          onPressed: () {
-            _changeAttendeeNumber();
-            changeAttendeeNumberInDB(widget.eventID);
-          },
-          icon: Icon(
-            attendingIcon,
-            color: attendingIconColor,
-          )),
-      IconButton(
-          splashRadius: 1,
-          onPressed: () {
-            if (_clickFlags["bookmark"] == true) {
-              unsetBookmark();
-              setState(() {
-                _clickFlags["bookmark"] = false;
-              });
-            } else {
-              setBookmark();
-              setState(() {
-                _clickFlags["bookmark"] = true;
-              });
-            }
-          },
-          icon: Icon(
-            bookMarkIcon,
-            color: bookMarkIconColor,
-          )),
-    ];
+    List<Widget> iconButtons = [];
+    if (widget.readOnly == false) {
+      iconButtons.addAll([
+        IconButton(
+            splashRadius: 1,
+            onPressed: () {
+              _changeAttendeeNumber();
+              changeAttendeeNumberInDB(widget.eventID);
+            },
+            icon: Icon(
+              attendingIcon,
+              color: attendingIconColor,
+            )),
+        IconButton(
+            splashRadius: 1,
+            onPressed: () {
+              if (_clickFlags["bookmark"] == true) {
+                unsetBookmark();
+                setState(() {
+                  _clickFlags["bookmark"] = false;
+                });
+              } else {
+                setBookmark();
+                setState(() {
+                  _clickFlags["bookmark"] = true;
+                });
+              }
+            },
+            icon: Icon(
+              bookMarkIcon,
+              color: bookMarkIconColor,
+            )),
+      ]);
+    }
+
     if (widget.eventLink != null &&
         Uri.tryParse(widget.eventLink!)!.hasAbsolutePath) {
       IconButton openLinkButton = IconButton(
@@ -523,11 +550,6 @@ class _AnEventPageState extends State<AnEventPage> {
                   children: iconButtons,
                 )))
         : const SizedBox();
-    if (userData["uid"] == null) {
-      eventOptions = const SizedBox(
-        height: 0,
-      );
-    }
     List<Widget> appBarActions = _setActionButtons();
 
     final List<Widget> tabViews = [

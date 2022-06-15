@@ -28,6 +28,7 @@ class CreateEvent extends StatefulWidget {
   final List<String>? gallery;
   final List<Map<String, dynamic>>? peopleInEvent;
   final bool eventUpdationFlag;
+  final bool readOnly;
   const CreateEvent(
       {this.eventId,
       this.eventTitle,
@@ -42,6 +43,7 @@ class CreateEvent extends StatefulWidget {
       this.peopleInEvent,
       this.eventTitleImagePath,
       required this.eventUpdationFlag,
+      this.readOnly = false,
       Key? key})
       : super(key: key);
 
@@ -229,6 +231,7 @@ class _CreateEventState extends State<CreateEvent> {
     });
     Navigator.of(context).pop();
     Navigator.of(context).pop();
+
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return AnEventPage(
           eventLink: eventLink,
@@ -301,14 +304,16 @@ class _CreateEventState extends State<CreateEvent> {
     }));
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return AnEventPage(
-          eventLink: eventLink,
-          eventTitleImage: _eventTitleImage,
-          eventTitleImagePath: titleImageUrl,
-          eventID: eventID,
-          eventTitle: eventTitle,
-          eventHolder: eventHolder,
-          eventStartTime: _chosenStartTime!,
-          eventDuration: eventDuration);
+        eventLink: eventLink,
+        eventTitleImage: _eventTitleImage,
+        eventTitleImagePath: titleImageUrl,
+        eventID: eventID,
+        eventTitle: eventTitle,
+        eventHolder: eventHolder,
+        eventStartTime: _chosenStartTime!,
+        eventDuration: eventDuration,
+        readOnly: widget.readOnly,
+      );
     }));
   }
 
@@ -433,7 +438,7 @@ class _CreateEventState extends State<CreateEvent> {
     return GroupBox(
       titleBackground: Theme.of(context).canvasColor,
       child: child,
-      title: "Title Image(Optional)",
+      title: "Title Image",
       // titleBackground: const Color(eventPageBackground)
     );
   }
@@ -443,7 +448,7 @@ class _CreateEventState extends State<CreateEvent> {
       autoCorrect: true,
       maxLines: 2,
       controller: _titleController,
-      labelText: "Title",
+      labelText: "Title*",
       errorText: _titleError,
       keyboardType: TextInputType.multiline,
     );
@@ -454,7 +459,7 @@ class _CreateEventState extends State<CreateEvent> {
       autoCorrect: true,
       maxLines: 2,
       controller: _holderController,
-      labelText: "Event Holder",
+      labelText: "Event Holder*",
       errorText: _holderError,
       keyboardType: TextInputType.multiline,
     );
@@ -468,7 +473,7 @@ class _CreateEventState extends State<CreateEvent> {
     return GroupBox(
       titleBackground: Theme.of(context).canvasColor,
       errorText: _startTimeError,
-      title: "Event Start Time *",
+      title: "Event Start Time*",
       // titleBackground: pageBackground,
       child: TextButton(
           onPressed: () {
@@ -517,7 +522,7 @@ class _CreateEventState extends State<CreateEvent> {
     return InputField(
       errorText: _linkError,
       controller: _linkController,
-      labelText: "Event Link (Optional)",
+      labelText: "Event Link",
     );
   }
 
@@ -526,7 +531,7 @@ class _CreateEventState extends State<CreateEvent> {
       autoCorrect: true,
       maxLines: 20,
       controller: _descriptionController,
-      labelText: "Desciption(Optional)",
+      labelText: "Desciption",
       keyboardType: TextInputType.multiline,
     );
   }
@@ -610,7 +615,7 @@ class _CreateEventState extends State<CreateEvent> {
               icon: const Icon(Icons.add))
         ],
       ),
-      title: "Add people to event",
+      title: "People in event",
       // titleBackground: pageBackground
     );
   }
@@ -618,7 +623,7 @@ class _CreateEventState extends State<CreateEvent> {
   Widget _buildGallery() {
     return GroupBox(
         titleBackground: Theme.of(context).canvasColor,
-        title: "Add images",
+        title: "Event Images",
         // titleBackground: pageBackground,
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Column(

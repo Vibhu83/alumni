@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:alumni/globals.dart';
 import 'package:alumni/views/post_creation_page.dart';
+import 'package:alumni/views/profile_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/ask_message_popup.dart';
 import 'package:alumni/widgets/confirmation_popup.dart';
@@ -15,7 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 class APost extends StatefulWidget {
   final String postID;
   final String postTitle;
-  final String authorID;
+  final String? authorID;
   final int postVotes;
   final String authorName;
   final String postBody;
@@ -49,7 +50,7 @@ class _APost extends State<APost> {
 
   @override
   void initState() {
-    if (userData["postBookmarked"] != null) {
+    if (userData["postsBookmarked"] != null) {
       _isBookmarked = userData["postsBookmarked"].contains(widget.postID);
     } else {
       _isBookmarked = false;
@@ -65,7 +66,7 @@ class _APost extends State<APost> {
     super.initState();
   }
 
-  Future<bool> _getData() async {
+  Future<bool> _getVotes() async {
     if (_isInitialRun == true) {
       _isInitialRun = false;
 
@@ -124,6 +125,26 @@ class _APost extends State<APost> {
             .collection("userVotes")
             .doc(element.id)
             .update({widget.postID: FieldValue.delete()});
+      }
+    });
+    String id = widget.postID;
+    List temp = userData["postsBookmarked"];
+    temp.remove(id);
+    userData["postsBookmarked"] = temp;
+    firestore!
+        .collection("users")
+        .where("postsBookmarked", arrayContains: id)
+        .get()
+        .then((value) {
+      for (var element in value.docs) {
+        List? temp = element.data()["postsBookmarked"];
+        if (temp != null) {
+          temp.remove(id);
+          firestore!
+              .collection("users")
+              .doc(element.id)
+              .update({"postsBookmarked": temp});
+        }
       }
     });
     Navigator.of(context).pop(-1);
@@ -191,7 +212,7 @@ class _APost extends State<APost> {
         },
         icon: Icons.delete_rounded);
     List<Widget> appBarActions = [];
-    if (userData["uid"] == widget.authorID) {
+    if (userData["uid"] == widget.authorID && widget.authorID != null) {
       if (userData["hasAdminAccess"] == true) {
         appBarActions.add(shareButton);
       }
@@ -214,7 +235,7 @@ class _APost extends State<APost> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: _getData(),
+        future: _getVotes(),
         builder: (context, AsyncSnapshot<bool> snapshot) {
           List<Widget> children = [];
           if (snapshot.hasData) {
@@ -461,7 +482,14 @@ class _APost extends State<APost> {
                     height: screenHeight * 0.005,
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      if (widget.authorID != null) {
+                        Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (context) {
+                          return ProfilePage(uid: widget.authorID!);
+                        }));
+                      }
+                    },
                     style: TextButton.styleFrom(
                         minimumSize: Size.zero,
                         padding: EdgeInsets.zero,
@@ -473,6 +501,7 @@ class _APost extends State<APost> {
                           widget.postedDuration +
                           ")",
                       style: GoogleFonts.lato(
+                          fontWeight: FontWeight.bold,
                           fontSize: 10,
                           color: Theme.of(context)
                               .appBarTheme

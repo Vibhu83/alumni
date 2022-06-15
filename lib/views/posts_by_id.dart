@@ -13,8 +13,6 @@ class PostsByIDPage extends StatelessWidget {
     var postsRef = firestore!.collection('posts');
     QuerySnapshot<Map<String, dynamic>> querySnapshot;
     querySnapshot = await postsRef.where("postAuthorID", isEqualTo: uid).get();
-    //lastDoc = allDocSnap[allDocSnap.le
-    //ngth - 1];
     final List<Map<String, dynamic>> allData = (querySnapshot.docs.map((doc) {
       Map<String, dynamic> value = doc.data();
       Timestamp temp = value["postedOn"];
@@ -23,10 +21,6 @@ class PostsByIDPage extends StatelessWidget {
       return value;
     }).toList());
 
-    for (int i = 0; i < allData.length; i++) {
-      allData[i]["authorName"] =
-          await getAuthorNameByID(allData[i]["postAuthorID"]);
-    }
     return allData;
   }
 

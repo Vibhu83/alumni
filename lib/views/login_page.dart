@@ -79,6 +79,8 @@ class _LoginViewState extends State<LoginView> {
             .then((value) {
           if (value.data() == null) {
             return false;
+          } else if (value.data()!["uid"] == null) {
+            return false;
           } else {
             data = value.data()!;
             return true;
@@ -87,7 +89,7 @@ class _LoginViewState extends State<LoginView> {
         return temp;
       });
       if (temp == false) {
-        return "User deleted";
+        return "User not found";
       } else {
         await setUserLoginStatus(data: data);
         Navigator.of(context).popUntil(ModalRoute.withName(""));
@@ -139,7 +141,7 @@ class _LoginViewState extends State<LoginView> {
                 const Padding(
                   padding: EdgeInsets.only(top: 16),
                   child: Text(
-                    "User Registered",
+                    "Logged In",
                     style: TextStyle(color: Colors.green),
                   ),
                 )

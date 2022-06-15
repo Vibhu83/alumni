@@ -68,7 +68,7 @@ class TrendingEventsPage extends StatelessWidget {
                             eventStartTime: eventData[index]["eventStartTime"],
                             eventDuration: eventData[index]["eventDuration"],
                             eventLink: eventData[index]["eventLink"],
-                            readOnly: userData["id"] != null ? false : true,
+                            readOnly: userData["uid"] != null ? false : true,
                           );
                         },
                       );

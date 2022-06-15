@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:alumni/classes/custom_chat_theme.dart';
+import 'package:alumni/globals.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
+import 'package:flutter_initicon/flutter_initicon.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
@@ -188,11 +190,25 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    var otherUser = widget.room.users
+        .firstWhere((element) => element.id != userData["uid"]);
+    String? imageUrl = otherUser.imageUrl;
+    String otherUserName = "";
+    if (otherUser.firstName != null) {
+      otherUserName += otherUser.firstName!;
+      if (otherUser.lastName != null) {
+        otherUserName += " " + otherUser.lastName!;
+      }
+    }
     return Scaffold(
-      appBar: buildAppBar(
-          title: Text(widget.room.users[1].firstName! +
-              " " +
-              widget.room.users[1].lastName!)),
+      appBar: buildAppBar(title: Text(otherUserName), actions: [
+        buildAppBarIcon(
+            onPressed: () {
+              firestore!.collection("chatRooms").doc(widget.room.id).delete();
+              Navigator.of(context).pop(-1);
+            },
+            icon: Icons.delete)
+      ]),
       body: StreamBuilder<types.Room>(
         initialData: widget.room,
         stream: FirebaseChatCore.instance.room(widget.room.id),

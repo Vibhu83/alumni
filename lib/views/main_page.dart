@@ -22,7 +22,6 @@ import 'package:alumni/widgets/notice_popup.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_initicon/flutter_initicon.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -40,7 +39,7 @@ class _MainPageState extends State<MainPage> {
   final List<Widget> _tabsViews = <Widget>[
     const HomePage(),
     const EventsPage(),
-    const ForumPage(),
+    const PostsPage(),
     const PeoplePage(),
     const ChatRooms()
   ];
@@ -76,6 +75,28 @@ class _MainPageState extends State<MainPage> {
   late int _selectedTab;
   late List<Widget?> _floatingActionButtons;
   late final Widget _signInPopUp;
+
+  void addTempData() async {
+    for (int i = 1; i <= 25; i++) {
+      String title = "Post " + i.toString();
+      await firestore!.collection("posts").add({}).then((value) async {
+        String eventID = value.id;
+
+        await firestore!.collection('posts').doc(eventID).set({
+          "authorName": userData["name"],
+          "postID": eventID,
+          "postAuthorID": userData["uid"],
+          "postTitle": title,
+          "postVotes": 0,
+          "postBody": "",
+          "postedOn": Timestamp.fromDate(DateTime.now()),
+          "rating": getRating(0, DateTime.now()),
+          "postLink": "",
+          "images": [],
+        }, SetOptions(merge: true));
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -233,11 +254,11 @@ class _MainPageState extends State<MainPage> {
         appBarIcons.add(pastEventButton);
 
         break;
-      case 2:
-        var searchForumButton =
-            buildAppBarIcon(onPressed: () {}, icon: Icons.search_rounded);
-        appBarIcons.add(searchForumButton);
-        break;
+      // case 2:
+      //   var searchForumButton =
+      //       buildAppBarIcon(onPressed: () {}, icon: Icons.search_rounded);
+      //   appBarIcons.add(searchForumButton);
+      //   break;
       case 3:
         //   appBarIcons.add(buildAppBarIcon(
         //       onPressed: () {
@@ -593,7 +614,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _logoutUser() async {
-    await FirebaseAuth.instance.signOut();
+    await auth!.signOut();
     await setUserLoginStatus(data: {});
     Navigator.of(context).popUntil(ModalRoute.withName(""));
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {

@@ -8,7 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 class APostCard extends StatefulWidget {
   final String postID;
   final String postTitle;
-  final String postAuthorID;
+  final String? postAuthorID;
   final String postAuthorName;
   final int postVotes;
   final String postBody;
@@ -85,10 +85,12 @@ class _APostCardState extends State<APostCard> {
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.of(context)
-                      .push(MaterialPageRoute(builder: (context) {
-                    return ProfilePage(uid: widget.postAuthorID);
-                  }));
+                  if (widget.postAuthorID != null) {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) {
+                      return ProfilePage(uid: widget.postAuthorID!);
+                    }));
+                  }
                 },
                 style: TextButton.styleFrom(
                     minimumSize: Size.zero,

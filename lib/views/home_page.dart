@@ -58,8 +58,8 @@ class _HomePageState extends State<HomePage> {
 
     if (allData.isNotEmpty) {
       allData.sort((a, b) {
-        Timestamp aPostedOn = a["eventAttendeesNumber"];
-        Timestamp bPostedOn = b["eventAttendeesNumber"];
+        int aPostedOn = a["eventAttendeesNumber"];
+        int bPostedOn = b["eventAttendeesNumber"];
         return bPostedOn.compareTo(aPostedOn);
       });
     }
@@ -121,10 +121,6 @@ class _HomePageState extends State<HomePage> {
       return value;
     }).toList());
 
-    for (int i = 0; i < allData.length; i++) {
-      allData[i]["authorName"] =
-          await getAuthorNameByID(allData[i]["postAuthorID"]);
-    }
     return allData;
   }
 

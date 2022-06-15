@@ -875,6 +875,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
         profilePicUrl = await uploadFileAndGetLink(
             profilePicPath!, uid.toString() + "/profilePicture", context);
       }
+
+      if (name != userData["name"]) {
+        firestore!
+            .collection("posts")
+            .where("postAuthorID", isEqualTo: userData["uid"])
+            .get()
+            .then((value) async {
+          for (var element in value.docs) {
+            firestore!
+                .collection("posts")
+                .doc(element.id)
+                .update({"authorName": name});
+          }
+        });
+      }
+
       firestore!.collection("users").doc(uid).update({
         "profilePic": profilePicUrl,
         "imageUrl": profilePicUrl,

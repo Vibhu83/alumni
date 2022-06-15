@@ -21,10 +21,6 @@ class TrendingPostsPage extends StatelessWidget {
       return value;
     }).toList());
 
-    for (int i = 0; i < allData.length; i++) {
-      allData[i]["authorName"] =
-          await getAuthorNameByID(allData[i]["postAuthorID"]);
-    }
     return allData;
   }
 

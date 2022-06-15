@@ -29,11 +29,14 @@ class CustomAlertDialog extends StatelessWidget {
         actions: actions != null
             ? [
                 Container(
-                  decoration: BoxDecoration(
-                      border: Border(
-                          top: BorderSide(
-                              color:
-                                  Theme.of(context).appBarTheme.shadowColor!))),
+                  decoration: content != null
+                      ? BoxDecoration(
+                          border: Border(
+                              top: BorderSide(
+                                  color: Theme.of(context)
+                                      .appBarTheme
+                                      .shadowColor!)))
+                      : null,
                   child: Row(
                       mainAxisSize: MainAxisSize.max,
                       mainAxisAlignment: actionsMainAxisAlignment,

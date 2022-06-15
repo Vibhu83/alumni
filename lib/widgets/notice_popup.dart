@@ -170,6 +170,31 @@ class _NoticesState extends State<Notices> {
                               .collection("notices")
                               .doc(sortedNotices[currentIndex]["noticeID"])
                               .delete();
+                          String id = sortedNotices[currentIndex]["noticeID"];
+                          List temp = userData["noticesDismissed"];
+                          temp.remove(id);
+                          userData["noticesDismissed"] = temp;
+                          firestore!
+                              .collection("users")
+                              .where("noticesDismissed",
+                                  arrayContains: sortedNotices[currentIndex]
+                                      ["noticeID"])
+                              .get()
+                              .then((value) {
+                            for (var element in value.docs) {
+                              List? temp = element.data()["noticesDismissed"];
+                              if (temp != null) {
+                                temp.remove(id);
+                                if (element.id == userData["uid"]) {
+                                  userData["noticesDismissed"] = temp;
+                                }
+                                firestore!
+                                    .collection("users")
+                                    .doc(element.id)
+                                    .update({"noticesDismissed": temp});
+                              }
+                            }
+                          });
                           setState(() {
                             sortedNotices.removeAt(currentIndex);
                             if (currentIndex != 0) {

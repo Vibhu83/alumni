@@ -58,7 +58,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   }
 
   Future<Map<String, dynamic>> _addPost(String postTitle, String authorID,
-      int postVotes, String postBody, Timestamp postTime) async {
+      int postVotes, String postBody, Timestamp postTime, int rating) async {
     Map<String, dynamic> postData =
         await firestore!.collection("posts").add({}).then((value) async {
       String postID = value.id;
@@ -72,29 +72,30 @@ class _CreatePostPageState extends State<CreatePostPage> {
         }
       }
       await firestore!.collection('posts').doc(postID).set({
+        "authorName": userData["name"],
         "postID": postID,
         "postAuthorID": authorID,
         "postTitle": postTitle,
         "postVotes": postVotes,
         "postBody": postBody,
         "postedOn": postTime,
-        "rating": 0,
+        "rating": rating,
         "postLink": _postLink.text,
         "images": imageUrls,
       }, SetOptions(merge: true));
       postAdded = true;
       addedPostData = {
+        "authorName": userData["name"],
         "postID": postID,
         "postAuthorID": authorID,
         "postTitle": postTitle,
         "postVotes": postVotes,
         "postBody": postBody,
         "postedOn": postTime,
-        "rating": 0,
+        "rating": rating,
         "postLink": _postLink.text,
         "imageUrls": imageUrls,
         "images": _images,
-        "authorName": userData["name"]
       };
       return addedPostData!;
     });
@@ -137,9 +138,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
     int postVotes = 0;
     String postBody = _bodyController.text;
     Timestamp postTime = Timestamp.now();
+    int rating = getRating(1, DateTime.now());
     if (widget.postID == null) {
-      Map<String, dynamic> postData =
-          await _addPost(postTitle, authorID, postVotes, postBody, postTime);
+      Map<String, dynamic> postData = await _addPost(
+          postTitle, authorID, postVotes, postBody, postTime, rating);
       Navigator.of(context).pop();
       Navigator.of(context).pop();
       Navigator.of(context).push(MaterialPageRoute(builder: (context) {

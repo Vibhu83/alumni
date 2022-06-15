@@ -1,9 +1,12 @@
 import 'package:alumni/globals.dart';
+import 'package:alumni/views/chat_page.dart';
 import 'package:alumni/views/edit_profile.dart';
+import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/posts_by_id.dart';
 import 'package:alumni/widgets/add_alumni_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/confirmation_popup.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:alumni/widgets/custom_alert_dialog.dart';
@@ -41,13 +44,30 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _logoutUser() async {
+    await auth!.signOut();
+    await setUserLoginStatus(data: {});
+    Navigator.of(context).popUntil(ModalRoute.withName(""));
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return const MainPage();
+    }));
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: _getUserDetails(),
       builder: (context, AsyncSnapshot<bool> snapshot) {
-        List<Widget> children;
+        List<Widget> children = [];
         if (snapshot.hasData) {
+          if (_user["uid"] == null) {
+            children = [
+              const Center(
+                child: Text("User not found"),
+              )
+            ];
+            return buildFuture(children: children);
+          }
           _about = TextEditingController(text: _user["about"]);
           List<Widget> appBarActions = [];
           Widget delUserButton = buildAppBarIcon(
@@ -83,8 +103,20 @@ class _ProfilePageState extends State<ProfilePage> {
                         firestore!.collection("chatRooms").doc(e.id).delete();
                       }
                     });
+                    firestore!
+                        .collection("posts")
+                        .where("postAuthorID", isEqualTo: _user["uid"])
+                        .get()
+                        .then((value) {
+                      for (var element in value.docs) {
+                        firestore!.collection("posts").doc(element.id).update({
+                          "postAuthorID": null,
+                          "authorName": "[deleted user]"
+                        });
+                      }
+                    });
                     if (_user["uid"] == userData["uid"]) {
-                      auth!.signOut();
+                      _logoutUser();
                     }
                     Navigator.of(context).pop(-1);
                   }
@@ -159,8 +191,38 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               Center(
                 child: ElevatedButton(
-                  onPressed: () {
-                    chat!.createRoom(types.User(id: _user["uid"]));
+                  onPressed: () async {
+                    String? roomID = await firestore!
+                        .collection("chatRooms")
+                        .where("userIds", whereIn: [
+                          [userData["uid"], _user["uid"]],
+                          [_user["uid"], userData["uid"]]
+                        ])
+                        .get()
+                        .then((value) {
+                          if (value.docs.isNotEmpty) {
+                            return value.docs.first.id;
+                          } else {
+                            return null;
+                          }
+                        });
+                    if (roomID == null) {
+                      var room =
+                          await chat!.createRoom(types.User(id: _user["uid"]));
+
+                      Navigator.of(context)
+                          .push(MaterialPageRoute(builder: ((context) {
+                        return ChatPage(room: room);
+                      })));
+                    } else {
+                      var room = await chat!
+                          .room(roomID)
+                          .firstWhere((element) => element.id == roomID);
+                      Navigator.of(context)
+                          .push(MaterialPageRoute(builder: ((context) {
+                        return ChatPage(room: room);
+                      })));
+                    }
                   },
                   child: const Text("Chat"),
                   style: ElevatedButton.styleFrom(

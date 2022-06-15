@@ -15,24 +15,33 @@ class TopAlumniCards extends StatefulWidget {
 }
 
 class _TopAlumniCardsState extends State<TopAlumniCards> {
-  late List<Map<String, dynamic>> _alumni = [];
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
+  late List<Map<String, dynamic>> _alumni;
+  late final PageController _pageController;
+  late int _currentPage;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
+    _currentPage = 0;
+    _alumni = [];
+    _pageController = PageController();
     super.initState();
   }
 
   Future<bool> _getTopAlumni() async {
-    _alumni = [];
-    List<String> idList =
-        await firestore!.collection("topAlumni").get().then((value) {
+    _alumni = await firestore!.collection("topAlumni").get().then((value) {
       return value.docs.map((e) {
-        _alumni.add({"message": e.data()["message"].toString()});
-        return e.data()["uid"].toString();
+        return e.data();
       }).toList();
     });
+    List<String> idList = _alumni.map((e) {
+      return e["uid"].toString();
+    }).toList();
     if (idList.isEmpty) {
       return true;
     }
@@ -44,8 +53,10 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
       int index = 0;
       value.docs.map((e) {
         _alumni[index].addAll(e.data());
+        index++;
       }).toList();
     });
+
     return true;
   }
 
@@ -56,11 +67,6 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
         builder: (context, AsyncSnapshot<bool> snapshot) {
           List<Widget> children;
           if (snapshot.data == true) {
-            if (_alumni.isEmpty) {
-              return const Center(
-                child: Text("No Alums have been chosen yet\nStay tuned."),
-              );
-            }
             List<Widget> header = [];
             if (userData["hasAdminAccess"] == true) {
               header.add(
@@ -80,9 +86,11 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                     uid: _alumni[_currentPage]["uid"],
                                   );
                                 }).then((value) {
-                              setState(() {
-                                _alumni[_currentPage]["message"] = value;
-                              });
+                              if (value != null) {
+                                setState(() {
+                                  _alumni[_currentPage]["message"] = value;
+                                });
+                              }
                             });
                           },
                           icon: Icons.edit,
@@ -124,12 +132,9 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                         color: Colors.transparent,
                         child: Container(
                           padding: EdgeInsets.zero,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                               border: Border(
-                                  bottom: BorderSide(
-                                      color: Theme.of(context)
-                                          .appBarTheme
-                                          .shadowColor!))),
+                                  bottom: BorderSide(color: Colors.white))),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
@@ -140,7 +145,9 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                     _alumni.length.toString() +
                                     ")",
                                 style: const TextStyle(
-                                    fontSize: 22, fontWeight: FontWeight.bold),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
                               ),
                               SizedBox(
                                 width: screenWidth * 0.125,
@@ -155,13 +162,13 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                     Flexible(
                       child: Center(
                         child: PageView.builder(
+                            controller: _pageController,
+                            itemCount: _alumni.length,
                             onPageChanged: (value) {
                               setState(() {
                                 _currentPage = value;
                               });
                             },
-                            controller: _pageController,
-                            itemCount: _alumni.length,
                             itemBuilder: ((context, index) {
                               Widget profilePic;
                               if (_alumni[index]["profilePic"] != null) {
@@ -215,139 +222,79 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                           uid: _alumni[index]["uid"]))));
                                 },
                                 child: SingleChildScrollView(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.max,
-                                    children: [
-                                      SizedBox(
-                                        height: screenHeight * 0.01,
-                                      ),
-                                      profilePic,
-                                      SizedBox(
-                                        height: screenHeight * 0.025,
-                                      ),
-                                      Text(
-                                        _alumni[index]["name"],
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      SizedBox(
-                                        height: screenHeight * 0.005,
-                                      ),
-                                      descriptionWidget,
-                                      SizedBox(
-                                        height: screenHeight * 0.025,
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              children: [
-                                                const Icon(
-                                                  Icons.email,
-                                                  color: Colors.white,
-                                                ),
-                                                SizedBox(
-                                                  width: screenWidth * 0.025,
-                                                ),
-                                                Text(
-                                                  _alumni[index]["email"],
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                  ),
-                                                )
-                                              ],
-                                            ),
-                                            SizedBox(
-                                              height: screenHeight * 0.01,
-                                            ),
-                                            _alumni[index]["mobileContactNo"] !=
-                                                        null &&
-                                                    _alumni[index][
-                                                            "mobileContactNo"] !=
-                                                        ""
-                                                ? Row(
-                                                    children: [
-                                                      const Icon(
-                                                        Icons.phone,
-                                                        color: Colors.white,
-                                                      ),
-                                                      SizedBox(
-                                                        width:
-                                                            screenWidth * 0.025,
-                                                      ),
-                                                      Text(
-                                                        _alumni[index]
-                                                            ["mobileContactNo"],
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                        ),
-                                                      )
-                                                    ],
-                                                  )
-                                                : const SizedBox()
-                                          ],
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        vertical: screenHeight * 0.01),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 16),
+                                          child: profilePic,
                                         ),
-                                      ),
-                                      SizedBox(
-                                        height: screenHeight * 0.01,
-                                      ),
-                                      Container(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 20),
-                                        decoration: const BoxDecoration(
-                                            border: Border(
-                                                bottom: BorderSide(
-                                                    color: Colors.grey))),
-                                        child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 6),
+                                          child: Text(
+                                            _alumni[index]["name"],
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                              bottom: 8.0),
+                                          child: descriptionWidget,
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 8, horizontal: 16),
+                                          child: Column(
                                             children: [
                                               Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 16),
-                                                child: Column(
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 8.0),
+                                                child: Row(
                                                   children: [
-                                                    Row(
+                                                    const Padding(
+                                                      padding: EdgeInsets.only(
+                                                          right: 10),
+                                                      child: Icon(
+                                                        Icons.email,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _alumni[index]["email"],
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                      ),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                              _alumni[index]["mobileContactNo"] !=
+                                                          null &&
+                                                      _alumni[index][
+                                                              "mobileContactNo"] !=
+                                                          ""
+                                                  ? Row(
                                                       children: [
-                                                        const Icon(
-                                                          Icons.timeline,
-                                                          color: Colors.white,
-                                                        ),
-                                                        SizedBox(
-                                                          width: screenWidth *
-                                                              0.025,
-                                                        ),
-                                                        Text(
-                                                          collegeTimeSpan,
-                                                          style:
-                                                              const TextStyle(
+                                                        const Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  right: 10),
+                                                          child: Icon(
+                                                            Icons.phone,
                                                             color: Colors.white,
                                                           ),
-                                                        )
-                                                      ],
-                                                    ),
-                                                    SizedBox(
-                                                      height:
-                                                          screenHeight * 0.008,
-                                                    ),
-                                                    Row(
-                                                      children: [
-                                                        const Icon(
-                                                          Icons.school,
-                                                          color: Colors.white,
-                                                        ),
-                                                        SizedBox(
-                                                          width: screenWidth *
-                                                              0.025,
                                                         ),
                                                         Text(
-                                                          _alumni[index]
-                                                              ["course"],
+                                                          _alumni[index][
+                                                              "mobileContactNo"],
                                                           style:
                                                               const TextStyle(
                                                             color: Colors.white,
@@ -355,73 +302,147 @@ class _TopAlumniCardsState extends State<TopAlumniCards> {
                                                         )
                                                       ],
                                                     )
-                                                  ],
+                                                  : const SizedBox()
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 20),
+                                          decoration: _alumni[index]
+                                                          ["message"] !=
+                                                      null &&
+                                                  _alumni[index]["message"] !=
+                                                      ""
+                                              ? const BoxDecoration(
+                                                  border: Border(
+                                                      bottom: BorderSide(
+                                                          color: Colors.grey)))
+                                              : null,
+                                          child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                          .symmetric(
+                                                      horizontal: 16),
+                                                  child: Column(
+                                                    children: [
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                    .only(
+                                                                bottom: 6.0),
+                                                        child: Row(
+                                                          children: [
+                                                            const Padding(
+                                                              padding: EdgeInsets
+                                                                  .only(
+                                                                      right:
+                                                                          10),
+                                                              child: Icon(
+                                                                Icons.timeline,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              collegeTimeSpan,
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Row(
+                                                        children: [
+                                                          const Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    right: 10),
+                                                            child: Icon(
+                                                              Icons.school,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            _alumni[index]
+                                                                ["course"],
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          )
+                                                        ],
+                                                      )
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
-                                            ]),
-                                      ),
-                                      SizedBox(
-                                        height: screenHeight * 0.025,
-                                      ),
-                                      _alumni[index]["message"] != null &&
-                                              _alumni[index]["message"] != ""
-                                          ? Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8.0),
-                                              child: GroupBox(
-                                                color: Colors.white,
+                                              ]),
+                                        ),
+                                        _alumni[index]["message"] != null &&
+                                                _alumni[index]["message"] != ""
+                                            ? Padding(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                        horizontal: 14,
-                                                        vertical: 12),
-                                                child: Text(
-                                                  _alumni[index]["message"],
-                                                  style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 16),
+                                                        vertical: 16,
+                                                        horizontal: 8.0),
+                                                child: GroupBox(
+                                                  color: Colors.white,
+                                                  padding: const EdgeInsets
+                                                          .symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 12),
+                                                  child: Text(
+                                                    _alumni[index]["message"],
+                                                    style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16),
+                                                  ),
+                                                  title: "About",
+                                                  titleBackground:
+                                                      const Color.fromARGB(
+                                                          255, 0, 104, 0),
                                                 ),
-                                                title: "About",
-                                                titleBackground:
-                                                    const Color.fromARGB(
-                                                        255, 0, 104, 0),
-                                              ),
-                                            )
-                                          : const SizedBox(),
-                                      Container(
-                                        width: screenWidth,
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 4),
-                                        decoration: const BoxDecoration(
-                                            border: Border(
-                                                top: BorderSide(
-                                                    color: Colors.grey))),
-                                        child: TextButton(
-                                          onPressed: () {
-                                            _currentPage < (_alumni.length - 1)
-                                                ? _pageController.jumpToPage(
-                                                    _currentPage + 1)
-                                                : null;
-                                          },
-                                          child: _currentPage <
-                                                  (_alumni.length - 1)
-                                              ? const Text("Next")
-                                              : Text(
-                                                  "",
-                                                  style: TextStyle(
-                                                      color: Theme.of(context)
-                                                          .scaffoldBackgroundColor
-                                                          .withOpacity(0.75)),
-                                                ),
-                                        ),
-                                      )
-                                    ],
+                                              )
+                                            : const SizedBox(),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
                             })),
                       ),
                     ),
+                    Container(
+                      width: screenWidth,
+                      height: screenHeight * 0.05,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: const BoxDecoration(
+                          border: Border(top: BorderSide(color: Colors.grey))),
+                      child: TextButton(
+                        onPressed: () {
+                          _currentPage < (_alumni.length - 1)
+                              ? _pageController.jumpToPage(_currentPage + 1)
+                              : null;
+                        },
+                        child: _currentPage < (_alumni.length - 1)
+                            ? const Text("Next")
+                            : Text(
+                                "",
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .scaffoldBackgroundColor
+                                        .withOpacity(0.75)),
+                              ),
+                      ),
+                    )
                   ]),
             );
           } else if (snapshot.hasError) {

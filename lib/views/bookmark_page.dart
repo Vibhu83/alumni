@@ -42,10 +42,10 @@ class _BookmarkPageState extends State<BookmarkPage> {
                 icon: Icons.close)),
         body: _selectedTab == 0
             ? const EventsPage(
-                showBookmarkedEventsFlag: true,
+                showOnlyBookmarked: true,
               )
-            : const ForumPage(
-                showBookmarkedPostsFlag: true,
+            : const PostsPage(
+                showOnlyBookmarked: true,
               ),
         bottomNavigationBar: Container(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),

@@ -3,6 +3,7 @@ import 'package:alumni/views/chat_page.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:flutter_initicon/flutter_initicon.dart';
 
 class ChatRooms extends StatefulWidget {
   const ChatRooms({Key? key}) : super(key: key);
@@ -31,6 +32,31 @@ class _ChatRoomsState extends State<ChatRooms> {
                           room.users[1].firstName == null) {
                         return const SizedBox();
                       }
+                      var otherUser = room.users.firstWhere(
+                          (element) => element.id != userData["uid"]);
+                      String? imageUrl = otherUser.imageUrl;
+                      String otherUserName = "";
+                      if (otherUser.firstName != null) {
+                        otherUserName += otherUser.firstName!;
+                        if (otherUser.lastName != null) {
+                          otherUserName += " " + otherUser.lastName!;
+                        }
+                      }
+                      Widget leading;
+                      if (imageUrl == null) {
+                        leading = CircleAvatar(
+                          backgroundColor: Colors.transparent,
+                          radius: 56,
+                          child: Initicon(
+                            size: 56,
+                            text: otherUserName,
+                          ),
+                        );
+                      } else {
+                        leading = CircleAvatar(
+                            radius: 56,
+                            backgroundImage: NetworkImage(imageUrl));
+                      }
                       return Card(
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
@@ -41,11 +67,8 @@ class _ChatRoomsState extends State<ChatRooms> {
                                 return ChatPage(room: room);
                               })));
                             },
-                            leading: CircleAvatar(
-                              radius: 32,
-                              backgroundImage: NetworkImage(room.imageUrl!),
-                            ),
-                            title: Text(room.users[1].firstName!),
+                            leading: leading,
+                            title: Text(otherUserName),
                           ),
                         ),
                       );
