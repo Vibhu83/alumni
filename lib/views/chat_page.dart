@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
-import 'package:flutter_initicon/flutter_initicon.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
@@ -192,7 +191,6 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     var otherUser = widget.room.users
         .firstWhere((element) => element.id != userData["uid"]);
-    String? imageUrl = otherUser.imageUrl;
     String otherUserName = "";
     if (otherUser.firstName != null) {
       otherUserName += otherUser.firstName!;
