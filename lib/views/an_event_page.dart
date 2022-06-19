@@ -360,7 +360,6 @@ class _AnEventPageState extends State<AnEventPage> {
   }
 
   Scaffold _buildPage() {
-    //setting various eventAction button's icon and color
     double appBarHeight = screenHeight * 0.045;
     Color bookMarkIconColor = Theme.of(context).appBarTheme.foregroundColor!;
     IconData bookMarkIcon = Icons.bookmark_add;
@@ -516,7 +515,8 @@ class _AnEventPageState extends State<AnEventPage> {
         Uri.tryParse(widget.eventLink!)!.hasAbsolutePath) {
       IconButton openLinkButton = IconButton(
           onPressed: () {
-            launchUrl(Uri.parse(widget.eventLink!));
+            launchUrl(Uri.parse(widget.eventLink!),
+                mode: LaunchMode.externalApplication);
           },
           icon: const Icon(Icons.open_in_new));
       iconButtons.add(openLinkButton);

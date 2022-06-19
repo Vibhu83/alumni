@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class APostCard extends StatefulWidget {
+  final bool isUnapproved;
   final String postID;
   final String postTitle;
   final String? postAuthorID;
@@ -16,7 +17,8 @@ class APostCard extends StatefulWidget {
   final List<String>? imagesUrls;
   final String? postLink;
   const APostCard(
-      {required this.postID,
+      {this.isUnapproved = false,
+      required this.postID,
       required this.postTitle,
       required this.postAuthorID,
       required this.postAuthorName,
@@ -153,6 +155,7 @@ class _APostCardState extends State<APostCard> {
         onTap: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) {
             return APost(
+              isUnapproved: widget.isUnapproved,
               postID: widget.postID,
               postTitle: _postTitle,
               authorID: widget.postAuthorID,
@@ -172,12 +175,19 @@ class _APostCardState extends State<APostCard> {
               });
             }
             if (updatedPostID == widget.postID) {
-              setState(() {
-                _postTitle = updatedPostData["postTitle"];
-                _postBody = updatedPostData["postBody"];
-                _images = updatedPostData["images"];
-                _imageUrls = updatedPostData["imagesUrls"];
-              });
+              if (updatedPostData["isUnapproved"] == true &&
+                  widget.isUnapproved == false) {
+                setState(() {
+                  _returnEmpty = true;
+                });
+              } else {
+                setState(() {
+                  _postTitle = updatedPostData["postTitle"];
+                  _postBody = updatedPostData["postBody"];
+                  _images = updatedPostData["images"];
+                  _imageUrls = updatedPostData["imagesUrls"];
+                });
+              }
             }
             if (lastPostNewVotes != null) {
               setState(() {

@@ -5,7 +5,9 @@ import 'package:alumni/globals.dart';
 import 'package:alumni/views/an_event_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/views/people_page.dart';
+import 'package:alumni/views/search_alum_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:alumni/widgets/custom_alert_dialog.dart';
@@ -160,17 +162,59 @@ class _CreateEventState extends State<CreateEvent> {
     return isValid;
   }
 
-  void _submit() {
+  void _submit() async {
     if (_validate()) {
       if (widget.eventUpdationFlag == false) {
-        _saveEvent();
+        showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                  backgroundColor: Theme.of(context).cardColor,
+                  content: FutureBuilder(
+                    future: _saveEvent(),
+                    builder: (context, snapshot) {
+                      List<Widget> children = [];
+                      if (snapshot.hasData) {
+                        Navigator.of(context).pop();
+                      } else if (snapshot.hasError) {
+                        children = buildFutureError(snapshot);
+                      } else {
+                        children = buildFutureLoading(snapshot);
+                      }
+                      return SizedBox(
+                          height: screenHeight * 0.3,
+                          child: buildFuture(children: children));
+                    },
+                  ));
+            });
       } else {
-        _updateEvent();
+        showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                  backgroundColor: Theme.of(context).cardColor,
+                  content: FutureBuilder(
+                    future: _updateEvent(),
+                    builder: (context, snapshot) {
+                      List<Widget> children = [];
+                      if (snapshot.hasData) {
+                        Navigator.of(context).pop();
+                      } else if (snapshot.hasError) {
+                        children = buildFutureError(snapshot);
+                      } else {
+                        children = buildFutureLoading(snapshot);
+                      }
+                      return SizedBox(
+                          height: screenHeight * 0.3,
+                          child: buildFuture(children: children));
+                    },
+                  ));
+            });
       }
     }
   }
 
-  void _updateEvent() async {
+  Future<void> _updateEvent() async {
     String eventTitle = _titleController.text;
     String eventHolder = _holderController.text;
     int eventDuration = int.tryParse(_durationController.text)!;
@@ -245,7 +289,7 @@ class _CreateEventState extends State<CreateEvent> {
     }));
   }
 
-  void _saveEvent() async {
+  Future<void> _saveEvent() async {
     String eventTitle = _titleController.text;
     String eventHolder = _holderController.text;
     int eventDuration = int.tryParse(_durationController.text)!;
@@ -860,7 +904,20 @@ class _AddPersonToEventPopUpState extends State<AddPersonToEventPopUp> {
                   Navigator.of(context)
                       .push(MaterialPageRoute(builder: ((context) {
                     return Scaffold(
-                      appBar: buildAppBar(),
+                      appBar: buildAppBar(actions: [
+                        buildAppBarIcon(
+                            onPressed: () {
+                              Navigator.of(context)
+                                  .push(MaterialPageRoute(builder: (context) {
+                                return const SearchAlumsPage(
+                                  isInSelectionMode: true,
+                                );
+                              })).then((value) {
+                                Navigator.of(context).pop(value);
+                              });
+                            },
+                            icon: Icons.search)
+                      ]),
                       body: const PeoplePage(
                         isInSelectionMode: true,
                       ),

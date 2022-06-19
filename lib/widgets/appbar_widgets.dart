@@ -9,11 +9,14 @@ PreferredSize buildAppBar(
     Widget? leading,
     List<Widget>? actions,
     PreferredSize? bottom,
-    Widget? title}) {
+    Widget? title,
+    bool automaticallyImplyLeading = true,
+    double elevation = 1}) {
   appBarHeight ??= screenHeight * 0.055;
   return PreferredSize(
     preferredSize: Size.fromHeight(appBarHeight),
     child: AppBar(
+        automaticallyImplyLeading: automaticallyImplyLeading,
         bottom: bottom,
         titleSpacing: null,
         centerTitle: true,
@@ -26,7 +29,7 @@ PreferredSize buildAppBar(
         backgroundColor: background,
         title: title,
         // shadowColor: currentTheme!.appBarBorderColor,
-        elevation: 1,
+        elevation: elevation,
         leading: leading,
         actions: actions),
   );

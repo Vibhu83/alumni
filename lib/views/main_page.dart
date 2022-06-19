@@ -6,13 +6,15 @@ import 'package:alumni/views/bookmark_page.dart';
 import 'package:alumni/views/chat_room_page.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/events_page.dart';
+import 'package:alumni/views/unapproved_posts_page.dart';
 import 'package:alumni/views/posts_page.dart';
 import 'package:alumni/views/home_page.dart';
-import 'package:alumni/views/notification_page.dart';
+import 'package:alumni/views/recommendation_page.dart';
 import 'package:alumni/views/past_events_page.dart';
 import 'package:alumni/views/people_page.dart';
 import 'package:alumni/views/post_creation_page.dart';
 import 'package:alumni/views/profile_page.dart';
+import 'package:alumni/views/search_alum_page.dart';
 import 'package:alumni/widgets/add_notice_popup.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/future_widgets.dart';
@@ -280,6 +282,13 @@ class _MainPageState extends State<MainPage> {
         //         });
         //       },
         //       icon: Icons.filter_alt));
+        appBarIcons.add(buildAppBarIcon(
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+                return const SearchAlumsPage();
+              }));
+            },
+            icon: Icons.search));
         if (userData["hasAdminAccess"] == true) {
           appBarIcons.add(buildAppBarIcon(
             onPressed: () {
@@ -668,11 +677,18 @@ class _MainPageState extends State<MainPage> {
                                 builder: ((context) =>
                                     ProfilePage(uid: userData["uid"]))));
                           })),
-                      _buildDrawListTile("Notifications", () {
+                      _buildDrawListTile("Recommendations", () {
                         Navigator.of(context).push(MaterialPageRoute(
                             builder: ((context) =>
-                                NotificationPage(uid: userData["uid"]))));
+                                RecommendationPage(uid: userData["uid"]))));
                       }),
+                      userData["hasAdminAccess"] == true
+                          ? _buildDrawListTile("Unapproved Posts", () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                  builder: ((context) =>
+                                      const UnapprovedPostsPage())));
+                            })
+                          : const SizedBox(),
                       _buildDrawListTile("Bookmarks", () {
                         Navigator.of(context)
                             .push(MaterialPageRoute(builder: (context) {

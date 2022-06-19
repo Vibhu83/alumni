@@ -1,25 +1,21 @@
-//import 'package:alumni/ThemeData/dark_theme.dart';
 import 'package:alumni/classes/date_picker_theme.dart';
 import 'package:alumni/globals.dart';
-import 'package:alumni/views/a_post_page.dart';
-import 'package:alumni/views/an_event_page.dart';
-import 'package:alumni/widgets/admin_recommendation_tile.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
 import 'package:alumni/widgets/filter_by_date.dart';
 import 'package:alumni/widgets/future_widgets.dart';
+import 'package:alumni/widgets/post_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
-class NotificationPage extends StatefulWidget {
-  final String uid;
-  const NotificationPage({required this.uid, Key? key}) : super(key: key);
+class UnapprovedPostsPage extends StatefulWidget {
+  const UnapprovedPostsPage({Key? key}) : super(key: key);
 
   @override
-  State<NotificationPage> createState() => _NotificationPageState();
+  State<UnapprovedPostsPage> createState() => _UnapprovedPostsPageState();
 }
 
-class _NotificationPageState extends State<NotificationPage> {
+class _UnapprovedPostsPageState extends State<UnapprovedPostsPage> {
   late int? _filterType;
   final List<DateTime?> _selectedDates = [null, null];
   late final ScrollController _listScrollController;
@@ -28,12 +24,14 @@ class _NotificationPageState extends State<NotificationPage> {
   late int _documentLoadLimit;
   late bool _allNotificationsLoaded;
   late DocumentSnapshot? _lastDocument;
+  late bool _showLoadingWidget;
 
   @override
   void initState() {
+    _showLoadingWidget = true;
     _filterType = null;
     _notificationsData = [];
-    _documentLoadLimit = 5;
+    _documentLoadLimit = 10;
     _allNotificationsLoaded = false;
     _lastDocument = null;
     _listScrollController = ScrollController();
@@ -60,59 +58,48 @@ class _NotificationPageState extends State<NotificationPage> {
     switch (_filterType) {
       case 1:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .where("recommendedTime",
+            .collection("unapprovedPosts")
+            .where("createdOn",
                 isLessThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!))
-            .orderBy("recommendedTime", descending: true);
+            .orderBy("createdOn", descending: true);
 
         break;
       case 2:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .where("recommendedTime",
+            .collection("unapprovedPosts")
+            .where("createdOn",
                 isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!),
                 isLessThanOrEqualTo: Timestamp.fromDate(
                     _selectedDates[0]!.add(const Duration(days: 1))))
-            .orderBy("recommendedTime", descending: true);
+            .orderBy("createdOn", descending: true);
         break;
       case 3:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .where("recommendedTime",
+            .collection("unapprovedPosts")
+            .where("createdOn",
                 isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!))
-            .orderBy("recommendedTime", descending: true);
+            .orderBy("createdOn", descending: true);
         break;
       case 4:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .where("recommendedTime",
+            .collection("unapprovedPosts")
+            .where("createdOn",
                 isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!),
                 isLessThanOrEqualTo: Timestamp.fromDate(_selectedDates[1]!))
-            .orderBy("recommendedTime", descending: true);
+            .orderBy("createdOn", descending: true);
         break;
       default:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .orderBy("recommendedTime", descending: true);
+            .collection("unapprovedPosts")
+            .orderBy("createdOn", descending: true);
         break;
     }
     QuerySnapshot<Map<String, dynamic>> querySnapshot =
         await query.limit(_documentLoadLimit).get();
 
     notifications = querySnapshot.docs.map((e) {
-      var recommendationData = e.data();
-      recommendationData["recommendationID"] = e.id;
-      return recommendationData;
+      return e.data();
     }).toList();
-    for (int i = 0; i < notifications.length; i++) {
-      var temp = await _getTitle(notifications[i]["recommendationType"],
-          notifications[i]["recommendedItemID"]);
-      if (temp == null) {
-        notifications[i].clear();
-      } else {
-        notifications[i].addAll(temp);
-      }
-    }
     setState(() {
       if (querySnapshot.docs.length < _documentLoadLimit) {
         _allNotificationsLoaded = true;
@@ -120,6 +107,7 @@ class _NotificationPageState extends State<NotificationPage> {
       if (querySnapshot.docs.isNotEmpty) {
         _lastDocument = querySnapshot.docs.last;
       }
+      _showLoadingWidget = false;
     });
     return notifications;
   }
@@ -131,40 +119,40 @@ class _NotificationPageState extends State<NotificationPage> {
     switch (_filterType) {
       case 1:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .where("recommendedTime",
+            .collection("unapprovedPosts")
+            .where("createdOn",
                 isLessThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!))
-            .orderBy("recommendedTime", descending: true);
+            .orderBy("createdOn", descending: true);
 
         break;
       case 2:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .where("recommendedTime",
+            .collection("unapprovedPosts")
+            .where("createdOn",
                 isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!),
                 isLessThanOrEqualTo: Timestamp.fromDate(
                     _selectedDates[0]!.add(const Duration(days: 1))))
-            .orderBy("recommendedTime", descending: true);
+            .orderBy("createdOn", descending: true);
         break;
       case 3:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .where("recommendedTime",
+            .collection("unapprovedPosts")
+            .where("createdOn",
                 isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!))
-            .orderBy("recommendedTime", descending: true);
+            .orderBy("createdOn", descending: true);
         break;
       case 4:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .where("recommendedTime",
+            .collection("unapprovedPosts")
+            .where("createdOn",
                 isGreaterThanOrEqualTo: Timestamp.fromDate(_selectedDates[0]!),
                 isLessThanOrEqualTo: Timestamp.fromDate(_selectedDates[1]!))
-            .orderBy("recommendedTime", descending: true);
+            .orderBy("createdOn", descending: true);
         break;
       default:
         query = firestore!
-            .collection("recommendationFromAdmins")
-            .orderBy("recommendedTime", descending: true);
+            .collection("unapprovedPosts")
+            .orderBy("createdOn", descending: true);
         break;
     }
     QuerySnapshot<Map<String, dynamic>> querySnapshot = await query
@@ -173,19 +161,8 @@ class _NotificationPageState extends State<NotificationPage> {
         .get();
 
     notifications = querySnapshot.docs.map((e) {
-      var recommendationData = e.data();
-      recommendationData["recommendationID"] = e.id;
-      return recommendationData;
+      return e.data();
     }).toList();
-    for (int i = 0; i < notifications.length; i++) {
-      var temp = await _getTitle(notifications[i]["recommendationType"],
-          notifications[i]["recommendedItemID"]);
-      if (temp == null) {
-        notifications[i].clear();
-      } else {
-        notifications[i].addAll(temp);
-      }
-    }
     setState(() {
       if (querySnapshot.docs.length < _documentLoadLimit) {
         _allNotificationsLoaded = true;
@@ -193,33 +170,9 @@ class _NotificationPageState extends State<NotificationPage> {
       if (querySnapshot.docs.isNotEmpty) {
         _lastDocument = querySnapshot.docs.last;
       }
+      _showLoadingWidget = false;
     });
     return notifications;
-  }
-
-  Future<Map<String, dynamic>?> _getTitle(String type, String id) async {
-    String itemType = type + "s";
-    var details =
-        await firestore!.collection(itemType).doc(id).get().then((value) {
-      if (value.data() == null) {
-        return null;
-      } else {
-        var data = value.data();
-        return data;
-      }
-    });
-    if (details == null) {
-      return null;
-    }
-    String authorName;
-    if (type == "post") {
-      authorName = details["authorName"];
-    } else {
-      authorName = details["eventHolder"];
-    }
-    details["recommendationTitle"] =
-        details[type + "Title"] + " By " + authorName;
-    return details;
   }
 
   Future<void> _onRefresh() async {
@@ -364,14 +317,15 @@ class _NotificationPageState extends State<NotificationPage> {
                 _notificationsData = snapshot.data!;
                 return _notificationsData.isEmpty
                     ? const Center(
-                        child: Text("No notifications found"),
+                        child: Text("No unapproved posts"),
                       )
                     : ListView.builder(
                         controller: _listScrollController,
                         itemCount: _notificationsData.length + 1,
                         itemBuilder: (context, index) {
                           if (index == _notificationsData.length) {
-                            return _allNotificationsLoaded == false
+                            return _allNotificationsLoaded == false &&
+                                    _showLoadingWidget == true
                                 ? const Padding(
                                     padding: EdgeInsets.symmetric(vertical: 32),
                                     child: Center(
@@ -379,77 +333,32 @@ class _NotificationPageState extends State<NotificationPage> {
                                     ),
                                   )
                                 : const SizedBox();
-                          } else {}
-                          void Function() onPressed = () {};
-                          var item = _notificationsData[index];
-                          if (item["recommendationType"] == "post") {
-                            List<Image>? images = [];
-                            List<String>? urls = [];
-                            if (item["images"] != null) {
-                              for (var url in item["images"]) {
-                                urls.add(url.toString());
-                                images.add(Image.network(url));
-                              }
-                            }
-                            if (images.isEmpty) {
-                              urls = null;
-                              images = null;
-                            }
-                            onPressed = () {
-                              Timestamp temp = item["postedOn"];
-                              var postedDuration =
-                                  temp.toDate().difference(DateTime.now());
-                              Navigator.of(context)
-                                  .push(MaterialPageRoute(builder: (context) {
-                                return APost(
-                                  postID: item["recommendedItemID"],
-                                  postTitle: item["recommendationTitle"],
-                                  authorID: item["postAuthorID"],
-                                  postVotes: item["postVotes"],
-                                  authorName: item["authorName"],
-                                  postBody: item["postBody"],
-                                  postedDuration: printDuration(postedDuration),
-                                  postLink: item["postLink"],
-                                  images: images,
-                                  imagesUrls: urls,
-                                );
-                              }));
-                            };
-                          } else {
-                            onPressed = () {
-                              var eventID = item["recommendedItemID"];
-                              var eventTitle = item["eventTitle"];
-                              var eventHolder = item["eventHolder"];
-                              Timestamp temp = item["eventStartTime"];
-                              DateTime eventStartTime = temp.toDate();
-                              var eventDuration = item["eventDuration"];
-                              Image? eventTitleImage;
-                              if (item["eventTitleImage"] != null) {
-                                eventTitleImage =
-                                    Image.network(item["eventTitleImage"]);
-                              }
-                              Navigator.of(context)
-                                  .push(MaterialPageRoute(builder: (context) {
-                                return AnEventPage(
-                                    eventID: eventID,
-                                    eventTitle: eventTitle,
-                                    eventLink: item["eventLink"],
-                                    eventTitleImage: eventTitleImage,
-                                    eventTitleImagePath:
-                                        item["eventTitleImage"],
-                                    eventHolder: eventHolder,
-                                    eventStartTime: eventStartTime,
-                                    eventDuration: eventDuration);
-                              }));
-                            };
                           }
-                          return AdminRecommendationListTile(
-                            recommendationId: item["recommendationID"],
-                            recommendationType: item["recommendationType"],
-                            onPressed: onPressed,
-                            recommendedItemTitle: item["recommendationTitle"],
-                            content: item["recommendationMessage"],
-                            recommendedTime: item["recommendedTime"],
+                          var item = _notificationsData[index];
+                          List<Image>? images = [];
+                          List<String>? urls = [];
+                          if (item["images"] != null) {
+                            for (var url in item["images"]) {
+                              urls.add(url.toString());
+                              images.add(Image.network(url));
+                            }
+                          }
+                          if (images.isEmpty) {
+                            urls = null;
+                            images = null;
+                          }
+
+                          return APostCard(
+                            postID: item["postID"],
+                            postTitle: item["postTitle"],
+                            postAuthorID: item["postAuthorID"],
+                            postAuthorName: item["authorName"],
+                            postVotes: item["postVotes"],
+                            postBody: item["postBody"],
+                            postedOn: item["postedOn"].toDate(),
+                            postLink: item["postLink"],
+                            imagesUrls: urls,
+                            isUnapproved: true,
                           );
                         },
                       );

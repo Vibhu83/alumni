@@ -64,8 +64,8 @@ class _PostsPageState extends State<PostsPage> {
       List bookmarks = userData["postsBookmarked"];
       int end = bookmarks.length;
 
-      if (bookmarks.length > (_bookmarkIndex + 10)) {
-        end = _bookmarkIndex + 10;
+      if (bookmarks.length > (_bookmarkIndex + _documentLoadLimit)) {
+        end = _bookmarkIndex + _documentLoadLimit;
       }
       newBookmarkIndex = end;
       bookmarks = bookmarks.getRange(_bookmarkIndex, end).toList();
@@ -100,12 +100,12 @@ class _PostsPageState extends State<PostsPage> {
         _lastDocument = querySnapshot.docs.last;
       }
       if (newBookmarkIndex != null) {
-        if (newBookmarkIndex < (_bookmarkIndex + 10)) {
+        if (newBookmarkIndex < (_bookmarkIndex + _documentLoadLimit)) {
           _allPostsLoaded = true;
         }
         _bookmarkIndex = newBookmarkIndex;
       }
-      if (postsData.length < _documentLoadLimit &&
+      if (querySnapshot.docs.length < _documentLoadLimit &&
           widget.showOnlyBookmarked == false) {
         _allPostsLoaded = true;
       }
@@ -119,8 +119,8 @@ class _PostsPageState extends State<PostsPage> {
     int? newBookmarkIndex;
     if (widget.showOnlyBookmarked) {
       List bookmarks = userData["postsBookmarked"];
-      int end = 10;
-      if (bookmarks.length < 10) {
+      int end = _documentLoadLimit;
+      if (bookmarks.length < _documentLoadLimit) {
         end = bookmarks.length;
       }
       newBookmarkIndex = end;
@@ -152,14 +152,14 @@ class _PostsPageState extends State<PostsPage> {
       if (querySnapshot.docs.isNotEmpty) {
         _lastDocument = querySnapshot.docs.last;
       }
-      if (postsData.length < _documentLoadLimit &&
+      if (querySnapshot.docs.length < _documentLoadLimit &&
           widget.showOnlyBookmarked == false) {
         _allPostsLoaded = true;
       }
       if (newBookmarkIndex != null) {
         setState(() {
           _bookmarkIndex = newBookmarkIndex!;
-          if (newBookmarkIndex < 10) {
+          if (newBookmarkIndex < _documentLoadLimit) {
             _allPostsLoaded = true;
           }
         });
@@ -186,27 +186,29 @@ class _PostsPageState extends State<PostsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-        future: _futurePostsData,
-        builder:
-            ((context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
-          List<Widget> children;
-          if (snapshot.hasData) {
-            _postsData = snapshot.data!;
-            return RefreshIndicator(
-                onRefresh: _onRefresh, child: _buildPosts());
-          } else if (snapshot.hasError) {
-            children = buildFutureError(snapshot);
-          } else {
-            children = buildFutureLoading(snapshot, text: "Loading Posts");
-          }
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: children,
-            ),
-          );
-        }));
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _futurePostsData,
+          builder:
+              ((context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
+            List<Widget> children;
+            if (snapshot.hasData) {
+              _postsData = snapshot.data!;
+              return _buildPosts();
+            } else if (snapshot.hasError) {
+              children = buildFutureError(snapshot);
+            } else {
+              children = buildFutureLoading(snapshot, text: "Loading Posts");
+            }
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: children,
+              ),
+            );
+          })),
+    );
   }
 
   Widget _buildPosts() {

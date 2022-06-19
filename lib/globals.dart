@@ -31,8 +31,11 @@ FirebaseChatCore? chat;
 
 Future<FirebaseApp> _initialiseFireBaseApp() async {
   if (Firebase.apps.isEmpty) {
+    bool needsWeb = Platform.isLinux || Platform.isWindows;
     var temp = await Firebase.initializeApp(
-            options: DefaultFirebaseOptions.currentPlatform)
+            options: needsWeb
+                ? DefaultFirebaseOptions.web
+                : DefaultFirebaseOptions.currentPlatform)
         .then((value) {
       return value;
     });

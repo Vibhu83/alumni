@@ -4,6 +4,8 @@ import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
+import 'package:alumni/widgets/custom_alert_dialog.dart';
+import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +13,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 
 class CreatePostPage extends StatefulWidget {
+  final bool isUnapproved;
   final String? postID;
   final String? postTitle;
   final String? postBody;
@@ -18,7 +21,8 @@ class CreatePostPage extends StatefulWidget {
   final List<Image>? images;
   final String? postLink;
   const CreatePostPage(
-      {this.postID,
+      {this.isUnapproved = false,
+      this.postID,
       this.postTitle,
       this.postBody,
       this.imageUrls,
@@ -59,11 +63,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
   Future<Map<String, dynamic>> _addPost(String postTitle, String authorID,
       int postVotes, String postBody, Timestamp postTime, int rating) async {
+    int count = 0;
+    List<String> imageUrls = [];
     Map<String, dynamic> postData =
         await firestore!.collection("posts").add({}).then((value) async {
       String postID = value.id;
-      int count = 0;
-      List<String> imageUrls = [];
       for (String path in _imageUrls) {
         if (path.substring(0, 5) == "/data") {
           count++;
@@ -114,8 +118,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
       }
       count++;
     }
+
     updatedPostID = widget.postID;
     updatedPostData = {
+      "isUnapproved": false,
       "postTitle": postTitle,
       "postBody": postBody,
       "postLink": _postLink.text,
@@ -132,7 +138,162 @@ class _CreatePostPageState extends State<CreatePostPage> {
     Navigator.of(context).pop();
   }
 
-  void _saveOrUpdateData() async {
+  Future<Map<String, dynamic>> _addUnapprovedPost(
+      String postTitle,
+      String authorID,
+      int postVotes,
+      String postBody,
+      Timestamp postTime,
+      int rating) async {
+    int count = 0;
+    List<String> imageUrls = [];
+    Map<String, dynamic> postData = await firestore!
+        .collection("unapprovedPosts")
+        .add({}).then((value) async {
+      String postID = value.id;
+      for (String path in _imageUrls) {
+        if (path.substring(0, 5) == "/data") {
+          count++;
+          imageUrls.add(await uploadFileAndGetLink(
+              path, postID + "/postImages" + count.toString(), context));
+        }
+      }
+      var addedPostData = {
+        "createdOn": Timestamp.now(),
+        "type": "unapprovedPost",
+        "authorName": userData["name"],
+        "postID": postID,
+        "postAuthorID": authorID,
+        "postTitle": postTitle,
+        "postVotes": postVotes,
+        "postBody": postBody,
+        "postedOn": postTime,
+        "rating": rating,
+        "postLink": _postLink.text,
+        "images": imageUrls,
+      };
+      await firestore!.collection('unapprovedPosts').doc(postID).set({
+        "createdOn": Timestamp.now(),
+        "type": "unapprovedPost",
+        "authorName": userData["name"],
+        "postID": postID,
+        "postAuthorID": authorID,
+        "postTitle": postTitle,
+        "postVotes": postVotes,
+        "postBody": postBody,
+        "postedOn": postTime,
+        "rating": rating,
+        "postLink": _postLink.text,
+        "images": imageUrls,
+      }, SetOptions(merge: true));
+      return addedPostData;
+    });
+    return postData;
+  }
+
+  void _updatePostAndAddToUnapproved(String postTitle, String postBody) async {
+    List<String> imageUrls = [];
+    int count = 0;
+    for (String path in _imageUrls) {
+      if (path.substring(0, 5) == "/data") {
+        imageUrls.add(await uploadFileAndGetLink(
+            path, widget.postID! + "/postImage" + count.toString(), context));
+      } else {
+        imageUrls.add(path);
+      }
+      count++;
+    }
+    if (widget.isUnapproved == false) {
+      firestore!
+          .collection("recommendationFromAdmins")
+          .where("recommendedItemID", isEqualTo: widget.postID)
+          .get()
+          .then((value) {
+        for (var element in value.docs) {
+          if (element.data()["recommendationType"] == "post") {
+            firestore!
+                .collection("recommendationFromAdmins")
+                .doc(element["recommendationID"])
+                .delete();
+          }
+        }
+      });
+
+      String id = widget.postID!;
+      List temp = userData["postsBookmarked"];
+      temp.remove(id);
+      userData["postsBookmarked"] = temp;
+      firestore!
+          .collection("users")
+          .where("postsBookmarked", arrayContains: id)
+          .get()
+          .then((value) {
+        for (var element in value.docs) {
+          List? temp = element.data()["postsBookmarked"];
+          if (temp != null) {
+            temp.remove(id);
+            firestore!
+                .collection("users")
+                .doc(element.id)
+                .update({"postsBookmarked": temp});
+          }
+        }
+      });
+      Map<String, dynamic> post = await firestore!
+          .collection("posts")
+          .doc(widget.postID)
+          .get()
+          .then((value) {
+        var temp = value.data()!;
+        firestore!.collection("posts").doc(widget.postID).delete();
+        updatedPostID = widget.postID;
+        updatedPostData = {
+          "isUnapproved": true,
+          "postTitle": postTitle,
+          "postBody": postBody,
+          "postLink": _postLink.text,
+          "images": _images,
+          "imagesUrls": imageUrls
+        };
+        return temp;
+      });
+
+      firestore!.collection("unapprovedPosts").doc(widget.postID).set({
+        "createdOn": Timestamp.now(),
+        "type": "unapprovedPost",
+        "postID": widget.postID,
+        "authorName": post["authorName"],
+        "postAuthorID": post["postAuthorID"],
+        "postVotes": post["postVotes"],
+        "postedOn": post["postedOn"],
+        "rating": post["rating"],
+        "postTitle": postTitle,
+        "postBody": postBody,
+        "postLink": _postLink.text,
+        "images": imageUrls
+      });
+    } else {
+      updatedPostID = widget.postID;
+      updatedPostData = {
+        "isUnapproved": true,
+        "postTitle": postTitle,
+        "postBody": postBody,
+        "postLink": _postLink.text,
+        "images": _images,
+        "imagesUrls": imageUrls
+      };
+      firestore!.collection("unapprovedPosts").doc(widget.postID).update({
+        "postTitle": postTitle,
+        "postBody": postBody,
+        "postLink": _postLink.text,
+        "images": imageUrls
+      });
+    }
+
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _saveOrUpdateData() async {
     String postTitle = _titleController.text;
     String authorID = userData["uid"];
     int postVotes = 0;
@@ -140,32 +301,64 @@ class _CreatePostPageState extends State<CreatePostPage> {
     Timestamp postTime = Timestamp.now();
     int rating = getRating(1, DateTime.now());
     if (widget.postID == null) {
-      Map<String, dynamic> postData = await _addPost(
-          postTitle, authorID, postVotes, postBody, postTime, rating);
-      Navigator.of(context).pop();
-      Navigator.of(context).pop();
-      Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-        return const MainPage(
-          startingIndex: 2,
-        );
-      }));
-      Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
-        return APost(
-          postID: postData["postID"],
-          postTitle: postData["postTitle"],
-          authorID: postData["postAuthorID"],
-          postVotes: postData["postVotes"],
-          authorName: userData["name"],
-          postBody: postData["postBody"],
-          postedDuration:
-              printDuration(postTime.toDate().difference(DateTime.now())),
-          images: _images,
-          imagesUrls: postData["imageUrls"],
-          postLink: postData["postLink"],
-        );
-      })));
+      if (userData["hasAdminAccess"] == true) {
+        Map<String, dynamic> postData = await _addPost(
+            postTitle, authorID, postVotes, postBody, postTime, rating);
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+          return const MainPage(
+            startingIndex: 2,
+          );
+        }));
+        Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
+          return APost(
+            postID: postData["postID"],
+            postTitle: postData["postTitle"],
+            authorID: postData["postAuthorID"],
+            postVotes: postData["postVotes"],
+            authorName: userData["name"],
+            postBody: postData["postBody"],
+            postedDuration:
+                printDuration(postTime.toDate().difference(DateTime.now())),
+            images: _images,
+            imagesUrls: postData["imageUrls"],
+            postLink: postData["postLink"],
+          );
+        })));
+      } else {
+        Map<String, dynamic> postData = await _addUnapprovedPost(
+            postTitle, authorID, postVotes, postBody, postTime, rating);
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+          return const MainPage(
+            startingIndex: 2,
+          );
+        }));
+        Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
+          return APost(
+            isUnapproved: postData["type"] != null ? true : false,
+            postID: postData["postID"],
+            postTitle: postData["postTitle"],
+            authorID: postData["postAuthorID"],
+            postVotes: postData["postVotes"],
+            authorName: userData["name"],
+            postBody: postData["postBody"] ?? "",
+            postedDuration:
+                printDuration(postTime.toDate().difference(DateTime.now())),
+            images: _images,
+            imagesUrls: postData["imageUrls"],
+            postLink: postData["postLink"],
+          );
+        })));
+      }
     } else {
-      _updatePost(postTitle, postBody);
+      if (userData["hasAdminAccess"] == true && widget.isUnapproved == false) {
+        _updatePost(postTitle, postBody);
+      } else {
+        _updatePostAndAddToUnapproved(postTitle, postBody);
+      }
     }
     // Navigator.of(context).push(MaterialPageRoute(builder: (context) {
     //   return const MainPage(
@@ -312,7 +505,35 @@ class _CreatePostPageState extends State<CreatePostPage> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               child: TextButton(
                   style: const ButtonStyle(),
-                  onPressed: _createFireStoreDoc as void Function()?,
+                  onPressed: _createFireStoreDoc == null
+                      ? null
+                      : () {
+                          showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                    backgroundColor:
+                                        Theme.of(context).cardColor,
+                                    content: FutureBuilder(
+                                      future: _saveOrUpdateData(),
+                                      builder: (context, snapshot) {
+                                        List<Widget> children = [];
+                                        if (snapshot.hasData) {
+                                          Navigator.of(context).pop();
+                                        } else if (snapshot.hasError) {
+                                          children = buildFutureError(snapshot);
+                                        } else {
+                                          children =
+                                              buildFutureLoading(snapshot);
+                                        }
+                                        return SizedBox(
+                                            height: screenHeight * 0.3,
+                                            child: buildFuture(
+                                                children: children));
+                                      },
+                                    ));
+                              });
+                        },
                   child: Text(
                     buttonText,
                     style: const TextStyle(

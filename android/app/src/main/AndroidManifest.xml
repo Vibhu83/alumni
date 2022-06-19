@@ -4,7 +4,7 @@
 
    <application
       android:requestLegacyExternalStorage="true"
-        android:label="alumni"
+        android:label="NPGC Alumni"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

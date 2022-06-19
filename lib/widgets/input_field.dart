@@ -13,9 +13,11 @@ class InputField extends StatelessWidget {
   final bool obscureText;
   final int? maxLength;
   final double heightPadding;
+  final double horizontalPadding;
   final TextEditingController? controller;
   final int maxLines;
   final bool readOnly;
+  final double circularBorderRadius;
   const InputField(
       {this.labelText = "",
       this.onChanged,
@@ -32,6 +34,8 @@ class InputField extends StatelessWidget {
       this.maxLines = 1,
       this.readOnly = false,
       this.onTap,
+      this.circularBorderRadius = 4.0,
+      this.horizontalPadding = 10.0,
       Key? key})
       : super(key: key);
 
@@ -67,11 +71,11 @@ class InputField extends StatelessWidget {
                   : Colors.red),
           errorBorder: OutlineInputBorder(
             borderSide: BorderSide(color: Colors.red.shade800, width: 1),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(circularBorderRadius),
           ),
           focusColor: Colors.blue,
-          contentPadding:
-              EdgeInsets.symmetric(horizontal: 10, vertical: heightPadding),
+          contentPadding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding, vertical: heightPadding),
           label: Text(
             labelText,
             textAlign: TextAlign.left,
@@ -79,9 +83,23 @@ class InputField extends StatelessWidget {
           errorText: errorText,
           floatingLabelBehavior: FloatingLabelBehavior.always,
           floatingLabelAlignment: FloatingLabelAlignment.start,
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+                color: Theme.of(context)
+                    .inputDecorationTheme
+                    .enabledBorder!
+                    .borderSide
+                    .color),
+            borderRadius: BorderRadius.circular(circularBorderRadius),
+          ),
           border: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.white),
-            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(
+                color: Theme.of(context)
+                    .inputDecorationTheme
+                    .enabledBorder!
+                    .borderSide
+                    .color),
+            borderRadius: BorderRadius.circular(circularBorderRadius),
           ),
         ),
       ),

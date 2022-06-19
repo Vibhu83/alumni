@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class APost extends StatefulWidget {
+  final bool isUnapproved;
   final String postID;
   final String postTitle;
   final String? authorID;
@@ -26,7 +27,8 @@ class APost extends StatefulWidget {
   final List<String>? imagesUrls;
   final String? postLink;
   const APost(
-      {required this.postID,
+      {this.isUnapproved = false,
+      required this.postID,
       required this.postTitle,
       required this.authorID,
       required this.postVotes,
@@ -47,9 +49,18 @@ class APost extends StatefulWidget {
 class _APost extends State<APost> {
   late bool _isInitialRun;
   late bool _isBookmarked;
+  late String _postTitle;
+  late String _postBody;
+  late List<Image>? _postImages;
+  late List<String>? _postImagesUrl;
+  late String? postLink;
+  late int _voteOffset;
+  late int _votes;
+  late bool _isUnapproved;
 
   @override
   void initState() {
+    _isUnapproved = widget.isUnapproved;
     if (userData["postsBookmarked"] != null) {
       _isBookmarked = userData["postsBookmarked"].contains(widget.postID);
     } else {
@@ -68,6 +79,9 @@ class _APost extends State<APost> {
 
   Future<bool> _getVotes() async {
     if (_isInitialRun == true) {
+      if (_isUnapproved) {
+        return true;
+      }
       _isInitialRun = false;
 
       _votes =
@@ -94,9 +108,6 @@ class _APost extends State<APost> {
       return false;
     }
   }
-
-  late int _voteOffset;
-  late int _votes;
 
   void _deletePost() {
     firestore!.collection("posts").doc(widget.postID).delete();
@@ -153,6 +164,7 @@ class _APost extends State<APost> {
   void _editPost() {
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return CreatePostPage(
+        isUnapproved: _isUnapproved,
         postID: widget.postID,
         postTitle: _postTitle,
         postBody: _postBody,
@@ -163,6 +175,7 @@ class _APost extends State<APost> {
     })).then((value) {
       if (updatedPostID == widget.postID) {
         setState(() {
+          _isUnapproved = updatedPostData["isUnapproved"]!;
           _postTitle = updatedPostData["postTitle"];
           _postBody = updatedPostData["postBody"];
           _postImages = updatedPostData["images"];
@@ -186,6 +199,88 @@ class _APost extends State<APost> {
   }
 
   List<Widget> _getAppBarActions() {
+    IconButton approveButton = buildAppBarIcon(
+        onPressed: () {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return const ConfirmationPopUp(
+                  title: "Approve the post?",
+                );
+              }).then((value) {
+            if (value == true) {
+              _approvePost();
+              Navigator.of(context).pop(-1);
+            }
+          });
+        },
+        icon: Icons.check);
+    IconButton disapproveButton = buildAppBarIcon(
+        onPressed: () {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return const ConfirmationPopUp(
+                  title: "Delete the approval request?",
+                );
+              }).then((value) {
+            if (value == true) {
+              firestore!
+                  .collection("unapprovedPosts")
+                  .doc(widget.postID)
+                  .delete();
+              deleteStorageFolder(widget.postID);
+              firestore!
+                  .collection("recommendationFromAdmins")
+                  .where("recommendedItemID", isEqualTo: widget.postID)
+                  .get()
+                  .then((value) {
+                for (var element in value.docs) {
+                  if (element.data()["recommendationType"] == "post") {
+                    firestore!
+                        .collection("recommendationFromAdmins")
+                        .doc(element["recommendationID"])
+                        .delete();
+                  }
+                }
+              });
+              firestore!
+                  .collection("userVotes")
+                  .where(widget.postID, isNotEqualTo: null)
+                  .get()
+                  .then((value) {
+                for (var element in value.docs) {
+                  firestore!
+                      .collection("userVotes")
+                      .doc(element.id)
+                      .update({widget.postID: FieldValue.delete()});
+                }
+              });
+              String id = widget.postID;
+              List temp = userData["postsBookmarked"];
+              temp.remove(id);
+              userData["postsBookmarked"] = temp;
+              firestore!
+                  .collection("users")
+                  .where("postsBookmarked", arrayContains: id)
+                  .get()
+                  .then((value) {
+                for (var element in value.docs) {
+                  List? temp = element.data()["postsBookmarked"];
+                  if (temp != null) {
+                    temp.remove(id);
+                    firestore!
+                        .collection("users")
+                        .doc(element.id)
+                        .update({"postsBookmarked": temp});
+                  }
+                }
+              });
+              Navigator.of(context).pop(-1);
+            }
+          });
+        },
+        icon: Icons.close);
     IconButton shareButton = buildAppBarIcon(
         onPressed: () {
           _sharePost();
@@ -212,25 +307,34 @@ class _APost extends State<APost> {
         },
         icon: Icons.delete_rounded);
     List<Widget> appBarActions = [];
-    if (userData["uid"] == widget.authorID && widget.authorID != null) {
-      if (userData["hasAdminAccess"] == true) {
+    if (widget.authorID != null && userData["uid"] == widget.authorID) {
+      if (userData["hasAdminAccess"] == true && _isUnapproved == false) {
         appBarActions.add(shareButton);
       }
 
       appBarActions.add(editButton);
-      appBarActions.add(deleteButton);
+      if (_isUnapproved == false) {
+        appBarActions.add(deleteButton);
+      }
+      if (_isUnapproved) {
+        appBarActions.addAll([
+          disapproveButton,
+          approveButton,
+        ]);
+      }
     } else if (userData["hasAdminAccess"] == true) {
-      appBarActions.add(shareButton);
-      appBarActions.add(deleteButton);
+      if (_isUnapproved == false) {
+        appBarActions.add(shareButton);
+        appBarActions.add(deleteButton);
+      } else {
+        appBarActions.addAll([
+          disapproveButton,
+          approveButton,
+        ]);
+      }
     }
     return appBarActions;
   }
-
-  late String _postTitle;
-  late String _postBody;
-  late List<Image>? _postImages;
-  late List<String>? _postImagesUrl;
-  late String? postLink;
 
   @override
   Widget build(BuildContext context) {
@@ -318,106 +422,123 @@ class _APost extends State<APost> {
         .update({"postsBookmarked": postsBookmarked});
   }
 
+  void _approvePost() async {
+    Map<String, dynamic> post = await firestore!
+        .collection("unapprovedPosts")
+        .doc(widget.postID)
+        .get()
+        .then((value) {
+      var temp = value.data()!;
+      firestore!.collection("unapprovedPosts").doc(widget.postID).delete();
+      return temp;
+    });
+    post.remove("type");
+    firestore!.collection("posts").doc(widget.postID).set(post);
+  }
+
   Scaffold _buildPage() {
     var appBarActions = _getAppBarActions();
     Widget postButtons = const SizedBox(
       height: 0,
     );
-    Color bookMarkIconColor = Theme.of(context).appBarTheme.foregroundColor!;
-    IconData bookMarkIcon = Icons.bookmark_add;
-    if (_isBookmarked == true) {
-      bookMarkIcon = Icons.bookmark_added;
-      bookMarkIconColor = Colors.blue;
-    }
+
     Color votesColor = Colors.grey;
-    Color upvoteButtonColor = Colors.grey;
-    Color downvoteButtonColor = Colors.grey;
-    if (_voteOffset == 1) {
-      upvoteButtonColor = Colors.blue;
-      votesColor = upvoteButtonColor;
-    } else if (_voteOffset == -1) {
-      downvoteButtonColor = Colors.deepOrange;
-      votesColor = downvoteButtonColor;
-    }
+    if (_isUnapproved == false) {
+      Color bookMarkIconColor = Theme.of(context).appBarTheme.foregroundColor!;
+      IconData bookMarkIcon = Icons.bookmark_add;
+      if (_isBookmarked == true) {
+        bookMarkIcon = Icons.bookmark_added;
+        bookMarkIconColor = Colors.blue;
+      }
+      Color upvoteButtonColor = Colors.grey;
+      Color downvoteButtonColor = Colors.grey;
+      if (_voteOffset == 1) {
+        upvoteButtonColor = Colors.blue;
+        votesColor = upvoteButtonColor;
+      } else if (_voteOffset == -1) {
+        downvoteButtonColor = Colors.deepOrange;
+        votesColor = downvoteButtonColor;
+      }
 
-    IconButton upvoteButton = IconButton(
-        splashRadius: 1,
-        color: upvoteButtonColor,
-        onPressed: () {
-          int changeInVotes = upvote();
-          changeVote(widget.postID, changeInVotes);
-        },
-        icon: const Icon(Icons.arrow_upward_sharp));
-
-    IconButton downvoteButton = IconButton(
-        splashRadius: 1,
-        color: downvoteButtonColor,
-        onPressed: () {
-          int changeInVotes = downvote();
-          changeVote(widget.postID, changeInVotes);
-        },
-        icon: const Icon(Icons.arrow_downward_sharp));
-    IconButton bookmarkButton = IconButton(
-        splashRadius: 1,
-        onPressed: () {
-          if (_isBookmarked == true) {
-            unsetBookmark();
-            setState(() {
-              _isBookmarked = false;
-            });
-          } else {
-            setBookmark();
-            setState(() {
-              _isBookmarked = true;
-            });
-          }
-        },
-        icon: Icon(
-          bookMarkIcon,
-          color: bookMarkIconColor,
-        ));
-    List<Widget> bottomNavButtons = [];
-    if (userData["uid"] != null) {
-      bottomNavButtons.addAll([upvoteButton, downvoteButton, bookmarkButton]);
-    }
-    if (postLink != null && Uri.tryParse(postLink!)!.hasAbsolutePath) {
-      IconButton openLinkButton = IconButton(
+      IconButton upvoteButton = IconButton(
+          splashRadius: 1,
+          color: upvoteButtonColor,
           onPressed: () {
-            launchUrl(Uri.parse(postLink!));
+            int changeInVotes = upvote();
+            changeVote(widget.postID, changeInVotes);
           },
-          icon: const Icon(Icons.open_in_new));
-      bottomNavButtons.add(openLinkButton);
-    }
-    postButtons = bottomNavButtons.isNotEmpty
-        ? Container(
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context)
-                        .appBarTheme
-                        .shadowColor!
-                        .withOpacity(0.25),
-                    blurStyle: BlurStyle.solid,
-                    spreadRadius: 0.1,
-                    blurRadius: 0.5,
-                    offset: const Offset(0, -1),
-                  ),
-                ]),
-            height: screenHeight * .06,
-            child: Card(
-              color: Theme.of(context).appBarTheme.backgroundColor,
-              shadowColor: Theme.of(context).appBarTheme.shadowColor,
-              elevation: 2,
-              margin: const EdgeInsets.only(bottom: 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: bottomNavButtons,
-              ),
-            ),
-          )
-        : const SizedBox();
+          icon: const Icon(Icons.arrow_upward_sharp));
 
+      IconButton downvoteButton = IconButton(
+          splashRadius: 1,
+          color: downvoteButtonColor,
+          onPressed: () {
+            int changeInVotes = downvote();
+            changeVote(widget.postID, changeInVotes);
+          },
+          icon: const Icon(Icons.arrow_downward_sharp));
+      IconButton bookmarkButton = IconButton(
+          splashRadius: 1,
+          onPressed: () {
+            if (_isBookmarked == true) {
+              unsetBookmark();
+              setState(() {
+                _isBookmarked = false;
+              });
+            } else {
+              setBookmark();
+              setState(() {
+                _isBookmarked = true;
+              });
+            }
+          },
+          icon: Icon(
+            bookMarkIcon,
+            color: bookMarkIconColor,
+          ));
+      List<Widget> bottomNavButtons = [];
+      if (userData["uid"] != null) {
+        bottomNavButtons.addAll([upvoteButton, downvoteButton, bookmarkButton]);
+      }
+      if (postLink != null && Uri.tryParse(postLink!)!.hasAbsolutePath) {
+        IconButton openLinkButton = IconButton(
+            onPressed: () {
+              launchUrl(Uri.parse(postLink!),
+                  mode: LaunchMode.externalApplication);
+            },
+            icon: const Icon(Icons.open_in_new));
+        bottomNavButtons.add(openLinkButton);
+      }
+      postButtons = bottomNavButtons.isNotEmpty
+          ? Container(
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context)
+                          .appBarTheme
+                          .shadowColor!
+                          .withOpacity(0.25),
+                      blurStyle: BlurStyle.solid,
+                      spreadRadius: 0.1,
+                      blurRadius: 0.5,
+                      offset: const Offset(0, -1),
+                    ),
+                  ]),
+              height: screenHeight * .06,
+              child: Card(
+                color: Theme.of(context).appBarTheme.backgroundColor,
+                shadowColor: Theme.of(context).appBarTheme.shadowColor,
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: bottomNavButtons,
+                ),
+              ),
+            )
+          : const SizedBox();
+    }
     Widget bannerWidget;
     double bannerAreaHeight;
     if (_postImages != null && _postImages!.isNotEmpty) {
@@ -523,7 +644,7 @@ class _APost extends State<APost> {
                     height: screenHeight * 0.01,
                   ),
                   Flexible(
-                      child: widget.postBody.isNotEmpty
+                      child: _postBody.isNotEmpty
                           ? Container(
                               margin: const EdgeInsets.only(bottom: 4),
                               padding: const EdgeInsets.symmetric(
