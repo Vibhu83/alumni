@@ -4,7 +4,6 @@ import 'package:alumni/globals.dart';
 import 'package:alumni/views/a_post_page.dart';
 import 'package:alumni/views/main_page.dart';
 import 'package:alumni/widgets/appbar_widgets.dart';
-import 'package:alumni/widgets/custom_alert_dialog.dart';
 import 'package:alumni/widgets/future_widgets.dart';
 import 'package:alumni/widgets/group_box.dart';
 import 'package:alumni/widgets/input_field.dart';
