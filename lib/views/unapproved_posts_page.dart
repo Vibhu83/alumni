@@ -9,7 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
 
 class UnapprovedPostsPage extends StatefulWidget {
-  const UnapprovedPostsPage({Key? key}) : super(key: key);
+  final String? uid;
+  const UnapprovedPostsPage({this.uid, Key? key}) : super(key: key);
 
   @override
   State<UnapprovedPostsPage> createState() => _UnapprovedPostsPageState();
@@ -94,6 +95,9 @@ class _UnapprovedPostsPageState extends State<UnapprovedPostsPage> {
             .orderBy("createdOn", descending: true);
         break;
     }
+    if (widget.uid != null) {
+      query = query.where("authorID", isEqualTo: widget.uid!);
+    }
     QuerySnapshot<Map<String, dynamic>> querySnapshot =
         await query.limit(_documentLoadLimit).get();
 
@@ -154,6 +158,9 @@ class _UnapprovedPostsPageState extends State<UnapprovedPostsPage> {
             .collection("unapprovedPosts")
             .orderBy("createdOn", descending: true);
         break;
+    }
+    if (widget.uid != null) {
+      query = query.where("authorID", isEqualTo: widget.uid!);
     }
     QuerySnapshot<Map<String, dynamic>> querySnapshot = await query
         .startAfterDocument(_lastDocument!)

@@ -6,6 +6,7 @@ import 'package:alumni/views/bookmark_page.dart';
 import 'package:alumni/views/chat_room_page.dart';
 import 'package:alumni/views/event_creation_page.dart';
 import 'package:alumni/views/events_page.dart';
+import 'package:alumni/views/posts_by_id.dart';
 import 'package:alumni/views/unapproved_posts_page.dart';
 import 'package:alumni/views/posts_page.dart';
 import 'package:alumni/views/home_page.dart';
@@ -677,10 +678,11 @@ class _MainPageState extends State<MainPage> {
                                 builder: ((context) =>
                                     ProfilePage(uid: userData["uid"]))));
                           })),
-                      _buildDrawListTile("Recommendations", () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: ((context) =>
-                                RecommendationPage(uid: userData["uid"]))));
+                      _buildDrawListTile("My Posts", () {
+                        Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (context) {
+                          return PostsByIDPage(uid: userData["uid"]);
+                        }));
                       }),
                       userData["hasAdminAccess"] == true
                           ? _buildDrawListTile("Unapproved Posts", () {
@@ -688,7 +690,16 @@ class _MainPageState extends State<MainPage> {
                                   builder: ((context) =>
                                       const UnapprovedPostsPage())));
                             })
-                          : const SizedBox(),
+                          : _buildDrawListTile("My Unapproved Posts", () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                  builder: ((context) =>
+                                      const UnapprovedPostsPage())));
+                            }),
+                      _buildDrawListTile("Recommendations", () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: ((context) =>
+                                RecommendationPage(uid: userData["uid"]))));
+                      }),
                       _buildDrawListTile("Bookmarks", () {
                         Navigator.of(context)
                             .push(MaterialPageRoute(builder: (context) {

@@ -113,6 +113,21 @@ class _APostCardState extends State<APostCard> {
                           .withOpacity(0.8)),
                 ),
               ),
+              widget.isUnapproved == true
+                  ? Padding(
+                      padding: EdgeInsets.only(top: screenHeight * 0.005),
+                      child: Text(
+                        "Not yet approved by Admin Team",
+                        style: TextStyle(
+                            fontSize: 8,
+                            fontStyle: FontStyle.italic,
+                            color: Theme.of(context)
+                                .appBarTheme
+                                .foregroundColor!
+                                .withOpacity(0.75)),
+                      ),
+                    )
+                  : const SizedBox(),
               SizedBox(
                 height: screenHeight * 0.01,
               ),

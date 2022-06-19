@@ -280,7 +280,7 @@ class _APost extends State<APost> {
             }
           });
         },
-        icon: Icons.close);
+        icon: Icons.delete_forever);
     IconButton shareButton = buildAppBarIcon(
         onPressed: () {
           _sharePost();
@@ -307,32 +307,65 @@ class _APost extends State<APost> {
         },
         icon: Icons.delete_rounded);
     List<Widget> appBarActions = [];
-    if (widget.authorID != null && userData["uid"] == widget.authorID) {
-      if (userData["hasAdminAccess"] == true && _isUnapproved == false) {
-        appBarActions.add(shareButton);
-      }
 
-      appBarActions.add(editButton);
-      if (_isUnapproved == false) {
-        appBarActions.add(deleteButton);
-      }
-      if (_isUnapproved) {
-        appBarActions.addAll([
-          disapproveButton,
+    if (_isUnapproved) {
+      if (userData["hasAdminAccess"] == true &&
+          widget.authorID == userData["uid"]) {
+        appBarActions.add(editButton);
+        appBarActions.add(disapproveButton);
+        appBarActions.add(
           approveButton,
-        ]);
+        );
+      } else if (widget.authorID == userData["uid"]) {
+        appBarActions.add(editButton);
+        appBarActions.add(disapproveButton);
+      } else if (userData["hasAdminAccess"] == true) {
+        appBarActions.add(disapproveButton);
+        appBarActions.add(
+          approveButton,
+        );
       }
-    } else if (userData["hasAdminAccess"] == true) {
-      if (_isUnapproved == false) {
+    } else {
+      if (userData["hasAdminAccess"] == true &&
+          widget.authorID == userData["uid"]) {
+        appBarActions.add(shareButton);
+        appBarActions.add(editButton);
+        appBarActions.add(deleteButton);
+      } else if (widget.authorID == userData["uid"]) {
+        appBarActions.add(editButton);
+        appBarActions.add(deleteButton);
+      } else if (userData["hasAdminAccess"] == true) {
         appBarActions.add(shareButton);
         appBarActions.add(deleteButton);
-      } else {
-        appBarActions.addAll([
-          disapproveButton,
-          approveButton,
-        ]);
       }
     }
+
+    // if (widget.authorID != null && userData["uid"] == widget.authorID) {
+    //   if (userData["hasAdminAccess"] == true && _isUnapproved == false) {
+    //     appBarActions.add(shareButton);
+    //   }
+
+    //   appBarActions.add(editButton);
+    //   if (_isUnapproved == false) {
+    //     appBarActions.add(deleteButton);
+    //   }
+    //   if (_isUnapproved) {
+    //     appBarActions.addAll([
+    //       disapproveButton,
+    //       approveButton,
+    //     ]);
+    //   }
+    // } else if (userData["hasAdminAccess"] == true) {
+    //   if (_isUnapproved == false) {
+    //     appBarActions.add(shareButton);
+    //     appBarActions.add(deleteButton);
+    //   } else {
+    //     appBarActions.addAll([
+    //       disapproveButton,
+    //       approveButton,
+    //     ]);
+    //   }
+    // }
     return appBarActions;
   }
 
@@ -630,6 +663,21 @@ class _APost extends State<APost> {
                               .withOpacity(0.8)),
                     ),
                   ),
+                  _isUnapproved == true
+                      ? Padding(
+                          padding: EdgeInsets.only(top: screenHeight * 0.005),
+                          child: Text(
+                            "Not yet approved by Admin Team",
+                            style: TextStyle(
+                                fontSize: 8,
+                                fontStyle: FontStyle.italic,
+                                color: Theme.of(context)
+                                    .appBarTheme
+                                    .foregroundColor!
+                                    .withOpacity(0.75)),
+                          ),
+                        )
+                      : const SizedBox(),
                   SizedBox(
                     height: screenHeight * 0.01,
                   ),

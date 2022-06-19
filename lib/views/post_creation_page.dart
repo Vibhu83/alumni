@@ -89,6 +89,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
       }, SetOptions(merge: true));
       postAdded = true;
       addedPostData = {
+        "isUnapproved": false,
         "authorName": userData["name"],
         "postID": postID,
         "postAuthorID": authorID,
@@ -159,6 +160,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
         }
       }
       var addedPostData = {
+        "isUnapproved": true,
         "createdOn": Timestamp.now(),
         "type": "unapprovedPost",
         "authorName": userData["name"],
@@ -313,6 +315,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
         }));
         Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
           return APost(
+            isUnapproved: false,
             postID: postData["postID"],
             postTitle: postData["postTitle"],
             authorID: postData["postAuthorID"],
@@ -338,7 +341,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
         }));
         Navigator.of(context).push(MaterialPageRoute(builder: ((context) {
           return APost(
-            isUnapproved: postData["type"] != null ? true : false,
+            isUnapproved: true,
             postID: postData["postID"],
             postTitle: postData["postTitle"],
             authorID: postData["postAuthorID"],
